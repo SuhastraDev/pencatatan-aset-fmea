@@ -79,8 +79,8 @@ simaset/
 ### 1. Clone & Virtual Environment
 
 ```bash
-git clone <repo-url>
-cd simaset
+git clone https://github.com/SuhastraDev/pencatatan-aset-fmea.git
+cd pencatatan-aset-fmea
 python -m venv venv
 
 # Windows
@@ -167,7 +167,7 @@ Seeder dijalankan dengan `flask seed`. Membuat akun awal jika belum ada.
 | Field | Value |
 |---|---|
 | **Email** | `superadmin@rskgm.id` |
-| **Password** | `Admin@12345` |
+| **Password** | `password` |
 | **Role** | `super_admin` |
 | **Status** | Aktif |
 
