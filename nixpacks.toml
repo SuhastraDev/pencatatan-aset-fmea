@@ -1,2 +1,8 @@
 [phases.setup]
-nixPkgs = ["cairo", "pkg-config", "gobject-introspection"]
+nixPkgs = ["python311", "python311Packages.pip", "cairo", "pkg-config", "gobject-introspection"]
+
+[phases.install]
+cmds = ["python3.11 -m venv /opt/venv && . /opt/venv/bin/activate && pip install -r requirements.txt"]
+
+[start]
+cmd = "gunicorn run:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
