@@ -20,11 +20,6 @@ COPY . .
 # Buat folder exports dan qrcodes jika belum ada
 RUN mkdir -p exports app/static/qrcodes
 
-ENV PORT=8000
-
 EXPOSE 8000
 
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
-
-CMD ["/start.sh"]
+CMD ["gunicorn", "run:app", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120"]
