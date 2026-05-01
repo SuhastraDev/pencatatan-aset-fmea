@@ -1,0 +1,173 @@
+{% extends "layouts/base_super_admin.html" %}
+{% block title %}Edit Ruangan — Super Admin{% endblock %}
+
+{% block breadcrumb %}<i class="bi bi-door-open"></i><a href="{{ url_for('super_admin.rooms_index') }}" style="color:inherit;">Manajemen Ruangan</a><i class="bi bi-chevron-right"></i><span>Edit</span>{% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{{ url_for('super_admin.rooms_index') }}" class="btn btn-icon btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div>
+    <h4 class="fw-bold mb-0" style="color:#0F172A;">Edit Ruangan</h4>
+    <p class="text-muted mb-0" style="font-size:13px;">
+      <span style="font-family:monospace;">{{ room.room_code }}</span>
+      &nbsp;·&nbsp;{{ room.room_name }}
+    </p>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-6 col-md-8">
+
+    {% if room.assets.count() > 0 %}
+    <div class="d-flex align-items-start gap-3 p-3 mb-4"
+         style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:12px;">
+      <i class="bi bi-exclamation-triangle" style="color:#D97706; font-size:18px; flex-shrink:0; margin-top:1px;"></i>
+      <div style="font-size:13px; color:#92400E;">
+        Ruangan ini memiliki <strong>{{ room.assets.count() }} aset</strong> terdaftar.
+        Divisi tidak dapat diubah selama masih ada aset di dalamnya.
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-header">
+        <span class="fw-semibold" style="font-size:14px;">Informasi Ruangan</span>
+      </div>
+      <div class="card-body" style="padding:28px;">
+        <form method="POST" novalidate id="editRoomForm">
+          {{ form.hidden_tag() }}
+
+          <div class="form-section"><i class="bi bi-diagram-3 me-1"></i> Divisi</div>
+
+          <div class="mb-4">
+            <label class="form-label">
+              Divisi <span style="color:#DC2626;">*</span>
+              {% if room.assets.count() > 0 %}
+                <span style="background:#FEF3C7; color:#92400E; font-size:10.5px; font-weight:600;
+                              padding:2px 8px; border-radius:20px; margin-left:6px;">
+                  <i class="bi bi-lock me-1"></i>Tidak dapat diubah
+                </span>
+              {% endif %}
+            </label>
+            <div class="input-icon-wrap">
+              <i class="bi bi-diagram-3 field-icon"></i>
+              {{ form.division_id(class="form-select" + (" is-invalid" if form.division_id.errors else ""),
+                 style="padding-left:38px;" + ("; background:#F8FAFC; color:#94A3B8;" if room.assets.count() > 0 else ""),
+                 **({'disabled': 'disabled'} if room.assets.count() > 0 else {})) }}
+            </div>
+            {% if room.assets.count() > 0 %}
+              <input type="hidden" name="{{ form.division_id.name }}" value="{{ room.division_id }}">
+            {% endif %}
+            {% for e in form.division_id.errors %}
+              <div class="invalid-feedback d-block">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="divider my-4"></div>
+
+          <div class="form-section"><i class="bi bi-door-open me-1"></i> Identitas Ruangan</div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-sm-5">
+              <label class="form-label">Kode Ruangan <span style="color:#DC2626;">*</span></label>
+              <div class="input-icon-wrap">
+                <i class="bi bi-hash field-icon"></i>
+                {{ form.room_code(class="form-control" + (" is-invalid" if form.room_code.errors else ""),
+                   maxlength=20, id="roomCodeInput",
+                   style="font-family:monospace; text-transform:uppercase; padding-left:38px;") }}
+              </div>
+              {% for e in form.room_code.errors %}
+                <div class="invalid-feedback d-block">{{ e }}</div>
+              {% endfor %}
+              <div class="field-hint"><i class="bi bi-info-circle"></i> Kode unik, maks. 20 karakter</div>
+            </div>
+            <div class="col-sm-7">
+              <label class="form-label">Nama Ruangan <span style="color:#DC2626;">*</span></label>
+              <div class="input-icon-wrap">
+                <i class="bi bi-door-open field-icon"></i>
+                {{ form.room_name(class="form-control" + (" is-invalid" if form.room_name.errors else ""),
+                   maxlength=100, id="roomNameInput") }}
+              </div>
+              {% for e in form.room_name.errors %}
+                <div class="invalid-feedback d-block">{{ e }}</div>
+              {% endfor %}
+              <span class="char-counter" id="roomNameCounter"></span>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label">Lantai <span style="color:#DC2626;">*</span></label>
+            <div class="input-icon-wrap">
+              <i class="bi bi-layers field-icon"></i>
+              {{ form.floor(class="form-control" + (" is-invalid" if form.floor.errors else "")) }}
+            </div>
+            {% for e in form.floor.errors %}
+              <div class="invalid-feedback d-block">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label">
+              Deskripsi
+              <span class="text-muted fw-normal ms-1" style="font-size:11px;">opsional</span>
+            </label>
+            {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""),
+               rows=3, maxlength=300, id="descInput") }}
+            {% for e in form.description.errors %}
+              <div class="invalid-feedback d-block">{{ e }}</div>
+            {% endfor %}
+            <span class="char-counter" id="descCounter"></span>
+          </div>
+
+          <div class="divider mb-4"></div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-5" id="submitBtn">
+              <i class="bi bi-save me-2"></i>Simpan Perubahan
+            </button>
+            <a href="{{ url_for('super_admin.rooms_index') }}" class="btn btn-outline-secondary px-4">Batal</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Auto-uppercase kode ruangan */
+const roomCodeInput = document.getElementById('roomCodeInput');
+if (roomCodeInput) {
+  roomCodeInput.addEventListener('input', function() {
+    const pos = this.selectionStart;
+    this.value = this.value.toUpperCase();
+    this.setSelectionRange(pos, pos);
+  });
+}
+
+function makeCounter(inputId, counterId, max) {
+  const inp = document.getElementById(inputId);
+  const ctr = document.getElementById(counterId);
+  if (!inp || !ctr) return;
+  function upd() {
+    ctr.textContent = inp.value.length + ' / ' + max;
+    ctr.classList.toggle('warn', inp.value.length > max * 0.85);
+  }
+  inp.addEventListener('input', upd);
+  upd();
+}
+makeCounter('roomNameInput', 'roomNameCounter', 100);
+makeCounter('descInput', 'descCounter', 300);
+
+document.getElementById('editRoomForm').addEventListener('submit', function() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Menyimpan...';
+});
+</script>
+{% endblock %}

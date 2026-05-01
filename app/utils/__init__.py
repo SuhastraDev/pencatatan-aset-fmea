@@ -1,0 +1,1 @@
+# Fungsi-fungsi utilitas umum

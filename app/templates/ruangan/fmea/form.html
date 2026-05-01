@@ -1,0 +1,193 @@
+{% extends "layouts/base_ruangan.html" %}
+{% block title %}Evaluasi FMEA — {{ asset.asset_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('ruangan.assets_detail', id=asset.id) }}" class="btn btn-sm btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+  <div>
+    <h4 class="fw-bold mb-0">Evaluasi FMEA</h4>
+    <p class="text-muted mb-0">{{ asset.asset_code }} — {{ asset.asset_name }}</p>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-clipboard-check me-2 text-info"></i>Form Evaluasi</div>
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('ruangan.fmea_form', id=asset.id) }}" novalidate id="fmeaForm">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Mode Kegagalan</label>
+            {{ form.failure_mode(class="form-control" + (" is-invalid" if form.failure_mode.errors else ""), placeholder="Contoh: Motor tidak berputar") }}
+            {% for e in form.failure_mode.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Efek Kegagalan</label>
+            {{ form.failure_effect(class="form-control" + (" is-invalid" if form.failure_effect.errors else ""), rows=2, placeholder="Contoh: Alat tidak dapat digunakan untuk diagnosis") }}
+            {% for e in form.failure_effect.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- Severity -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold d-flex justify-content-between">
+              <span>Severity (S) — Tingkat Keparahan</span>
+              <span class="badge bg-primary fs-6" id="sVal">{{ form.severity.data or 1 }}</span>
+            </label>
+            <input type="range" class="form-range" min="1" max="10" id="severityRange"
+              value="{{ form.severity.data or 1 }}" oninput="syncSlider('severity', this.value)">
+            {{ form.severity(class="form-control form-control-sm mt-1" + (" is-invalid" if form.severity.errors else ""),
+              id="severityInput", style="width:80px", oninput="syncSlider('severity', this.value, true)") }}
+            {% for e in form.severity.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- Occurrence -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold d-flex justify-content-between">
+              <span>Occurrence (O) — Frekuensi Kejadian</span>
+              <span class="badge bg-primary fs-6" id="oVal">{{ form.occurrence.data or 1 }}</span>
+            </label>
+            <input type="range" class="form-range" min="1" max="10" id="occurrenceRange"
+              value="{{ form.occurrence.data or 1 }}" oninput="syncSlider('occurrence', this.value)">
+            {{ form.occurrence(class="form-control form-control-sm mt-1" + (" is-invalid" if form.occurrence.errors else ""),
+              id="occurrenceInput", style="width:80px", oninput="syncSlider('occurrence', this.value, true)") }}
+            {% for e in form.occurrence.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- Detection -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold d-flex justify-content-between">
+              <span>Detection (D) — Kemampuan Deteksi</span>
+              <span class="badge bg-primary fs-6" id="dVal">{{ form.detection.data or 1 }}</span>
+            </label>
+            <input type="range" class="form-range" min="1" max="10" id="detectionRange"
+              value="{{ form.detection.data or 1 }}" oninput="syncSlider('detection', this.value)">
+            {{ form.detection(class="form-control form-control-sm mt-1" + (" is-invalid" if form.detection.errors else ""),
+              id="detectionInput", style="width:80px", oninput="syncSlider('detection', this.value, true)") }}
+            {% for e in form.detection.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- Preview RPN -->
+          <div class="rounded-3 p-3 mb-3 text-center" id="rpnPreview" style="transition:background 0.3s;">
+            <div class="small fw-semibold mb-1">RPN = S × O × D</div>
+            <div class="display-5 fw-bold" id="rpnScore">1</div>
+            <div class="fw-semibold mt-1" id="rpnLabel">Rendah</div>
+            <div class="small mt-1" id="rpnRec"></div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Tanggal Evaluasi</label>
+            {{ form.evaluation_date(class="form-control" + (" is-invalid" if form.evaluation_date.errors else ""), type="date") }}
+            {% for e in form.evaluation_date.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Catatan <span class="text-muted fw-normal">(opsional)</span></label>
+            {{ form.notes(class="form-control", rows=2) }}
+          </div>
+
+          <button type="submit" class="btn btn-info text-white px-4">
+            <i class="bi bi-save me-2"></i>Simpan Evaluasi
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panduan -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white fw-semibold small"><i class="bi bi-table me-2 text-primary"></i>Panduan Nilai Severity (S)</div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0 small">
+          <thead class="table-light"><tr><th>Nilai</th><th>Deskripsi</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Tidak ada efek</td></tr>
+            <tr><td>2-3</td><td>Efek sangat ringan, tidak mengganggu fungsi</td></tr>
+            <tr><td>4-6</td><td>Efek sedang, penurunan performa</td></tr>
+            <tr><td>7-8</td><td>Efek berat, alat tidak berfungsi optimal</td></tr>
+            <tr><td>9-10</td><td>Efek sangat berat, membahayakan keselamatan</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white fw-semibold small"><i class="bi bi-table me-2 text-primary"></i>Panduan Nilai Occurrence (O)</div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0 small">
+          <thead class="table-light"><tr><th>Nilai</th><th>Frekuensi</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Hampir tidak pernah terjadi</td></tr>
+            <tr><td>2-3</td><td>Sangat jarang (1x/tahun)</td></tr>
+            <tr><td>4-6</td><td>Kadang-kadang (1x/bulan)</td></tr>
+            <tr><td>7-8</td><td>Sering (1x/minggu)</td></tr>
+            <tr><td>9-10</td><td>Hampir selalu terjadi</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold small"><i class="bi bi-table me-2 text-primary"></i>Panduan Nilai Detection (D)</div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0 small">
+          <thead class="table-light"><tr><th>Nilai</th><th>Kemampuan Deteksi</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Hampir pasti terdeteksi</td></tr>
+            <tr><td>2-3</td><td>Kemungkinan besar terdeteksi</td></tr>
+            <tr><td>4-6</td><td>Kemungkinan sedang terdeteksi</td></tr>
+            <tr><td>7-8</td><td>Kemungkinan kecil terdeteksi</td></tr>
+            <tr><td>9-10</td><td>Hampir tidak mungkin terdeteksi</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const RPN_TINGGI = 200, RPN_SEDANG = 80;
+
+  function syncSlider(name, val, fromInput) {
+    val = Math.min(10, Math.max(1, parseInt(val) || 1));
+    document.getElementById(name + 'Range').value = val;
+    document.getElementById(name + 'Input').value = val;
+    document.getElementById(name.charAt(0).toUpperCase() + 'Val').textContent = val;
+    updateRPN();
+  }
+
+  function updateRPN() {
+    const s = parseInt(document.getElementById('severityInput').value) || 1;
+    const o = parseInt(document.getElementById('occurrenceInput').value) || 1;
+    const d = parseInt(document.getElementById('detectionInput').value) || 1;
+    const rpn = s * o * d;
+    document.getElementById('rpnScore').textContent = rpn;
+
+    const preview = document.getElementById('rpnPreview');
+    const label = document.getElementById('rpnLabel');
+    const rec = document.getElementById('rpnRec');
+
+    if (rpn >= RPN_TINGGI) {
+      preview.style.background = '#fee2e2';
+      label.textContent = '⚠ TINGGI — Tindakan segera diperlukan!';
+      label.className = 'fw-semibold mt-1 text-danger';
+      rec.textContent = 'Hentikan penggunaan alat jika berisiko. Lakukan perbaikan dalam 1×24 jam.';
+    } else if (rpn >= RPN_SEDANG) {
+      preview.style.background = '#fef9c3';
+      label.textContent = '⚡ SEDANG — Jadwalkan pemeriksaan segera';
+      label.className = 'fw-semibold mt-1 text-warning';
+      rec.textContent = 'Pantau kondisi alat dan jadwalkan perawatan dalam 7 hari.';
+    } else {
+      preview.style.background = '#dcfce7';
+      label.textContent = '✓ RENDAH — Lanjutkan pemeliharaan rutin';
+      label.className = 'fw-semibold mt-1 text-success';
+      rec.textContent = 'Dokumentasikan hasil evaluasi untuk keperluan audit.';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', updateRPN);
+</script>
+{% endblock %}

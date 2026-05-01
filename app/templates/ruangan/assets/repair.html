@@ -1,0 +1,183 @@
+{% extends "layouts/base_ruangan.html" %}
+{% block title %}Catat Perbaikan — {{ asset.asset_name }}{% endblock %}
+
+{% block content %}
+
+{# ── Breadcrumb ── #}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{{ url_for('ruangan.dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('ruangan.assets_index') }}">Daftar Aset</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('ruangan.assets_detail', id=asset.id) }}">{{ asset.asset_name }}</a></li>
+    <li class="breadcrumb-item active">Catat Perbaikan</li>
+  </ol>
+</nav>
+
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('ruangan.assets_detail', id=asset.id) }}" class="btn btn-sm btn-outline-secondary me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div>
+    <h4 class="fw-bold mb-0">Catat Perbaikan</h4>
+    <p class="text-muted mb-0 small">{{ asset.asset_code }} — {{ asset.asset_name }}</p>
+  </div>
+</div>
+
+<div class="row g-3">
+
+  {# ── Ringkasan Aset ── #}
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white fw-semibold border-0 pt-3">
+        <i class="bi bi-box-seam me-2 text-primary"></i>Ringkasan Aset
+      </div>
+      <div class="card-body small">
+        <dl class="row mb-0">
+          <dt class="col-5 text-muted">Nama</dt>
+          <dd class="col-7 fw-medium">{{ asset.asset_name }}</dd>
+          <dt class="col-5 text-muted">Merek</dt>
+          <dd class="col-7">{{ asset.brand }} / {{ asset.model }}</dd>
+          <dt class="col-5 text-muted">Kondisi</dt>
+          <dd class="col-7">
+            {% if asset.condition == 'baik' %}<span class="badge bg-success">Baik</span>
+            {% elif asset.condition == 'perlu_perhatian' %}<span class="badge bg-warning text-dark">Perlu Perhatian</span>
+            {% elif asset.condition == 'kritis' %}<span class="badge bg-danger">Kritis</span>
+            {% else %}<span class="badge bg-secondary">Tidak Layak</span>{% endif %}
+          </dd>
+          <dt class="col-5 text-muted">Status</dt>
+          <dd class="col-7">
+            {% if asset.status == 'aktif' %}<span class="badge bg-success-subtle text-success border border-success-subtle">Aktif</span>
+            {% elif asset.status == 'dalam_perbaikan' %}<span class="badge bg-warning-subtle text-warning border border-warning-subtle">Dalam Perbaikan</span>
+            {% else %}<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">{{ asset.status.replace('_',' ').title() }}</span>{% endif %}
+          </dd>
+        </dl>
+
+        {% if fmea_terakhir %}
+        <hr class="my-2">
+        <div class="d-flex align-items-center gap-2">
+          <div class="fw-bold fs-4 {% if fmea_terakhir.risk_category == 'tinggi' %}text-danger{% elif fmea_terakhir.risk_category == 'sedang' %}text-warning{% else %}text-success{% endif %}">
+            {{ fmea_terakhir.rpn_score }}
+          </div>
+          <div>
+            <div class="small text-muted">RPN Terakhir</div>
+            {% if fmea_terakhir.risk_category == 'tinggi' %}<span class="badge bg-danger">TINGGI</span>
+            {% elif fmea_terakhir.risk_category == 'sedang' %}<span class="badge bg-warning text-dark">SEDANG</span>
+            {% else %}<span class="badge bg-success">RENDAH</span>{% endif %}
+          </div>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0 mt-2">Belum ada evaluasi FMEA.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="alert alert-info border-0 shadow-sm small">
+      <i class="bi bi-info-circle me-2"></i>
+      Catatan perbaikan <strong>tidak memerlukan approval</strong> dan langsung tersimpan ke riwayat maintenance.
+    </div>
+  </div>
+
+  {# ── Form ── #}
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold border-0 pt-3">
+        <i class="bi bi-tools me-2 text-success"></i>Form Catatan Perbaikan
+      </div>
+      <div class="card-body">
+        <form method="POST" novalidate>
+          {{ form.hidden_tag() }}
+
+          <div class="row g-3">
+
+            {# Jenis Tindakan #}
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">{{ form.action_type.label.text }} <span class="text-danger">*</span></label>
+              {{ form.action_type(class="form-select" + (" is-invalid" if form.action_type.errors else "")) }}
+              {% for e in form.action_type.errors %}
+                <div class="invalid-feedback">{{ e }}</div>
+              {% endfor %}
+            </div>
+
+            {# Tanggal Tindakan #}
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">{{ form.action_date.label.text }} <span class="text-danger">*</span></label>
+              {{ form.action_date(class="form-control" + (" is-invalid" if form.action_date.errors else "")) }}
+              {% for e in form.action_date.errors %}
+                <div class="invalid-feedback">{{ e }}</div>
+              {% endfor %}
+            </div>
+
+            {# Deskripsi #}
+            <div class="col-12">
+              <label class="form-label fw-semibold">{{ form.description.label.text }} <span class="text-danger">*</span></label>
+              {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows=3,
+                  placeholder="Jelaskan tindakan yang dilakukan (minimal 20 karakter)…") }}
+              {% for e in form.description.errors %}
+                <div class="invalid-feedback">{{ e }}</div>
+              {% endfor %}
+            </div>
+
+            {# Nama Teknisi #}
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">{{ form.technician_name.label.text }}
+                <span class="text-muted fw-normal small">(opsional)</span>
+              </label>
+              {{ form.technician_name(class="form-control" + (" is-invalid" if form.technician_name.errors else ""),
+                  placeholder="Nama teknisi yang mengerjakan") }}
+              {% for e in form.technician_name.errors %}
+                <div class="invalid-feedback">{{ e }}</div>
+              {% endfor %}
+            </div>
+
+            {# Kondisi Setelah Perbaikan #}
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">{{ form.new_condition.label.text }}
+                <span class="text-muted fw-normal small">(opsional)</span>
+              </label>
+              {{ form.new_condition(class="form-select" + (" is-invalid" if form.new_condition.errors else "")) }}
+              <div class="form-text">Kondisi saat ini: <strong>{{ asset.condition.replace('_',' ').title() }}</strong></div>
+              {% for e in form.new_condition.errors %}
+                <div class="invalid-feedback">{{ e }}</div>
+              {% endfor %}
+            </div>
+
+            {# Jadwal Maintenance Berikutnya #}
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">{{ form.next_maintenance_date.label.text }}
+                <span class="text-muted fw-normal small">(opsional)</span>
+              </label>
+              {{ form.next_maintenance_date(class="form-control" + (" is-invalid" if form.next_maintenance_date.errors else "")) }}
+              {% if asset.next_maintenance_date %}
+              <div class="form-text">Jadwal saat ini: {{ asset.next_maintenance_date.strftime('%d %b %Y') }}</div>
+              {% endif %}
+              {% for e in form.next_maintenance_date.errors %}
+                <div class="invalid-feedback">{{ e }}</div>
+              {% endfor %}
+            </div>
+
+            {# Catatan Tambahan #}
+            <div class="col-12">
+              <label class="form-label fw-semibold">{{ form.notes.label.text }}
+                <span class="text-muted fw-normal small">(opsional)</span>
+              </label>
+              {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows=2,
+                  placeholder="Catatan tambahan jika diperlukan…") }}
+              {% for e in form.notes.errors %}
+                <div class="invalid-feedback">{{ e }}</div>
+              {% endfor %}
+            </div>
+
+          </div>{# /row #}
+
+          <hr class="mt-4">
+          <div class="d-flex gap-2">
+            {{ form.submit(class="btn btn-success") }}
+            <a href="{{ url_for('ruangan.assets_detail', id=asset.id) }}" class="btn btn-outline-secondary">Batal</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

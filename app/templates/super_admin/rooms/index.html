@@ -1,0 +1,215 @@
+{% extends "layouts/base_super_admin.html" %}
+{% block title %}Manajemen Ruangan — Super Admin{% endblock %}
+
+{% block breadcrumb %}<i class="bi bi-door-open"></i><span>Manajemen Ruangan</span>{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <h4 class="fw-bold mb-1" style="color:#0F172A;">Manajemen Ruangan</h4>
+    <p class="text-muted mb-0" style="font-size:13px;">Kelola data ruangan RSKGM</p>
+  </div>
+  <a href="{{ url_for('super_admin.rooms_create') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus me-2"></i>Tambah Ruangan
+  </a>
+</div>
+
+{# ── Filter ── #}
+<div class="filter-bar mb-3">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-sm-4 col-md-4">
+      <label class="form-label mb-1">Cari</label>
+      <div class="input-group input-group-sm">
+        <span class="input-group-text" style="border:1.5px solid #E2E8F0; border-right:none; background:#fff;">
+          <i class="bi bi-search text-muted"></i>
+        </span>
+        <input type="text" name="q" value="{{ search }}" class="form-control"
+               placeholder="Kode atau nama ruangan..." style="border-left:none;">
+      </div>
+    </div>
+    <div class="col-sm-3 col-md-3">
+      <label class="form-label mb-1">Divisi</label>
+      <select name="division" class="form-select form-select-sm">
+        <option value="0">Semua Divisi</option>
+        {% for d in divisions %}
+          <option value="{{ d.id }}" {{ 'selected' if division_filter == d.id }}>{{ d.division_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-sm-2 col-md-2">
+      <label class="form-label mb-1">Status</label>
+      <select name="status" class="form-select form-select-sm">
+        <option value="">Semua</option>
+        <option value="aktif"    {{ 'selected' if status_filter == 'aktif' }}>Aktif</option>
+        <option value="nonaktif" {{ 'selected' if status_filter == 'nonaktif' }}>Nonaktif</option>
+      </select>
+    </div>
+    <div class="col-sm-3 col-md-3 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm px-4">Terapkan</button>
+      {% if search or division_filter or status_filter %}
+      <a href="{{ url_for('super_admin.rooms_index') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+{# ── Tabel ── #}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold" style="font-size:14px;">Daftar Ruangan</span>
+    <span class="text-muted" style="font-size:12px;">
+      {{ rooms.total }} ruangan ditemukan
+      {% if search or division_filter or status_filter %}
+        <span class="badge ms-1" style="background:#EFF6FF; color:#2563EB; font-size:11px;">Filter aktif</span>
+      {% endif %}
+    </span>
+  </div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th style="width:40px;">#</th>
+          <th>Ruangan</th>
+          <th>Divisi</th>
+          <th class="text-center">Lantai</th>
+          <th>Admin Ruangan</th>
+          <th class="text-center">Jumlah Aset</th>
+          <th class="text-center">Status</th>
+          <th class="text-center" style="width:90px;">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rooms.items %}
+        {% set jumlah_aset = r.assets.count() %}
+        {% set admins = r.users.filter_by(role='admin_ruangan', is_active=True).all() %}
+        <tr>
+          <td class="text-muted" style="font-size:12px;">
+            {{ loop.index + (rooms.page - 1) * rooms.per_page }}
+          </td>
+          <td>
+            <div class="fw-semibold" style="font-size:13px;">{{ r.room_name }}</div>
+            <div style="font-family:monospace; font-size:11px; color:#64748B;">{{ r.room_code }}</div>
+          </td>
+          <td style="font-size:12px;">
+            {% if r.division %}
+              <span style="color:#2563EB; font-weight:600;">{{ r.division.division_name }}</span>
+            {% else %}
+              <span class="badge" style="background:#FEF3C7; color:#92400E; font-size:11px; font-weight:600;">
+                Belum ada divisi
+              </span>
+            {% endif %}
+          </td>
+          <td class="text-center" style="font-size:13px;">{{ r.floor }}</td>
+          <td>
+            {% if admins %}
+              {% for a in admins %}
+                <div style="font-size:12px; color:#16A34A; font-weight:600;">{{ a.name }}</div>
+              {% endfor %}
+            {% else %}
+              <span style="font-size:12px; color:#94A3B8; font-style:italic;">Belum ada</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if jumlah_aset > 0 %}
+              <span class="badge" style="background:#EFF6FF; color:#2563EB; font-weight:600;">{{ jumlah_aset }}</span>
+            {% else %}
+              <span class="text-muted" style="font-size:12px;">0</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if r.is_active %}
+              <span class="badge" style="background:#F0FDF4; color:#16A34A; font-weight:600; font-size:11px;">Aktif</span>
+            {% else %}
+              <span class="badge" style="background:#F1F5F9; color:#64748B; font-weight:600; font-size:11px;">Nonaktif</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            <div class="d-flex gap-1 justify-content-center">
+              <a href="{{ url_for('super_admin.rooms_edit', id=r.id) }}"
+                 class="btn btn-icon btn-outline-primary" title="Edit">
+                <i class="bi bi-pencil" style="font-size:13px;"></i>
+              </a>
+              <form method="POST" action="{{ url_for('super_admin.rooms_delete', id=r.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="button"
+                  class="btn btn-icon btn-outline-danger"
+                  title="{{ 'Tidak dapat dihapus karena masih memiliki aset' if jumlah_aset > 0 else 'Hapus Ruangan' }}"
+                  {% if jumlah_aset > 0 %}disabled style="opacity:.4; cursor:not-allowed;"{% endif %}
+                  data-name="{{ r.room_name }}"
+                  {% if jumlah_aset == 0 %}onclick="confirmHapus(this)"{% endif %}>
+                  <i class="bi bi-trash" style="font-size:13px;"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8">
+            <div class="empty-state">
+              <div class="empty-state-icon"><i class="bi bi-door-open"></i></div>
+              {% if search or division_filter or status_filter %}
+                <h6>Tidak ada hasil</h6>
+                <p>Tidak ada ruangan yang sesuai dengan filter yang dipilih.</p>
+                <a href="{{ url_for('super_admin.rooms_index') }}" class="btn btn-outline-secondary btn-sm px-4">
+                  <i class="bi bi-x me-1"></i>Reset Filter
+                </a>
+              {% else %}
+                <h6>Belum ada ruangan</h6>
+                <p>Tambahkan ruangan pertama untuk mulai mengelola aset RSKGM.</p>
+                <a href="{{ url_for('super_admin.rooms_create') }}" class="btn btn-primary btn-sm px-4">
+                  <i class="bi bi-plus me-1"></i>Tambah Ruangan
+                </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if rooms.pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center" style="padding:12px 20px;">
+    <span class="text-muted" style="font-size:12px;">
+      Halaman {{ rooms.page }} dari {{ rooms.pages }}
+    </span>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item {{ 'disabled' if not rooms.has_prev }}">
+          <a class="page-link" href="{{ url_for('super_admin.rooms_index', page=rooms.prev_num, q=search, division=division_filter, status=status_filter) }}">‹</a>
+        </li>
+        {% for p in rooms.iter_pages() %}
+          {% if p %}
+            <li class="page-item {{ 'active' if p == rooms.page }}">
+              <a class="page-link" href="{{ url_for('super_admin.rooms_index', page=p, q=search, division=division_filter, status=status_filter) }}">{{ p }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if not rooms.has_next }}">
+          <a class="page-link" href="{{ url_for('super_admin.rooms_index', page=rooms.next_num, q=search, division=division_filter, status=status_filter) }}">›</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmHapus(btn) {
+  const name = btn.dataset.name;
+  showConfirm({
+    title: 'Hapus Ruangan',
+    message: 'Apakah Anda yakin ingin menghapus ruangan <strong>' + name + '</strong>? Tindakan ini tidak dapat dibatalkan.',
+    btnClass: 'btn-danger',
+    btnLabel: 'Hapus',
+    onConfirm: () => btn.closest('form').submit()
+  });
+}
+</script>
+{% endblock %}

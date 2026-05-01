@@ -1,0 +1,144 @@
+{% extends "layouts/base_divisi.html" %}
+{% block title %}Anggota Divisi — Admin Divisi{% endblock %}
+
+{% block content %}
+
+{# ── Header ── #}
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <h4 class="fw-bold mb-1">Anggota Divisi</h4>
+    <p class="text-muted mb-0">
+      {% if division %}
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-2">
+          {{ division.division_name }}
+        </span>
+        {{ division.description or 'Daftar ruangan dan Admin Ruangan di bawah divisi Anda.' }}
+      {% else %}
+        Anda belum terdaftar di divisi manapun.
+      {% endif %}
+    </p>
+  </div>
+</div>
+
+{# ── Ringkasan ── #}
+<div class="row g-3 mb-4">
+  <div class="col-sm-4">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="fw-bold fs-3 text-primary">{{ total_rooms }}</div>
+      <div class="text-muted small">Ruangan Aktif</div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="fw-bold fs-3 text-success">{{ total_admin_ruangan }}</div>
+      <div class="text-muted small">Admin Ruangan Aktif</div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="fw-bold fs-3">{{ total_assets_all }}</div>
+      <div class="text-muted small">Total Aset Divisi</div>
+    </div>
+  </div>
+</div>
+
+{# ── Card per Ruangan ── #}
+{% if member_data %}
+<div class="row g-3">
+  {% for d in member_data %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card border-0 shadow-sm h-100">
+
+      {# Card Header #}
+      <div class="card-header bg-white border-0 pt-3 pb-2 d-flex justify-content-between align-items-start">
+        <div>
+          <div class="fw-semibold">{{ d.room.room_name }}</div>
+          <div class="text-muted small font-monospace">{{ d.room.room_code }} · Lt. {{ d.room.floor }}</div>
+        </div>
+        {% if d.kritis > 0 %}
+        <span class="badge bg-danger">{{ d.kritis }} Kritis</span>
+        {% endif %}
+      </div>
+
+      <div class="card-body pt-0">
+        {# Admin Ruangan #}
+        <div class="mb-3">
+          <div class="text-muted small mb-1 fw-semibold">Admin Ruangan</div>
+          {% if d.admins %}
+            {% for admin in d.admins %}
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center"
+                   style="width:28px;height:28px;flex-shrink:0;">
+                <i class="bi bi-person-fill text-success small"></i>
+              </div>
+              <div>
+                <div class="small fw-medium">{{ admin.name }}</div>
+                <div class="text-muted" style="font-size:11px;">{{ admin.email }}</div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <span class="badge bg-warning text-dark">
+              <i class="bi bi-exclamation-triangle me-1"></i>Belum ada Admin Ruangan
+            </span>
+          {% endif %}
+        </div>
+
+        {# Statistik Aset #}
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <div class="rounded-2 bg-light text-center py-2">
+              <div class="fw-bold fs-5">{{ d.total_assets }}</div>
+              <div class="text-muted" style="font-size:11px;">Total Aset</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="rounded-2 text-center py-2
+                        {{ 'bg-danger bg-opacity-10' if d.kritis > 0 else 'bg-light' }}">
+              <div class="fw-bold fs-5 {{ 'text-danger' if d.kritis > 0 }}">{{ d.kritis }}</div>
+              <div class="text-muted" style="font-size:11px;">Kritis/Tidak Layak</div>
+            </div>
+          </div>
+        </div>
+
+        {# RPN Tertinggi #}
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <span class="text-muted small">RPN Tertinggi</span>
+          {% if d.highest_rpn is not none %}
+            {% if d.highest_rpn_cat == 'tinggi' %}
+              <span class="badge bg-danger">{{ d.highest_rpn }} — Tinggi</span>
+            {% elif d.highest_rpn_cat == 'sedang' %}
+              <span class="badge bg-warning text-dark">{{ d.highest_rpn }} — Sedang</span>
+            {% else %}
+              <span class="badge bg-success">{{ d.highest_rpn }} — Rendah</span>
+            {% endif %}
+          {% else %}
+            <span class="text-muted small">Belum dievaluasi</span>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Card Footer #}
+      <div class="card-footer bg-white border-0 pb-3">
+        <a href="{{ url_for('divisi.assets_index', room=d.room.id) }}"
+           class="btn btn-outline-primary btn-sm w-100">
+          <i class="bi bi-box-seam me-1"></i>Lihat Aset
+        </a>
+      </div>
+
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="text-center text-muted py-5">
+    <i class="bi bi-door-open d-block fs-1 mb-2" style="opacity:.4;"></i>
+    <div class="fw-semibold mb-1">Belum ada ruangan di divisi ini</div>
+    <div class="small">Hubungi Super Admin untuk menambahkan ruangan ke divisi Anda.</div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

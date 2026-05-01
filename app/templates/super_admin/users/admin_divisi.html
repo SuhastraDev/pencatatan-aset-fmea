@@ -1,0 +1,192 @@
+{% extends "layouts/base_super_admin.html" %}
+{% block title %}Admin Divisi — Super Admin{% endblock %}
+
+{% block breadcrumb %}<i class="bi bi-person-badge"></i><span>Admin Divisi</span>{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <h4 class="fw-bold mb-1" style="color:#0F172A;">Admin Divisi</h4>
+    <p class="text-muted mb-0" style="font-size:13px;">Pengguna dengan akses kelola divisi</p>
+  </div>
+  <a href="{{ url_for('super_admin.users_create') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-person-plus me-2"></i>Tambah User
+  </a>
+</div>
+
+{# ── Filter ── #}
+<div class="filter-bar mb-3">
+  <form method="GET" class="row g-2 align-items-end">
+    <div class="col-sm-5 col-md-5">
+      <label class="form-label mb-1">Cari</label>
+      <div class="input-group input-group-sm">
+        <span class="input-group-text" style="border:1.5px solid #E2E8F0; border-right:none; background:#fff;">
+          <i class="bi bi-search text-muted"></i>
+        </span>
+        <input type="text" name="q" value="{{ search }}" class="form-control"
+               placeholder="Nama atau email..." style="border-left:none;">
+      </div>
+    </div>
+    <div class="col-sm-3 col-md-2">
+      <label class="form-label mb-1">Status</label>
+      <select name="status" class="form-select form-select-sm">
+        <option value="">Semua</option>
+        <option value="aktif"    {{ 'selected' if status == 'aktif' }}>Aktif</option>
+        <option value="nonaktif" {{ 'selected' if status == 'nonaktif' }}>Nonaktif</option>
+      </select>
+    </div>
+    <div class="col-sm-4 col-md-3 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm px-4">Terapkan</button>
+      {% if search or status %}
+      <a href="{{ url_for('super_admin.users_admin_divisi') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+{# ── Tabel ── #}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold" style="font-size:14px;">
+      Daftar Admin Divisi
+    </span>
+    <span class="badge" style="background:#F5F3FF; color:#7C3AED; font-weight:700; font-size:12px;">
+      {{ users|length }} pengguna
+    </span>
+  </div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th style="width:40px;">#</th>
+          <th>Pengguna</th>
+          <th>Divisi</th>
+          <th class="text-center">Ruangan</th>
+          <th class="text-center">Total Aset</th>
+          <th>Login Terakhir</th>
+          <th class="text-center">Status</th>
+          <th class="text-center" style="width:90px;">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        {% set div = u.division %}
+        {% set rooms_aktif = div.rooms.filter_by(is_active=True).all() if div else [] %}
+        {% set total_aset = namespace(count=0) %}
+        {% for r in rooms_aktif %}{% set total_aset.count = total_aset.count + r.assets.count() %}{% endfor %}
+        <tr>
+          <td class="text-muted" style="font-size:12px;">{{ loop.index }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#2563EB,#7C3AED);
+                          display:flex; align-items:center; justify-content:center;
+                          color:#fff; font-weight:700; font-size:13px; flex-shrink:0;">
+                {{ u.name[0].upper() }}
+              </div>
+              <div>
+                <div class="fw-semibold" style="font-size:13px;">{{ u.name }}</div>
+                <div class="text-muted" style="font-size:11px;">{{ u.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            {% if div %}
+              <span class="fw-semibold" style="font-size:12px; color:#7C3AED;">{{ div.division_name }}</span>
+            {% else %}
+              <span class="badge" style="background:#FEF3C7; color:#92400E; font-size:11px; font-weight:600;">
+                Belum dipasang
+              </span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if rooms_aktif %}
+              <span class="badge" style="background:#EFF6FF; color:#2563EB; font-weight:600;">{{ rooms_aktif|length }}</span>
+            {% else %}
+              <span class="text-muted" style="font-size:12px;">0</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if total_aset.count > 0 %}
+              <span class="badge" style="background:#F0FDFA; color:#0D9488; font-weight:600;">{{ total_aset.count }}</span>
+            {% else %}
+              <span class="text-muted" style="font-size:12px;">0</span>
+            {% endif %}
+          </td>
+          <td style="font-size:12px; color:#64748B;">
+            {% if u.last_login %}
+              {{ u.last_login.strftime('%d %b %Y, %H:%M') }}
+            {% else %}
+              <span style="font-style:italic;">Belum pernah login</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if u.is_active %}
+              <span class="badge" style="background:#F0FDF4; color:#16A34A; font-weight:600; font-size:11px;">Aktif</span>
+            {% else %}
+              <span class="badge" style="background:#FEF2F2; color:#DC2626; font-weight:600; font-size:11px;">Nonaktif</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            <div class="d-flex gap-1 justify-content-center">
+              <a href="{{ url_for('super_admin.users_edit', id=u.id) }}"
+                 class="btn btn-icon btn-outline-primary" title="Edit">
+                <i class="bi bi-pencil" style="font-size:13px;"></i>
+              </a>
+              <form method="POST" action="{{ url_for('super_admin.users_toggle', id=u.id) }}" class="d-inline toggle-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="button"
+                  class="btn btn-icon {{ 'btn-outline-danger' if u.is_active else 'btn-outline-success' }}"
+                  title="{{ 'Nonaktifkan' if u.is_active else 'Aktifkan' }}"
+                  data-action="{{ 'Nonaktifkan' if u.is_active else 'Aktifkan' }}"
+                  data-name="{{ u.name }}"
+                  onclick="confirmToggle(this)">
+                  <i class="bi {{ 'bi-person-dash' if u.is_active else 'bi-person-check' }}" style="font-size:13px;"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8">
+            <div class="empty-state">
+              <div class="empty-state-icon"><i class="bi bi-person-badge"></i></div>
+              {% if search or status %}
+                <h6>Tidak ada hasil</h6>
+                <p>Tidak ada Admin Divisi yang sesuai dengan filter pencarian.</p>
+                <a href="{{ url_for('super_admin.users_admin_divisi') }}" class="btn btn-outline-secondary btn-sm px-4">
+                  <i class="bi bi-x me-1"></i>Reset Filter
+                </a>
+              {% else %}
+                <h6>Belum ada Admin Divisi</h6>
+                <p>Tambahkan pengguna baru untuk mengelola divisi RSKGM.</p>
+                <a href="{{ url_for('super_admin.users_create') }}" class="btn btn-primary btn-sm px-4">
+                  <i class="bi bi-person-plus me-1"></i>Tambah User
+                </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmToggle(btn) {
+  const action = btn.dataset.action;
+  const name = btn.dataset.name;
+  showConfirm({
+    title: action + ' Akun',
+    message: 'Apakah Anda yakin ingin ' + action.toLowerCase() + ' akun <strong>' + name + '</strong>?',
+    btnClass: action === 'Nonaktifkan' ? 'btn-danger' : 'btn-success',
+    btnLabel: action,
+    onConfirm: () => btn.closest('form').submit()
+  });
+}
+</script>
+{% endblock %}

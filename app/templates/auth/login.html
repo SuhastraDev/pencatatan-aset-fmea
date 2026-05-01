@@ -1,0 +1,408 @@
+{% extends "layouts/base.html" %}
+{% block title %}Login — SIMASET RSKGM{% endblock %}
+
+{% block styles %}
+<style>
+  body {
+    background: #0F172A;
+    background-image: none;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  .login-split {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Left panel — branding ── */
+  .login-left {
+    width: 42%;
+    flex-shrink: 0;
+    background: linear-gradient(150deg, #0D1526 0%, #111827 50%, #0F1A2E 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Orb decorations */
+  .login-left::before {
+    content: '';
+    position: absolute;
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, rgba(6,182,212,.20), transparent 70%);
+    top: -80px; left: -80px;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .login-left::after {
+    content: '';
+    position: absolute;
+    width: 340px; height: 340px;
+    background: radial-gradient(circle, rgba(8,145,178,.15), transparent 70%);
+    bottom: -60px; right: -60px;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .login-brand-mark {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    z-index: 1;
+  }
+  .login-brand-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #06B6D4, #0891B2);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; color: #fff;
+    box-shadow: 0 8px 24px rgba(8,145,178,.45);
+    flex-shrink: 0;
+  }
+  .login-brand-name {
+    font-size: 20px; font-weight: 800;
+    color: #fff; letter-spacing: -.02em;
+  }
+  .login-brand-sub {
+    font-size: 11.5px; color: rgba(255,255,255,.45);
+    margin-top: 2px;
+  }
+
+  .login-left-body {
+    position: relative;
+    z-index: 1;
+  }
+  .login-tagline {
+    font-size: 30px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.2;
+    letter-spacing: -.03em;
+    margin-bottom: 16px;
+  }
+  .login-tagline span {
+    background: linear-gradient(135deg, #22D3EE, #06B6D4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .login-tagline-sub {
+    font-size: 14px;
+    color: rgba(255,255,255,.5);
+    line-height: 1.6;
+    max-width: 280px;
+  }
+
+  /* Feature pills */
+  .login-features {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 36px;
+  }
+  .login-feature-pill {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.08);
+    color: rgba(255,255,255,.75);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .login-feature-pill i {
+    font-size: 16px;
+    width: 20px;
+    flex-shrink: 0;
+  }
+  .login-feature-pill.blue i  { color: #22D3EE; }
+  .login-feature-pill.purple i{ color: #67E8F9; }
+  .login-feature-pill.green i { color: #34D399; }
+
+  .login-left-footer {
+    position: relative;
+    z-index: 1;
+    font-size: 12px;
+    color: rgba(255,255,255,.25);
+  }
+
+  /* ── Right panel — form ── */
+  .login-right {
+    flex: 1;
+    background: #EFF9FC;
+    background-image: radial-gradient(circle, #A5D8E6 1px, transparent 1px);
+    background-size: 24px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 40px;
+    position: relative;
+  }
+
+  .login-form-wrap {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .login-form-header {
+    margin-bottom: 36px;
+  }
+  .login-form-header h2 {
+    font-size: 26px;
+    font-weight: 900;
+    color: #0F172A;
+    letter-spacing: -.03em;
+    margin: 0 0 6px;
+  }
+  .login-form-header p {
+    font-size: 13.5px;
+    color: #64748B;
+    margin: 0;
+  }
+
+  .login-field-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+    display: block;
+    letter-spacing: -.01em;
+  }
+
+  .login-input {
+    width: 100%;
+    padding: 11px 14px 11px 42px;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    color: #1E293B;
+    background: #fff;
+    transition: all .18s;
+    outline: none;
+  }
+  .login-input::placeholder { color: #CBD5E1; }
+  .login-input:focus {
+    border-color: #0891B2;
+    box-shadow: 0 0 0 4px rgba(8,145,178,.12);
+  }
+  .login-input.is-invalid {
+    border-color: #DC2626;
+  }
+  .login-input.is-invalid:focus {
+    box-shadow: 0 0 0 4px rgba(220,38,38,.10);
+  }
+
+  .login-input-wrap {
+    position: relative;
+  }
+  .login-input-wrap .fi {
+    position: absolute;
+    left: 13px; top: 50%;
+    transform: translateY(-50%);
+    color: #94A3B8;
+    font-size: 16px;
+    pointer-events: none;
+  }
+  .login-input-wrap .pass-toggle {
+    position: absolute;
+    right: 13px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none; padding: 0;
+    color: #94A3B8; cursor: pointer; font-size: 16px;
+    line-height: 1; transition: color .15s;
+  }
+  .login-input-wrap .pass-toggle:hover { color: #475569; }
+
+  .login-error {
+    font-size: 12px;
+    color: #DC2626;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .login-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #06B6D4, #0891B2);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -.01em;
+    cursor: pointer;
+    transition: all .2s;
+    box-shadow: 0 4px 14px rgba(8,145,178,.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .login-btn:hover {
+    background: linear-gradient(135deg, #0891B2, #0E7490);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(8,145,178,.5);
+  }
+  .login-btn:active { transform: translateY(0); }
+  .login-btn:disabled {
+    opacity: .75;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .login-notice {
+    margin-top: 24px;
+    padding: 12px 16px;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #EBF0FA;
+    font-size: 12.5px;
+    color: #64748B;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  }
+  .login-notice i { color: #94A3B8; font-size: 15px; flex-shrink: 0; }
+
+  @media (max-width: 768px) {
+    .login-left { display: none; }
+    .login-right { padding: 32px 24px; }
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="login-split">
+
+  {# ── Left — Branding ── #}
+  <div class="login-left">
+    <div class="login-brand-mark">
+      <div class="login-brand-icon"><i class="bi bi-hospital-fill"></i></div>
+      <div>
+        <div class="login-brand-name">SIMASET</div>
+        <div class="login-brand-sub">RSKGM Palembang</div>
+      </div>
+    </div>
+
+    <div class="login-left-body">
+      <div class="login-tagline">
+        Kelola aset<br>rumah sakit<br><span>dengan cerdas.</span>
+      </div>
+      <p class="login-tagline-sub">
+        Sistem informasi manajemen aset terintegrasi untuk RS Khusus Gigi dan Mulut Palembang.
+      </p>
+      <div class="login-features">
+        <div class="login-feature-pill blue">
+          <i class="bi bi-diagram-3"></i>
+          Manajemen divisi & ruangan
+        </div>
+        <div class="login-feature-pill purple">
+          <i class="bi bi-shield-check"></i>
+          Kontrol akses berbasis peran
+        </div>
+        <div class="login-feature-pill green">
+          <i class="bi bi-graph-up"></i>
+          Pemantauan aset real-time
+        </div>
+      </div>
+    </div>
+
+    <div class="login-left-footer">
+      &copy; {{ 2026 }} RSKGM Palembang. All rights reserved.
+    </div>
+  </div>
+
+  {# ── Right — Form ── #}
+  <div class="login-right">
+    <div class="login-form-wrap">
+
+      {% include "shared/_alert.html" %}
+
+      <div class="login-form-header">
+        <h2>Selamat datang</h2>
+        <p>Masuk ke akun SIMASET Anda untuk melanjutkan.</p>
+      </div>
+
+      <form method="POST" action="{{ url_for('auth.login') }}" novalidate id="loginForm">
+        {{ form.hidden_tag() }}
+
+        {# Email #}
+        <div style="margin-bottom: 20px;">
+          <label class="login-field-label">Alamat Email</label>
+          <div class="login-input-wrap">
+            <i class="bi bi-envelope fi"></i>
+            <input type="email" name="{{ form.email.name }}"
+                   value="{{ form.email.data or '' }}"
+                   class="login-input {% if form.email.errors %}is-invalid{% endif %}"
+                   placeholder="email@rskgm.id"
+                   autocomplete="email">
+          </div>
+          {% for error in form.email.errors %}
+            <div class="login-error"><i class="bi bi-exclamation-circle"></i>{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        {# Password #}
+        <div style="margin-bottom: 28px;">
+          <label class="login-field-label">Password</label>
+          <div class="login-input-wrap">
+            <i class="bi bi-lock fi"></i>
+            <input type="password" name="{{ form.password.name }}"
+                   id="loginPassInput"
+                   class="login-input {% if form.password.errors %}is-invalid{% endif %}"
+                   placeholder="••••••••"
+                   autocomplete="current-password">
+            <button type="button" class="pass-toggle" onclick="toggleLoginPass()" title="Tampilkan password">
+              <i class="bi bi-eye" id="loginPassIcon"></i>
+            </button>
+          </div>
+          {% for error in form.password.errors %}
+            <div class="login-error"><i class="bi bi-exclamation-circle"></i>{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <button type="submit" class="login-btn" id="loginBtn">
+          <i class="bi bi-box-arrow-in-right"></i>
+          Masuk
+        </button>
+      </form>
+
+      <div class="login-notice">
+        <i class="bi bi-info-circle"></i>
+        Akun hanya dapat dibuat oleh Super Admin sistem.
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleLoginPass() {
+  const inp  = document.getElementById('loginPassInput');
+  const icon = document.getElementById('loginPassIcon');
+  inp.type   = inp.type === 'password' ? 'text' : 'password';
+  icon.className = inp.type === 'text' ? 'bi bi-eye-slash' : 'bi bi-eye';
+}
+
+document.getElementById('loginForm').addEventListener('submit', function() {
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Masuk...';
+});
+</script>
+{% endblock %}

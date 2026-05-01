@@ -1,0 +1,274 @@
+{% extends "layouts/base_super_admin.html" %}
+{% block title %}Manajemen User — Super Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">Manajemen User</h4>
+    <p class="text-muted mb-0">Kelola akun pengguna sistem</p>
+  </div>
+  <a href="{{ url_for('super_admin.users_create') }}" class="btn btn-primary">
+    <i class="bi bi-person-plus me-2"></i>Tambah User
+  </a>
+</div>
+
+<!-- ── TABEL ADMIN DIVISI ─────────────────────────────────────────────────── -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+    <div>
+      <span class="fw-bold"><i class="bi bi-person-badge me-2 text-purple" style="color:#7c3aed"></i>Admin Divisi</span>
+      <span class="badge ms-2" style="background:#7c3aed">{{ admin_divisi_list|length }}</span>
+    </div>
+    <!-- Filter Admin Divisi -->
+    <form method="GET" action="{{ url_for('super_admin.users_index') }}" class="d-flex gap-2 align-items-center">
+      <input type="hidden" name="q_ruangan" value="{{ search_ruangan }}">
+      <input type="hidden" name="status_ruangan" value="{{ status_ruangan }}">
+      <input type="text" name="q_divisi" value="{{ search_divisi }}"
+             class="form-control form-control-sm" style="width:180px" placeholder="Cari nama / email...">
+      <select name="status_divisi" class="form-select form-select-sm" style="width:120px">
+        <option value="">Semua</option>
+        <option value="aktif" {{ 'selected' if status_divisi == 'aktif' }}>Aktif</option>
+        <option value="nonaktif" {{ 'selected' if status_divisi == 'nonaktif' }}>Nonaktif</option>
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-search"></i>
+      </button>
+      {% if search_divisi or status_divisi %}
+      <a href="{{ url_for('super_admin.users_index', q_ruangan=search_ruangan, status_ruangan=status_ruangan) }}"
+         class="btn btn-sm btn-outline-danger" title="Reset filter divisi">
+        <i class="bi bi-x"></i>
+      </a>
+      {% endif %}
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th style="width:40px">#</th>
+          <th>Nama</th>
+          <th>Email</th>
+          <th>Divisi yang Dikelola</th>
+          <th>Jumlah Ruangan</th>
+          <th>Total Aset</th>
+          <th>Login Terakhir</th>
+          <th>Status</th>
+          <th class="text-center">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in admin_divisi_list %}
+        {% set div = u.division %}
+        {% set rooms_aktif = div.rooms.filter_by(is_active=True).all() if div else [] %}
+        {% set total_aset = namespace(count=0) %}
+        {% for r in rooms_aktif %}{% set total_aset.count = total_aset.count + r.assets.count() %}{% endfor %}
+        <tr>
+          <td class="text-muted small">{{ loop.index }}</td>
+          <td class="fw-semibold">{{ u.name }}</td>
+          <td class="small">{{ u.email }}</td>
+          <td>
+            {% if div %}
+              <span class="small fw-semibold" style="color:#7c3aed">
+                <i class="bi bi-diagram-3 me-1"></i>{{ div.division_name }}
+              </span>
+            {% else %}
+              <span class="badge bg-warning text-dark">
+                <i class="bi bi-exclamation-triangle me-1"></i>Belum dipasang
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if rooms_aktif %}
+              <span class="badge bg-info text-dark">{{ rooms_aktif|length }} ruangan</span>
+            {% else %}
+              <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if total_aset.count > 0 %}
+              <span class="badge bg-secondary">{{ total_aset.count }} aset</span>
+            {% else %}
+              <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td class="small text-muted">
+            {% if u.last_login %}
+              {{ u.last_login.strftime('%d %b %Y %H:%M') }}
+            {% else %}
+              <span class="fst-italic">Belum pernah</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.is_active %}
+              <span class="badge bg-success">Aktif</span>
+            {% else %}
+              <span class="badge bg-danger">Nonaktif</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            <div class="d-flex gap-1 justify-content-center">
+              <a href="{{ url_for('super_admin.users_edit', id=u.id) }}"
+                 class="btn btn-sm btn-outline-primary" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST" action="{{ url_for('super_admin.users_toggle', id=u.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                  class="btn btn-sm {{ 'btn-outline-danger' if u.is_active else 'btn-outline-success' }}"
+                  title="{{ 'Nonaktifkan' if u.is_active else 'Aktifkan' }}"
+                  onclick="return confirm('{{ 'Nonaktifkan' if u.is_active else 'Aktifkan' }} akun {{ u.name }}?')">
+                  <i class="bi {{ 'bi-person-dash' if u.is_active else 'bi-person-check' }}"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" class="text-center text-muted py-3">
+            {% if search_divisi or status_divisi %}
+              Tidak ada Admin Divisi yang sesuai filter.
+            {% else %}
+              Belum ada Admin Divisi terdaftar.
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── TABEL ADMIN RUANGAN ───────────────────────────────────────────────── -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+    <div>
+      <span class="fw-bold"><i class="bi bi-person-gear me-2 text-success"></i>Admin Ruangan</span>
+      <span class="badge bg-success ms-2">{{ admin_ruangan_list|length }}</span>
+    </div>
+    <!-- Filter Admin Ruangan -->
+    <form method="GET" action="{{ url_for('super_admin.users_index') }}" class="d-flex gap-2 align-items-center">
+      <input type="hidden" name="q_divisi" value="{{ search_divisi }}">
+      <input type="hidden" name="status_divisi" value="{{ status_divisi }}">
+      <input type="text" name="q_ruangan" value="{{ search_ruangan }}"
+             class="form-control form-control-sm" style="width:180px" placeholder="Cari nama / email...">
+      <select name="status_ruangan" class="form-select form-select-sm" style="width:120px">
+        <option value="">Semua</option>
+        <option value="aktif" {{ 'selected' if status_ruangan == 'aktif' }}>Aktif</option>
+        <option value="nonaktif" {{ 'selected' if status_ruangan == 'nonaktif' }}>Nonaktif</option>
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-search"></i>
+      </button>
+      {% if search_ruangan or status_ruangan %}
+      <a href="{{ url_for('super_admin.users_index', q_divisi=search_divisi, status_divisi=status_divisi) }}"
+         class="btn btn-sm btn-outline-danger" title="Reset filter ruangan">
+        <i class="bi bi-x"></i>
+      </a>
+      {% endif %}
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th style="width:40px">#</th>
+          <th>Nama</th>
+          <th>Email</th>
+          <th>Ruangan yang Dikelola</th>
+          <th>Divisi</th>
+          <th>Lantai</th>
+          <th>Jumlah Aset</th>
+          <th>Login Terakhir</th>
+          <th>Status</th>
+          <th class="text-center">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in admin_ruangan_list %}
+        {% set room = u.room %}
+        <tr>
+          <td class="text-muted small">{{ loop.index }}</td>
+          <td class="fw-semibold">{{ u.name }}</td>
+          <td class="small">{{ u.email }}</td>
+          <td>
+            {% if room %}
+              <div class="small fw-semibold">
+                <span class="badge bg-secondary me-1">{{ room.room_code }}</span>{{ room.room_name }}
+              </div>
+            {% else %}
+              <span class="badge bg-warning text-dark">
+                <i class="bi bi-exclamation-triangle me-1"></i>Belum dipasang
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if room and room.division %}
+              <span class="small" style="color:#7c3aed">
+                <i class="bi bi-diagram-3 me-1"></i>{{ room.division.division_name }}
+              </span>
+            {% else %}
+              <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td class="small">{{ room.floor if room else '—' }}</td>
+          <td>
+            {% if room %}
+              {% set jml = room.assets.count() %}
+              {% if jml > 0 %}
+                <span class="badge bg-info text-dark">{{ jml }} aset</span>
+              {% else %}
+                <span class="text-muted small">—</span>
+              {% endif %}
+            {% else %}
+              <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td class="small text-muted">
+            {% if u.last_login %}
+              {{ u.last_login.strftime('%d %b %Y %H:%M') }}
+            {% else %}
+              <span class="fst-italic">Belum pernah</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.is_active %}
+              <span class="badge bg-success">Aktif</span>
+            {% else %}
+              <span class="badge bg-danger">Nonaktif</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            <div class="d-flex gap-1 justify-content-center">
+              <a href="{{ url_for('super_admin.users_edit', id=u.id) }}"
+                 class="btn btn-sm btn-outline-primary" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST" action="{{ url_for('super_admin.users_toggle', id=u.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                  class="btn btn-sm {{ 'btn-outline-danger' if u.is_active else 'btn-outline-success' }}"
+                  title="{{ 'Nonaktifkan' if u.is_active else 'Aktifkan' }}"
+                  onclick="return confirm('{{ 'Nonaktifkan' if u.is_active else 'Aktifkan' }} akun {{ u.name }}?')">
+                  <i class="bi {{ 'bi-person-dash' if u.is_active else 'bi-person-check' }}"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10" class="text-center text-muted py-3">
+            {% if search_ruangan or status_ruangan %}
+              Tidak ada Admin Ruangan yang sesuai filter.
+            {% else %}
+              Belum ada Admin Ruangan terdaftar.
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

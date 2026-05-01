@@ -1,0 +1,98 @@
+{% extends "layouts/base_ruangan.html" %}
+{% block title %}Riwayat FMEA — {{ asset.asset_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('ruangan.assets_detail', id=asset.id) }}" class="btn btn-sm btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+  <div class="flex-grow-1">
+    <h4 class="fw-bold mb-0">Riwayat Evaluasi FMEA</h4>
+    <p class="text-muted mb-0">{{ asset.asset_code }} — {{ asset.asset_name }}</p>
+  </div>
+  <a href="{{ url_for('ruangan.fmea_form', id=asset.id) }}" class="btn btn-info text-white">
+    <i class="bi bi-plus-circle me-2"></i>Evaluasi Baru
+  </a>
+</div>
+
+{% if records %}
+<!-- Grafik Tren RPN -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold"><i class="bi bi-graph-up me-2 text-primary"></i>Tren RPN dari Waktu ke Waktu</div>
+  <div class="card-body"><canvas id="trendChart" style="max-height:220px;"></canvas></div>
+</div>
+{% endif %}
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th>Tanggal</th><th>Mode Kegagalan</th><th>Efek</th>
+          <th class="text-center">S</th><th class="text-center">O</th><th class="text-center">D</th>
+          <th class="text-center">RPN</th><th>Kategori</th><th>Dievaluasi Oleh</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in records %}
+        <tr>
+          <td class="text-nowrap">{{ f.evaluation_date.strftime('%d %b %Y') }}</td>
+          <td>{{ f.failure_mode }}</td>
+          <td>{{ f.failure_effect|truncate(40) }}</td>
+          <td class="text-center">{{ f.severity }}</td>
+          <td class="text-center">{{ f.occurrence }}</td>
+          <td class="text-center">{{ f.detection }}</td>
+          <td class="text-center fw-bold {% if f.risk_category == 'tinggi' %}text-danger{% elif f.risk_category == 'sedang' %}text-warning{% else %}text-success{% endif %}">
+            {{ f.rpn_score }}
+          </td>
+          <td>
+            {% if f.risk_category == 'tinggi' %}<span class="badge bg-danger">Tinggi</span>
+            {% elif f.risk_category == 'sedang' %}<span class="badge bg-warning text-dark">Sedang</span>
+            {% else %}<span class="badge bg-success">Rendah</span>{% endif %}
+          </td>
+          <td>{{ f.evaluator.name }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-center text-muted py-4">Belum ada evaluasi FMEA untuk aset ini.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if records %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+  const labels = {{ records|map(attribute='evaluation_date')|map('string')|list|tojson }};
+  const rpnData = {{ records|map(attribute='rpn_score')|list|tojson }};
+
+  new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels: labels.reverse(),
+      datasets: [{
+        label: 'RPN Score',
+        data: rpnData.reverse(),
+        borderColor: '#1F4E79',
+        backgroundColor: 'rgba(31,78,121,0.1)',
+        tension: 0.3,
+        fill: true,
+        pointBackgroundColor: rpnData.map(v => v >= 200 ? '#dc3545' : v >= 80 ? '#ffc107' : '#198754'),
+        pointRadius: 5,
+      }]
+    },
+    options: {
+      scales: {
+        y: { beginAtZero: true, max: 1000,
+          annotations: {
+            line200: { type: 'line', yMin: 200, yMax: 200, borderColor: '#dc3545', borderWidth: 1, borderDash: [5,5] },
+            line80:  { type: 'line', yMin: 80,  yMax: 80,  borderColor: '#ffc107', borderWidth: 1, borderDash: [5,5] },
+          }
+        }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #222; }
+
+  /* Header */
+  .header { background: #1F4E79; color: white; padding: 18px 24px; margin-bottom: 20px; }
+  .header h1 { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+  .header p { font-size: 11px; opacity: 0.85; margin: 2px 0; }
+
+  /* Filter info */
+  .filter-info { background: #f8f9fa; border-left: 4px solid #1F4E79; padding: 8px 14px;
+                 margin: 0 24px 16px; font-size: 10px; color: #555; }
+
+  /* Stats */
+  .stats { display: flex; gap: 12px; padding: 0 24px 16px; }
+  .stat-box { flex: 1; border: 1px solid #dee2e6; border-radius: 6px; padding: 10px;
+              text-align: center; }
+  .stat-box .num { font-size: 22px; font-weight: bold; color: #1F4E79; }
+  .stat-box .lbl { font-size: 9px; color: #777; margin-top: 2px; }
+  .stat-box.danger .num { color: #dc3545; }
+  .stat-box.warning .num { color: #e6a817; }
+
+  /* Table */
+  .section { padding: 0 24px 24px; }
+  .section-title { font-size: 13px; font-weight: bold; color: #1F4E79;
+                   border-bottom: 2px solid #1F4E79; padding-bottom: 4px; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 9.5px; }
+  thead { background: #1F4E79; color: white; }
+  th { padding: 6px 8px; text-align: left; font-weight: 600; }
+  td { padding: 5px 8px; border-bottom: 1px solid #e9ecef; }
+  tr:nth-child(even) { background: #f8f9fa; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 6px; border-radius: 4px;
+           font-size: 9px; font-weight: 600; }
+  .badge-success { background: #d1e7dd; color: #0f5132; }
+  .badge-warning { background: #fff3cd; color: #664d03; }
+  .badge-danger  { background: #f8d7da; color: #842029; }
+  .badge-secondary { background: #e2e3e5; color: #41464b; }
+
+  /* Footer */
+  .footer { background: #f8f9fa; border-top: 1px solid #dee2e6;
+            padding: 10px 24px; font-size: 9px; color: #888;
+            position: fixed; bottom: 0; left: 0; right: 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Laporan Rekap Aset — SIMASET RSKGM</h1>
+  <p>Tanggal Generate: {{ tanggal }}</p>
+  {% if room_name %}<p>Ruangan: {{ room_name }}</p>{% endif %}
+  {% if kondisi_filter %}<p>Filter Kondisi: {{ kondisi_filter.replace('_',' ').title() }}</p>{% endif %}
+  {% if rpn_filter %}<p>Filter RPN: {{ rpn_filter.title() }}</p>{% endif %}
+</div>
+
+<div class="filter-info">
+  <strong>Filter aktif:</strong>
+  Ruangan: {{ room_name if room_name else 'Semua' }} |
+  Kondisi: {{ kondisi_filter.replace('_',' ').title() if kondisi_filter else 'Semua' }} |
+  Kategori RPN: {{ rpn_filter.title() if rpn_filter else 'Semua' }}
+</div>
+
+<div class="stats">
+  <div class="stat-box">
+    <div class="num">{{ stats.total }}</div>
+    <div class="lbl">Total Aset</div>
+  </div>
+  <div class="stat-box">
+    <div class="num">{{ stats.baik }}</div>
+    <div class="lbl">Baik</div>
+  </div>
+  <div class="stat-box warning">
+    <div class="num">{{ stats.perlu_perhatian }}</div>
+    <div class="lbl">Perlu Perhatian</div>
+  </div>
+  <div class="stat-box danger">
+    <div class="num">{{ stats.kritis }}</div>
+    <div class="lbl">Kritis</div>
+  </div>
+  <div class="stat-box danger">
+    <div class="num">{{ stats.tidak_layak }}</div>
+    <div class="lbl">Tidak Layak</div>
+  </div>
+  <div class="stat-box danger">
+    <div class="num">{{ stats.rpn_tinggi }}</div>
+    <div class="lbl">RPN Tinggi</div>
+  </div>
+  <div class="stat-box warning">
+    <div class="num">{{ stats.rpn_sedang }}</div>
+    <div class="lbl">RPN Sedang</div>
+  </div>
+  <div class="stat-box">
+    <div class="num">{{ stats.rpn_rendah }}</div>
+    <div class="lbl">RPN Rendah</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Data Aset</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:24px">No</th>
+        <th style="width:90px">Kode Aset</th>
+        <th>Nama Aset</th>
+        <th style="width:100px">Ruangan</th>
+        <th style="width:80px">Kategori</th>
+        <th style="width:75px">Kondisi</th>
+        <th style="width:40px">RPN</th>
+        <th style="width:55px">Kat. RPN</th>
+        <th style="width:65px">Tgl Evaluasi</th>
+        <th>Rekomendasi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in asset_data %}
+      {% set a = d.asset %}
+      {% set f = d.last_fmea %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ a.asset_code }}</td>
+        <td><strong>{{ a.asset_name }}</strong></td>
+        <td>{{ a.room.room_name }}</td>
+        <td>{{ a.category.category_name }}</td>
+        <td>
+          {% if a.condition == 'baik' %}<span class="badge badge-success">Baik</span>
+          {% elif a.condition == 'perlu_perhatian' %}<span class="badge badge-warning">Perlu Perhatian</span>
+          {% elif a.condition == 'kritis' %}<span class="badge badge-danger">Kritis</span>
+          {% else %}<span class="badge badge-secondary">Tidak Layak</span>{% endif %}
+        </td>
+        <td style="text-align:center; font-weight:bold">{{ f.rpn_score if f else '—' }}</td>
+        <td>
+          {% if f %}
+            {% if f.risk_category == 'tinggi' %}<span class="badge badge-danger">Tinggi</span>
+            {% elif f.risk_category == 'sedang' %}<span class="badge badge-warning">Sedang</span>
+            {% else %}<span class="badge badge-success">Rendah</span>{% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td>{{ f.evaluation_date.strftime('%d/%m/%Y') if f else '—' }}</td>
+        <td style="max-width:120px; word-wrap:break-word">
+          {{ f.recommendation[:100] if f and f.recommendation else '—' }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="footer">
+  SIMASET RSKGM — Laporan digenerate otomatis pada {{ tanggal }} &nbsp;|&nbsp; Total: {{ stats.total }} aset
+</div>
+</body>
+</html>

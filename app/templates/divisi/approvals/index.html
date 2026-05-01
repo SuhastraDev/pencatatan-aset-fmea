@@ -1,0 +1,128 @@
+{% extends "layouts/base_divisi.html" %}
+{% block title %}Approval Center — Admin Divisi{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">Approval Center</h4>
+    <p class="text-muted mb-0">Kelola pengajuan perubahan status aset</p>
+  </div>
+  {% if pending_count > 0 %}
+  <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+    <i class="bi bi-clock me-1"></i>{{ pending_count }} Pending
+  </span>
+  {% endif %}
+</div>
+
+{# ── Filter ── #}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-sm-3">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Semua Status</option>
+          <option value="pending" {{ 'selected' if status_filter == 'pending' }}>Pending</option>
+          <option value="approved" {{ 'selected' if status_filter == 'approved' }}>Disetujui</option>
+          <option value="rejected" {{ 'selected' if status_filter == 'rejected' }}>Ditolak</option>
+        </select>
+      </div>
+      <div class="col-sm-3">
+        <select name="room" class="form-select form-select-sm">
+          <option value="">Semua Ruangan</option>
+          {% for r in rooms %}
+          <option value="{{ r.id }}" {{ 'selected' if room_filter == r.id }}>{{ r.room_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{{ url_for('divisi.approvals_index') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Tabel ── #}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Aset</th>
+          <th>Ruangan</th>
+          <th>Status Lama</th>
+          <th>Status Baru</th>
+          <th>Diajukan Oleh</th>
+          <th>Tgl Pengajuan</th>
+          <th>Status Approval</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ap in approvals.items %}
+        <tr class="{{ 'table-warning' if ap.approval_status == 'pending' }}">
+          <td>
+            <div class="fw-medium">{{ ap.asset.asset_name }}</div>
+            <div class="font-monospace text-muted small">{{ ap.asset.asset_code }}</div>
+          </td>
+          <td class="small text-muted">{{ ap.asset.room.room_name }}</td>
+          <td>
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small">
+              {{ ap.current_status.replace('_', ' ').title() }}
+            </span>
+          </td>
+          <td>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">
+              {{ ap.requested_status.replace('_', ' ').title() }}
+            </span>
+          </td>
+          <td class="small">{{ users_map[ap.requested_by].name if ap.requested_by in users_map else '—' }}</td>
+          <td class="small text-muted">{{ ap.requested_at.strftime('%d %b %Y, %H:%M') }}</td>
+          <td>
+            {% if ap.approval_status == 'pending' %}
+              <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Pending</span>
+            {% elif ap.approval_status == 'approved' %}
+              <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Disetujui</span>
+            {% else %}
+              <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Ditolak</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('divisi.approvals_detail', id=ap.id) }}"
+               class="btn btn-sm {{ 'btn-warning' if ap.approval_status == 'pending' else 'btn-outline-secondary' }}">
+              {% if ap.approval_status == 'pending' %}
+                <i class="bi bi-clipboard-check me-1"></i>Review
+              {% else %}
+                <i class="bi bi-eye me-1"></i>Detail
+              {% endif %}
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-4">Tidak ada pengajuan yang sesuai filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if approvals.pages > 1 %}
+  <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+    <small class="text-muted">{{ approvals.total }} pengajuan ditemukan</small>
+    <nav><ul class="pagination pagination-sm mb-0">
+      <li class="page-item {{ 'disabled' if not approvals.has_prev }}">
+        <a class="page-link" href="{{ url_for('divisi.approvals_index', page=approvals.prev_num, status=status_filter, room=room_filter) }}">‹</a>
+      </li>
+      {% for p in approvals.iter_pages() %}
+        {% if p %}<li class="page-item {{ 'active' if p == approvals.page }}">
+          <a class="page-link" href="{{ url_for('divisi.approvals_index', page=p, status=status_filter, room=room_filter) }}">{{ p }}</a>
+        </li>
+        {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+      {% endfor %}
+      <li class="page-item {{ 'disabled' if not approvals.has_next }}">
+        <a class="page-link" href="{{ url_for('divisi.approvals_index', page=approvals.next_num, status=status_filter, room=room_filter) }}">›</a>
+      </li>
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

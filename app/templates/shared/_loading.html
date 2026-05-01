@@ -1,0 +1,31 @@
+{#
+  Overlay loading untuk proses berat seperti generate PDF/Excel.
+  Panggil showLoading() sebelum submit form ekspor.
+#}
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center"
+     style="background:rgba(0,0,0,0.45); z-index:9999;">
+  <div class="text-center text-white">
+    <div class="spinner-border mb-3" role="status" style="width:3rem;height:3rem;">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <div class="fw-semibold fs-5" id="loadingMsg">Sedang memproses...</div>
+    <div class="small text-white-50 mt-1">Harap tunggu sebentar</div>
+  </div>
+</div>
+<script>
+function showLoading(msg) {
+  const el = document.getElementById('loadingOverlay');
+  if (msg) document.getElementById('loadingMsg').textContent = msg;
+  el.classList.remove('d-none');
+  el.classList.add('d-flex');
+}
+function hideLoading() {
+  const el = document.getElementById('loadingOverlay');
+  el.classList.add('d-none');
+  el.classList.remove('d-flex');
+}
+// Auto-hide setelah 30 detik (fallback)
+document.querySelectorAll('[data-loading]').forEach(btn => {
+  btn.addEventListener('click', () => showLoading(btn.dataset.loading));
+});
+</script>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page {
+    size: A4 portrait;
+    margin: 15mm 15mm 15mm 15mm;
+  }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    color: #1a1a1a;
+    line-height: 1.4;
+  }
+
+  /* ── Header ── */
+  .kir-header {
+    background: #1F4E79;
+    color: #ffffff;
+    text-align: center;
+    padding: 12px 16px;
+    border-radius: 4px 4px 0 0;
+  }
+  .kir-header .title-main {
+    font-size: 13pt;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .kir-header .title-sub {
+    font-size: 9pt;
+    margin-top: 2px;
+    opacity: 0.9;
+  }
+
+  /* ── Wrapper ── */
+  .kir-wrapper {
+    border: 1.5px solid #1F4E79;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  /* ── Section header ── */
+  .section-head {
+    background: #dce6f1;
+    color: #1F4E79;
+    font-weight: bold;
+    font-size: 8.5pt;
+    padding: 5px 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border-bottom: 1px solid #b8cfe8;
+  }
+
+  /* ── Data table ── */
+  .kir-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .kir-table td {
+    padding: 5px 12px;
+    vertical-align: top;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 9.5pt;
+  }
+  .kir-table td.label {
+    width: 38%;
+    color: #555;
+    white-space: nowrap;
+  }
+  .kir-table td.value {
+    font-weight: 500;
+  }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 8.5pt;
+    font-weight: bold;
+    color: #fff;
+  }
+  .badge-success  { background: #198754; }
+  .badge-warning  { background: #ffc107; color: #333 !important; }
+  .badge-danger   { background: #dc3545; }
+  .badge-secondary{ background: #6c757d; }
+
+  /* ── Bottom section (QR + signature) ── */
+  .kir-bottom {
+    display: table;
+    width: 100%;
+    border-top: 1.5px solid #1F4E79;
+  }
+  .kir-bottom-left,
+  .kir-bottom-right {
+    display: table-cell;
+    vertical-align: top;
+    padding: 12px;
+  }
+  .kir-bottom-left {
+    width: 140px;
+    text-align: center;
+    border-right: 1px solid #dce6f1;
+  }
+  .kir-bottom-left img {
+    width: 110px;
+    height: 110px;
+    border: 1px solid #ccc;
+    display: block;
+    margin: 0 auto 6px;
+  }
+  .kir-bottom-left .qr-label {
+    font-size: 7.5pt;
+    color: #666;
+  }
+  .sig-title {
+    font-weight: bold;
+    font-size: 9pt;
+    margin-bottom: 10px;
+    color: #1F4E79;
+  }
+  .sig-line {
+    margin-bottom: 12px;
+    font-size: 9pt;
+  }
+  .sig-line span {
+    color: #555;
+  }
+  .sig-underline {
+    display: inline-block;
+    width: 160px;
+    border-bottom: 1px solid #333;
+    margin-left: 4px;
+  }
+  .sig-ttd-box {
+    margin-top: 6px;
+    border: 1px solid #ccc;
+    height: 60px;
+    width: 180px;
+    border-radius: 3px;
+  }
+
+  /* ── Footer ── */
+  .kir-footer {
+    background: #f0f4f9;
+    border-top: 1px solid #dce6f1;
+    text-align: center;
+    padding: 6px 12px;
+    font-size: 8pt;
+    color: #555;
+    border-radius: 0 0 4px 4px;
+  }
+
+  /* ── Divider ── */
+  .section-divider { border-bottom: 1px solid #dce6f1; }
+</style>
+</head>
+<body>
+
+<div class="kir-wrapper">
+
+  {# ── Header ── #}
+  <div class="kir-header">
+    <div class="title-main">Kartu Identifikasi &amp; Rekam Kondisi</div>
+    <div class="title-sub">RS Khusus Gigi dan Mulut Palembang</div>
+  </div>
+
+  {# ── Identitas Aset ── #}
+  <div class="section-head">Identitas Aset</div>
+  <table class="kir-table">
+    <tr>
+      <td class="label">Kode Aset</td>
+      <td class="value"><strong>{{ asset.asset_code }}</strong></td>
+    </tr>
+    <tr>
+      <td class="label">Nama Alat</td>
+      <td class="value">{{ asset.asset_name }}</td>
+    </tr>
+    <tr>
+      <td class="label">Merek / Model</td>
+      <td class="value">{{ asset.brand }} / {{ asset.model }}</td>
+    </tr>
+    <tr>
+      <td class="label">No. Seri</td>
+      <td class="value">{{ asset.serial_number or '—' }}</td>
+    </tr>
+    <tr>
+      <td class="label">Kategori</td>
+      <td class="value">{{ asset.category.category_name }}</td>
+    </tr>
+    <tr>
+      <td class="label">Tanggal Pembelian</td>
+      <td class="value">{{ format_date(asset.purchase_date) }}</td>
+    </tr>
+  </table>
+
+  {# ── Lokasi ── #}
+  <div class="section-head">Lokasi</div>
+  <table class="kir-table">
+    <tr>
+      <td class="label">Divisi</td>
+      <td class="value">{{ asset.room.division.division_name if asset.room.division else '—' }}</td>
+    </tr>
+    <tr>
+      <td class="label">Ruangan</td>
+      <td class="value">{{ asset.room.room_name }} <span style="color:#666;font-size:8.5pt;">({{ asset.room.room_code }} · Lt. {{ asset.room.floor }})</span></td>
+    </tr>
+  </table>
+
+  {# ── Kondisi Terakhir ── #}
+  <div class="section-head">Kondisi Terakhir</div>
+  <table class="kir-table">
+    <tr>
+      <td class="label">Status</td>
+      <td class="value">
+        {% if asset.status == 'aktif' %}<span class="badge badge-success">Aktif</span>
+        {% elif asset.status == 'dalam_perbaikan' %}<span class="badge badge-warning">Dalam Perbaikan</span>
+        {% elif asset.status == 'tidak_aktif' %}<span class="badge badge-secondary">Tidak Aktif</span>
+        {% else %}<span class="badge badge-secondary">Menunggu Approval</span>{% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td class="label">Kondisi Fisik</td>
+      <td class="value">
+        {% if asset.condition == 'baik' %}<span class="badge badge-success">Baik</span>
+        {% elif asset.condition == 'perlu_perhatian' %}<span class="badge badge-warning">Perlu Perhatian</span>
+        {% elif asset.condition == 'kritis' %}<span class="badge badge-danger">Kritis</span>
+        {% else %}<span class="badge badge-secondary">Tidak Layak</span>{% endif %}
+      </td>
+    </tr>
+    {% if fmea_terakhir %}
+    <tr>
+      <td class="label">RPN Terakhir</td>
+      <td class="value">
+        <strong>{{ fmea_terakhir.rpn_score }}</strong>
+        {% if fmea_terakhir.risk_category == 'tinggi' %}<span class="badge badge-danger" style="margin-left:6px;">TINGGI</span>
+        {% elif fmea_terakhir.risk_category == 'sedang' %}<span class="badge badge-warning" style="margin-left:6px;">SEDANG</span>
+        {% else %}<span class="badge badge-success" style="margin-left:6px;">RENDAH</span>{% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td class="label">Tanggal Evaluasi</td>
+      <td class="value">{{ format_date(fmea_terakhir.evaluation_date) }}</td>
+    </tr>
+    <tr>
+      <td class="label">Rekomendasi</td>
+      <td class="value" style="font-size:9pt;">{{ fmea_terakhir.recommendation or '—' }}</td>
+    </tr>
+    {% else %}
+    <tr>
+      <td class="label">RPN Terakhir</td>
+      <td class="value" style="color:#888;">Belum dievaluasi</td>
+    </tr>
+    {% endif %}
+  </table>
+
+  {# ── Jadwal Maintenance ── #}
+  <div class="section-head">Jadwal Maintenance</div>
+  <table class="kir-table section-divider">
+    <tr>
+      <td class="label">Maintenance Terakhir</td>
+      <td class="value">{{ format_date(asset.last_maintenance_date) }}</td>
+    </tr>
+    <tr>
+      <td class="label">Maintenance Berikutnya</td>
+      <td class="value">
+        {% if asset.next_maintenance_date %}
+          {% set nd = asset.next_maintenance_date %}
+          {% set today = today_date %}
+          {% if nd < today %}
+            <span style="color:#dc3545; font-weight:bold;">{{ format_date(nd) }} ⚠ Terlambat</span>
+          {% else %}
+            {{ format_date(nd) }}
+          {% endif %}
+        {% else %}
+          <span style="color:#888;">—</span>
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+  {# ── QR + Tanda Tangan ── #}
+  <div class="kir-bottom">
+    <div class="kir-bottom-left">
+      {% if qr_path %}
+      <img src="{{ qr_path }}" alt="QR Code Aset">
+      {% else %}
+      <div style="width:110px;height:110px;border:1px solid #ccc;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:8pt;color:#aaa;">QR Code</div>
+      {% endif %}
+      <div class="qr-label">Scan untuk akses<br>detail aset</div>
+    </div>
+    <div class="kir-bottom-right">
+      <div class="sig-title">Diperiksa Oleh:</div>
+      <div class="sig-line"><span>Nama</span> : <span class="sig-underline"></span></div>
+      <div class="sig-line"><span>Jabatan</span> : <span class="sig-underline"></span></div>
+      <div class="sig-line"><span>Tanggal</span> : <span class="sig-underline"></span></div>
+      <div style="margin-top:6px; font-size:8.5pt; color:#555;">Tanda Tangan:</div>
+      <div class="sig-ttd-box"></div>
+    </div>
+  </div>
+
+  {# ── Footer ── #}
+  <div class="kir-footer">
+    Dicetak: {{ format_date(printed_at) }} &nbsp;|&nbsp; Oleh: {{ printed_by }} &nbsp;|&nbsp; SIMASET RSKGM
+  </div>
+
+</div>
+</body>
+</html>

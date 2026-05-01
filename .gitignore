@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+instance/
+.flask_session/
+exports/*.pdf
+exports/*.xlsx
+*.db
+.DS_Store
+venv/
+.venv/
+app/static/qrcodes/*.png

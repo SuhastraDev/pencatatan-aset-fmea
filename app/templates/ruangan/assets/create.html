@@ -1,0 +1,78 @@
+{% extends "layouts/base_ruangan.html" %}
+{% block title %}Tambah Aset — Admin Ruangan{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('ruangan.assets_index') }}" class="btn btn-sm btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+  <div>
+    <h4 class="fw-bold mb-0">Tambah Aset Baru</h4>
+    <p class="text-muted mb-0">{{ current_user.room.room_name }}</p>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('ruangan.assets_create') }}" novalidate>
+          {{ form.hidden_tag() }}
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label fw-semibold">Nama Aset</label>
+              {{ form.asset_name(class="form-control" + (" is-invalid" if form.asset_name.errors else "")) }}
+              {% for e in form.asset_name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Kategori</label>
+              {{ form.category_id(class="form-select" + (" is-invalid" if form.category_id.errors else "")) }}
+              {% for e in form.category_id.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Merek</label>
+              {{ form.brand(class="form-control" + (" is-invalid" if form.brand.errors else ""), placeholder="Contoh: Carestream") }}
+              {% for e in form.brand.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Model</label>
+              {{ form.model(class="form-control" + (" is-invalid" if form.model.errors else ""), placeholder="Contoh: CS 8200 3D") }}
+              {% for e in form.model.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nomor Seri <span class="text-muted fw-normal">(opsional)</span></label>
+              {{ form.serial_number(class="form-control" + (" is-invalid" if form.serial_number.errors else "")) }}
+              {% for e in form.serial_number.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tanggal Pembelian <span class="text-muted fw-normal">(opsional)</span></label>
+              {{ form.purchase_date(class="form-control" + (" is-invalid" if form.purchase_date.errors else ""), type="date") }}
+              {% for e in form.purchase_date.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Harga Pembelian <span class="text-muted fw-normal">(opsional)</span></label>
+              <div class="input-group">
+                <span class="input-group-text">Rp</span>
+                {{ form.purchase_price(class="form-control" + (" is-invalid" if form.purchase_price.errors else ""), placeholder="0") }}
+              </div>
+              {% for e in form.purchase_price.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Kondisi Awal</label>
+              {{ form.condition(class="form-select" + (" is-invalid" if form.condition.errors else "")) }}
+              {% for e in form.condition.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Catatan <span class="text-muted fw-normal">(opsional)</span></label>
+              {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows=3) }}
+              {% for e in form.notes.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save me-2"></i>Simpan</button>
+            <a href="{{ url_for('ruangan.assets_index') }}" class="btn btn-outline-secondary px-4">Batal</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

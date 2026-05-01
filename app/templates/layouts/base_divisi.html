@@ -1,0 +1,169 @@
+{% extends "layouts/base.html" %}
+
+{% block body %}
+<div style="display:flex; min-height:100vh;">
+
+  {# ── Sidebar ── #}
+  <nav class="sidebar">
+
+    {# Brand #}
+    <a href="{{ url_for('divisi.dashboard') }}" class="sidebar-brand">
+      <div class="sidebar-brand-icon"><i class="bi bi-hospital-fill"></i></div>
+      <div>
+        <div class="sidebar-brand-text">SIMASET</div>
+        <div class="sidebar-brand-sub">RSKGM Palembang</div>
+      </div>
+    </a>
+
+    {# Navigation #}
+    <div class="sidebar-section-label">Menu Utama</div>
+    <ul class="sidebar-nav">
+      <li>
+        <a href="{{ url_for('divisi.dashboard') }}"
+           class="sidebar-link {% if request.endpoint == 'divisi.dashboard' %}active{% endif %}">
+          <i class="bi bi-speedometer2"></i>
+          <span>Dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('divisi.members') }}"
+           class="sidebar-link {% if request.endpoint == 'divisi.members' %}active{% endif %}">
+          <i class="bi bi-people"></i>
+          <span>Anggota Divisi</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('divisi.assets_index') }}"
+           class="sidebar-link {% if 'assets' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-box-seam"></i>
+          <span>Daftar Aset</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('divisi.approvals_index') }}"
+           class="sidebar-link {% if 'approvals' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-clipboard-check"></i>
+          <span>Approval Center</span>
+          {% set pending_notif = current_user.notifications.filter_by(is_read=False, type='approval_baru').count() %}
+          {% if pending_notif > 0 %}
+            <span class="sidebar-badge">{{ pending_notif }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('divisi.reports_index') }}"
+           class="sidebar-link {% if 'reports' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-file-earmark-bar-graph"></i>
+          <span>Rekap Laporan</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('divisi.maintenance_logs') }}"
+           class="sidebar-link {% if 'maintenance' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-tools"></i>
+          <span>Riwayat Maintenance</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-section-label" style="margin-top:8px;">Akun</div>
+    <ul class="sidebar-nav">
+      <li>
+        <a href="{{ url_for('auth.notifications') }}"
+           class="sidebar-link {% if 'notifications' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-bell"></i>
+          <span>Notifikasi</span>
+          {% set unread = current_user.notifications.filter_by(is_read=False).count() %}
+          {% if unread > 0 %}
+            <span class="sidebar-badge">{{ unread }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('auth.profile') }}"
+           class="sidebar-link {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+          <i class="bi bi-person-circle"></i>
+          <span>Profil Saya</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('auth.logout') }}" class="sidebar-link sidebar-link-danger">
+          <i class="bi bi-box-arrow-right"></i>
+          <span>Keluar</span>
+        </a>
+      </li>
+    </ul>
+
+    {# Footer #}
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">
+          {{ current_user.name[0].upper() if current_user.name else 'D' }}
+        </div>
+        <div style="min-width:0;">
+          <div class="sidebar-user-name text-truncate">{{ current_user.name }}</div>
+          <div class="sidebar-user-role">
+            {{ current_user.division.division_name if current_user.division else 'Admin Divisi' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  {# ── Main area ── #}
+  <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+
+    {# Topbar #}
+    <header class="topbar">
+      {# Role badge #}
+      <span class="topbar-role-badge"
+            style="color:#0D9488; background:linear-gradient(135deg,#F0FDFA,#CCFBF1); border:1px solid #99F6E4;">
+        <i class="bi bi-diagram-3" style="font-size:12px;"></i>Admin Divisi
+      </span>
+
+      <div class="topbar-divider"></div>
+
+      {# Breadcrumb #}
+      <div class="topbar-breadcrumb">
+        {% block breadcrumb %}
+          <i class="bi bi-house"></i>
+          <span>Dashboard</span>
+        {% endblock %}
+      </div>
+
+      {# Clock & notifications #}
+      <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
+        {% include 'shared/_notifications.html' %}
+        <div style="font-size:12px; color:#94A3B8; display:flex; align-items:center; gap:6px;">
+          <i class="bi bi-clock" style="font-size:11px;"></i>
+          <span id="topbarClockDivisi"></span>
+        </div>
+      </div>
+    </header>
+
+    {# Content #}
+    <main class="page-content">
+      {% include "shared/_alert.html" %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const el = document.getElementById('topbarClockDivisi');
+  if (!el) return;
+  function tick() {
+    const now = new Date();
+    const days = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    el.textContent = days[now.getDay()] + ', ' +
+      String(now.getDate()).padStart(2,'0') + ' ' + months[now.getMonth()] + ' · ' +
+      String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  }
+  tick();
+  setInterval(tick, 30000);
+})();
+</script>
+{% endblock %}

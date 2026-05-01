@@ -1,0 +1,250 @@
+{% extends "layouts/base_super_admin.html" %}
+{% block title %}Edit User — Super Admin{% endblock %}
+
+{% block breadcrumb %}<i class="bi bi-person-gear"></i><span>Edit User</span>{% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{{ url_for('super_admin.users_admin_divisi') }}"
+     class="btn btn-icon btn-outline-secondary" title="Kembali">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div>
+    <h4 class="fw-bold mb-0" style="color:#0F172A;">Edit User</h4>
+    <p class="text-muted mb-0" style="font-size:13px;">{{ user.email }}</p>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-6 col-md-8">
+
+    {# Info card user #}
+    <div class="d-flex align-items-center gap-3 p-3 mb-4"
+         style="background:#F8FAFC; border-radius:12px; border:1px solid #E2E8F0;">
+      <div style="width:44px; height:44px; border-radius:50%;
+                  background:linear-gradient(135deg,#2563EB,#7C3AED);
+                  display:flex; align-items:center; justify-content:center;
+                  color:#fff; font-weight:700; font-size:18px; flex-shrink:0;">
+        {{ user.name[0].upper() }}
+      </div>
+      <div style="flex:1;">
+        <div class="fw-semibold" style="font-size:14px; color:#0F172A;">{{ user.name }}</div>
+        <div style="font-size:12px; color:#64748B;">
+          Terdaftar {{ user.created_at.strftime('%d %B %Y') }}
+        </div>
+      </div>
+      <div>
+        {% if user.is_active %}
+          <span class="badge" style="background:#F0FDF4; color:#16A34A; font-weight:600; font-size:11px;">Aktif</span>
+        {% else %}
+          <span class="badge" style="background:#FEF2F2; color:#DC2626; font-weight:600; font-size:11px;">Nonaktif</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="fw-semibold" style="font-size:14px;">Informasi Akun</span>
+      </div>
+      <div class="card-body" style="padding:28px;">
+        <form method="POST" novalidate id="editUserForm">
+          {{ form.hidden_tag() }}
+
+          {# ── Informasi Dasar ── #}
+          <div class="form-section"><i class="bi bi-person me-1"></i> Informasi Dasar</div>
+
+          <div class="mb-4">
+            <label class="form-label">Nama Lengkap <span style="color:#DC2626;">*</span></label>
+            <div class="input-icon-wrap">
+              <i class="bi bi-person field-icon"></i>
+              {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""),
+                 maxlength=100, id="nameInput") }}
+            </div>
+            {% for e in form.name.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+            <span class="char-counter" id="nameCounter"></span>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label">Email <span style="color:#DC2626;">*</span></label>
+            <div class="input-icon-wrap">
+              <i class="bi bi-envelope field-icon"></i>
+              {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+            </div>
+            {% for e in form.email.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="divider my-4"></div>
+
+          {# ── Keamanan ── #}
+          <div class="form-section"><i class="bi bi-shield-lock me-1"></i> Ganti Password</div>
+
+          <div class="mb-4">
+            <label class="form-label">Password Baru
+              <span class="text-muted fw-normal ms-1" style="font-size:11px;">opsional</span>
+            </label>
+            <div class="input-group input-icon-wrap">
+              <i class="bi bi-lock field-icon"></i>
+              {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""),
+                 placeholder="Kosongkan jika tidak ingin mengubah",
+                 id="passInput", style="padding-left:38px;") }}
+              <button type="button" class="input-group-text" style="cursor:pointer;"
+                      onclick="togglePass('passInput','iconPass')">
+                <i class="bi bi-eye" id="iconPass" style="font-size:14px; color:#64748B;"></i>
+              </button>
+            </div>
+            {% for e in form.password.errors %}<div class="invalid-feedback d-block" style="margin-top:4px;">{{ e }}</div>{% endfor %}
+            <div id="passStrengthWrap" style="display:none; margin-top:8px;">
+              <div style="height:4px; border-radius:4px; background:#F1F5F9; overflow:hidden;">
+                <div id="passStrengthBar" style="height:100%; width:0%; transition:all .3s; border-radius:4px;"></div>
+              </div>
+              <div id="passStrengthLabel" style="font-size:11px; margin-top:3px;"></div>
+            </div>
+          </div>
+
+          <div class="divider my-4"></div>
+
+          {# ── Peran & Akses ── #}
+          <div class="form-section"><i class="bi bi-person-badge me-1"></i> Peran & Akses</div>
+
+          <div class="mb-4">
+            <label class="form-label">Role <span style="color:#DC2626;">*</span></label>
+            <div class="input-icon-wrap">
+              <i class="bi bi-person-gear field-icon"></i>
+              {{ form.role(class="form-select" + (" is-invalid" if form.role.errors else ""),
+                 id="roleSelect", style="padding-left:38px;") }}
+            </div>
+            {% for e in form.role.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+          </div>
+
+          {# Divisi #}
+          <div id="divisionField" class="mb-4" style="display:none;">
+            <label class="form-label">
+              Divisi <span style="color:#DC2626;">*</span>
+              <span class="text-muted fw-normal ms-1" style="font-size:11px;">1 divisi → 1 Admin Divisi aktif</span>
+            </label>
+            <div class="input-icon-wrap">
+              <i class="bi bi-diagram-3 field-icon"></i>
+              <select name="{{ form.division_id.name }}" id="divisionSelect"
+                      class="form-select{% if form.division_id.errors %} is-invalid{% endif %}"
+                      style="padding-left:38px;">
+                <option value="0">— Pilih Divisi —</option>
+                {% for value, label in form.division_id.choices if value != 0 %}
+                  {% set is_occupied = value in occupied_division_ids %}
+                  <option value="{{ value }}"
+                          {% if is_occupied %}disabled{% endif %}
+                          {{ 'selected' if form.division_id.data == value }}>
+                    {{ label }}{% if is_occupied %} (sudah ada admin aktif){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            {% for e in form.division_id.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+          </div>
+
+          {# Ruangan #}
+          <div id="roomField" class="mb-4" style="display:none;">
+            <label class="form-label">
+              Ruangan <span style="color:#DC2626;">*</span>
+              <span class="text-muted fw-normal ms-1" style="font-size:11px;">1 ruangan → 1 Admin Ruangan aktif</span>
+            </label>
+            <div class="input-icon-wrap">
+              <i class="bi bi-door-open field-icon"></i>
+              <select name="{{ form.room_id.name }}" id="roomSelect"
+                      class="form-select{% if form.room_id.errors %} is-invalid{% endif %}"
+                      style="padding-left:38px;">
+                <option value="0">— Pilih Ruangan —</option>
+                {% for value, label in form.room_id.choices if value != 0 %}
+                  {% set is_occupied = value in occupied_room_ids %}
+                  <option value="{{ value }}"
+                          {% if is_occupied %}disabled{% endif %}
+                          {{ 'selected' if form.room_id.data == value }}>
+                    {{ label.replace(' — ', ' · ') }}{% if is_occupied %} (sudah ada admin aktif){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            {% for e in form.room_id.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="divider mb-4"></div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-5" id="submitBtn">
+              <i class="bi bi-save me-2"></i>Simpan Perubahan
+            </button>
+            <a href="{{ url_for('super_admin.users_admin_divisi') }}"
+               class="btn btn-outline-secondary px-4">Batal</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const roleSelect    = document.getElementById('roleSelect');
+const divisionField = document.getElementById('divisionField');
+const roomField     = document.getElementById('roomField');
+
+function toggleFields() {
+  const role = roleSelect.value;
+  divisionField.style.display = role === 'admin_divisi'  ? 'block' : 'none';
+  roomField.style.display     = role === 'admin_ruangan' ? 'block' : 'none';
+}
+roleSelect.addEventListener('change', toggleFields);
+toggleFields();
+
+function togglePass(inputId, iconId) {
+  const inp = document.getElementById(inputId);
+  const ico = document.getElementById(iconId);
+  inp.type  = inp.type === 'password' ? 'text' : 'password';
+  ico.className = inp.type === 'text' ? 'bi bi-eye-slash' : 'bi bi-eye';
+}
+
+/* Password strength */
+document.getElementById('passInput').addEventListener('input', function() {
+  const val  = this.value;
+  const wrap = document.getElementById('passStrengthWrap');
+  const bar  = document.getElementById('passStrengthBar');
+  const lbl  = document.getElementById('passStrengthLabel');
+  if (!val) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  let score = 0;
+  if (val.length >= 8) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const levels = [
+    { w:'25%', color:'#DC2626', label:'Lemah' },
+    { w:'50%', color:'#D97706', label:'Cukup' },
+    { w:'75%', color:'#2563EB', label:'Baik'  },
+    { w:'100%',color:'#16A34A', label:'Kuat'  },
+  ];
+  const lvl = levels[Math.max(score - 1, 0)];
+  bar.style.width = lvl.w; bar.style.background = lvl.color;
+  lbl.textContent = lvl.label; lbl.style.color = lvl.color;
+});
+
+/* Char counter */
+const nameInput   = document.getElementById('nameInput');
+const nameCounter = document.getElementById('nameCounter');
+function updateCounter() {
+  const len = nameInput.value.length, max = 100;
+  nameCounter.textContent = len + ' / ' + max;
+  nameCounter.classList.toggle('warn', len > 85);
+}
+nameInput.addEventListener('input', updateCounter);
+updateCounter();
+
+/* Submit loading */
+document.getElementById('editUserForm').addEventListener('submit', function() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Menyimpan...';
+});
+</script>
+{% endblock %}

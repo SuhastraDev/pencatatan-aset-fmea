@@ -1,0 +1,151 @@
+{% extends "layouts/base.html" %}
+
+{% block body %}
+<div style="display:flex; min-height:100vh;">
+
+  {# ── Sidebar ── #}
+  <nav class="sidebar">
+
+    {# Brand #}
+    <a href="{{ url_for('super_admin.dashboard') }}" class="sidebar-brand">
+      <div class="sidebar-brand-icon"><i class="bi bi-hospital-fill"></i></div>
+      <div>
+        <div class="sidebar-brand-text">SIMASET</div>
+        <div class="sidebar-brand-sub">RSKGM Palembang</div>
+      </div>
+    </a>
+
+    {# Master Data #}
+    <div class="sidebar-section-label">Master Data</div>
+    <ul class="sidebar-nav">
+      <li>
+        <a href="{{ url_for('super_admin.dashboard') }}"
+           class="sidebar-link {% if request.endpoint == 'super_admin.dashboard' %}active{% endif %}">
+          <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('super_admin.divisions_index') }}"
+           class="sidebar-link {% if request.endpoint and 'divisions' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-diagram-3"></i><span>Manajemen Divisi</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('super_admin.rooms_index') }}"
+           class="sidebar-link {% if request.endpoint and 'rooms' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-door-open"></i><span>Manajemen Ruangan</span>
+        </a>
+      </li>
+    </ul>
+
+    {# Pengguna #}
+    <div class="sidebar-section-label" style="margin-top:4px;">Pengguna</div>
+    <ul class="sidebar-nav">
+      <li>
+        <a href="{{ url_for('super_admin.users_admin_divisi') }}"
+           class="sidebar-link {% if request.endpoint == 'super_admin.users_admin_divisi' %}active{% endif %}">
+          <i class="bi bi-person-badge"></i><span>Admin Divisi</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('super_admin.users_admin_ruangan') }}"
+           class="sidebar-link {% if request.endpoint == 'super_admin.users_admin_ruangan' %}active{% endif %}">
+          <i class="bi bi-person-gear"></i><span>Admin Ruangan</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('super_admin.users_create') }}"
+           class="sidebar-link {% if request.endpoint == 'super_admin.users_create' %}active{% endif %}">
+          <i class="bi bi-person-plus"></i><span>Tambah User</span>
+        </a>
+      </li>
+    </ul>
+
+    {# Akun #}
+    <div class="sidebar-section-label" style="margin-top:4px;">Akun</div>
+    <ul class="sidebar-nav">
+      <li>
+        <a href="{{ url_for('auth.profile') }}"
+           class="sidebar-link {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+          <i class="bi bi-person-circle"></i><span>Profil Saya</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('auth.logout') }}" class="sidebar-link sidebar-link-danger">
+          <i class="bi bi-box-arrow-right"></i><span>Keluar</span>
+        </a>
+      </li>
+    </ul>
+
+    {# Footer — user info #}
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">
+          {{ current_user.name[0].upper() if current_user.name else 'S' }}
+        </div>
+        <div style="min-width:0;">
+          <div class="sidebar-user-name text-truncate">{{ current_user.name }}</div>
+          <div class="sidebar-user-role">Super Administrator</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  {# ── Main area ── #}
+  <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+
+    {# Topbar #}
+    <header class="topbar">
+      {# Role badge #}
+      <span class="topbar-role-badge"
+            style="color:#0E7490; background:linear-gradient(135deg,#ECFEFF,#CFFAFE); border:1px solid #A5F3FC;">
+        <i class="bi bi-shield-lock" style="font-size:12px;"></i>Super Admin
+      </span>
+
+      <div class="topbar-divider"></div>
+
+      {# Breadcrumb — diisi dari block #}
+      <div class="topbar-breadcrumb">
+        {% block breadcrumb %}
+          <i class="bi bi-house"></i>
+          <span>Dashboard</span>
+        {% endblock %}
+      </div>
+
+      {# Datetime #}
+      <div style="margin-left:auto; font-size:12px; color:#94A3B8; display:flex; align-items:center; gap:6px;">
+        <i class="bi bi-clock" style="font-size:11px;"></i>
+        <span id="topbarClock"></span>
+      </div>
+    </header>
+
+    {# Content #}
+    <main class="page-content">
+      {% include "shared/_alert.html" %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+</div>
+
+<script>
+/* Live clock di topbar */
+(function() {
+  const el = document.getElementById('topbarClock');
+  if (!el) return;
+  function tick() {
+    const now = new Date();
+    const days = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+    const d = days[now.getDay()];
+    const date = now.getDate().toString().padStart(2,'0');
+    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const m = months[now.getMonth()];
+    const hh = now.getHours().toString().padStart(2,'0');
+    const mm = now.getMinutes().toString().padStart(2,'0');
+    el.textContent = `${d}, ${date} ${m} · ${hh}:${mm}`;
+  }
+  tick();
+  setInterval(tick, 30000);
+})();
+</script>
+{% endblock %}

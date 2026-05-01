@@ -1,0 +1,122 @@
+{% extends "layouts/base_ruangan.html" %}
+{% block title %}Rekap Laporan — Admin Ruangan{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">Rekap Laporan Aset</h4>
+    <p class="text-muted mb-0">{{ current_user.room.room_name }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('ruangan.reports_export_excel') }}" class="btn btn-success">
+      <i class="bi bi-file-earmark-excel me-2"></i>Ekspor Excel
+    </a>
+    <a href="{{ url_for('ruangan.reports_export_pdf') }}" class="btn btn-danger">
+      <i class="bi bi-file-earmark-pdf me-2"></i>Ekspor PDF
+    </a>
+  </div>
+</div>
+
+<!-- Filter -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-sm-4">
+        <label class="form-label small fw-semibold mb-1">Kondisi</label>
+        <select name="kondisi" class="form-select form-select-sm">
+          <option value="">Semua Kondisi</option>
+          <option value="baik" {{ 'selected' if kondisi_filter=='baik' }}>Baik</option>
+          <option value="perlu_perhatian" {{ 'selected' if kondisi_filter=='perlu_perhatian' }}>Perlu Perhatian</option>
+          <option value="kritis" {{ 'selected' if kondisi_filter=='kritis' }}>Kritis</option>
+          <option value="tidak_layak" {{ 'selected' if kondisi_filter=='tidak_layak' }}>Tidak Layak</option>
+        </select>
+      </div>
+      <div class="col-sm-4">
+        <label class="form-label small fw-semibold mb-1">Kategori RPN</label>
+        <select name="rpn" class="form-select form-select-sm">
+          <option value="">Semua RPN</option>
+          <option value="tinggi" {{ 'selected' if rpn_filter=='tinggi' }}>Tinggi (≥200)</option>
+          <option value="sedang" {{ 'selected' if rpn_filter=='sedang' }}>Sedang (80-199)</option>
+          <option value="rendah" {{ 'selected' if rpn_filter=='rendah' }}>Rendah (&lt;80)</option>
+        </select>
+      </div>
+      <div class="col-sm-4 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-filter me-1"></i>Filter</button>
+        <a href="{{ url_for('ruangan.reports_index') }}" class="btn btn-sm btn-outline-secondary w-100">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Statistik -->
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="fs-2 fw-bold text-primary">{{ stats.total }}</div>
+      <div class="small text-muted">Total Aset</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="fs-2 fw-bold text-success">{{ stats.baik }}</div>
+      <div class="small text-muted">Kondisi Baik</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="fs-2 fw-bold text-warning">{{ stats.perlu_perhatian }}</div>
+      <div class="small text-muted">Perlu Perhatian</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="fs-2 fw-bold text-danger">{{ stats.kritis }}</div>
+      <div class="small text-muted">Kritis</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabel -->
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th>Kode</th><th>Nama Aset</th><th>Kategori</th><th>Kondisi</th>
+          <th class="text-center">RPN</th><th>Kategori RPN</th><th>Tgl Evaluasi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in asset_data %}
+        {% set a = item.asset %}
+        {% set f = item.last_fmea %}
+        <tr>
+          <td><span class="badge bg-secondary">{{ a.asset_code }}</span></td>
+          <td class="fw-semibold">{{ a.asset_name }}</td>
+          <td>{{ a.category.category_name }}</td>
+          <td>
+            {% if a.condition == 'baik' %}<span class="badge bg-success">Baik</span>
+            {% elif a.condition == 'perlu_perhatian' %}<span class="badge bg-warning text-dark">Perlu Perhatian</span>
+            {% elif a.condition == 'kritis' %}<span class="badge" style="background:#fd7e14">Kritis</span>
+            {% else %}<span class="badge bg-danger">Tidak Layak</span>{% endif %}
+          </td>
+          <td class="text-center fw-bold {% if f and f.risk_category == 'tinggi' %}text-danger{% elif f and f.risk_category == 'sedang' %}text-warning{% else %}text-success{% endif %}">
+            {{ f.rpn_score if f else '—' }}
+          </td>
+          <td>
+            {% if f %}
+              {% if f.risk_category == 'tinggi' %}<span class="badge bg-danger">Tinggi</span>
+              {% elif f.risk_category == 'sedang' %}<span class="badge bg-warning text-dark">Sedang</span>
+              {% else %}<span class="badge bg-success">Rendah</span>{% endif %}
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="text-muted">{{ f.evaluation_date.strftime('%d %b %Y') if f else '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Tidak ada data yang sesuai filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

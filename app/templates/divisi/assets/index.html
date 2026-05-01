@@ -1,0 +1,139 @@
+{% extends "layouts/base_divisi.html" %}
+{% block title %}Daftar Aset — Admin Divisi{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">Daftar Aset</h4>
+    <p class="text-muted mb-0">Semua aset lintas ruangan</p>
+  </div>
+</div>
+
+{# ── Filter ── #}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-sm-3">
+        <select name="room" class="form-select form-select-sm">
+          <option value="">Semua Ruangan</option>
+          {% for r in rooms %}
+          <option value="{{ r.id }}" {{ 'selected' if room_filter == r.id }}>{{ r.room_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-2">
+        <select name="kondisi" class="form-select form-select-sm">
+          <option value="">Semua Kondisi</option>
+          <option value="baik" {{ 'selected' if kondisi_filter == 'baik' }}>Baik</option>
+          <option value="perlu_perhatian" {{ 'selected' if kondisi_filter == 'perlu_perhatian' }}>Perlu Perhatian</option>
+          <option value="kritis" {{ 'selected' if kondisi_filter == 'kritis' }}>Kritis</option>
+          <option value="tidak_layak" {{ 'selected' if kondisi_filter == 'tidak_layak' }}>Tidak Layak</option>
+        </select>
+      </div>
+      <div class="col-sm-2">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Semua Status</option>
+          <option value="aktif" {{ 'selected' if status_filter == 'aktif' }}>Aktif</option>
+          <option value="dalam_perbaikan" {{ 'selected' if status_filter == 'dalam_perbaikan' }}>Dalam Perbaikan</option>
+          <option value="tidak_aktif" {{ 'selected' if status_filter == 'tidak_aktif' }}>Tidak Aktif</option>
+          <option value="menunggu_approval" {{ 'selected' if status_filter == 'menunggu_approval' }}>Menunggu Approval</option>
+        </select>
+      </div>
+      <div class="col-sm-2">
+        <select name="rpn" class="form-select form-select-sm">
+          <option value="">Semua RPN</option>
+          <option value="rendah" {{ 'selected' if rpn_filter == 'rendah' }}>RPN Rendah</option>
+          <option value="sedang" {{ 'selected' if rpn_filter == 'sedang' }}>RPN Sedang</option>
+          <option value="tinggi" {{ 'selected' if rpn_filter == 'tinggi' }}>RPN Tinggi</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{{ url_for('divisi.assets_index') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Tabel ── #}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Kode Aset</th>
+          <th>Nama Aset</th>
+          <th>Ruangan</th>
+          <th>Kategori</th>
+          <th>Kondisi</th>
+          <th>Status</th>
+          <th>RPN Terakhir</th>
+          <th>Tgl Evaluasi</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in assets.items %}
+        {% set last_f = fmea_map.get(a.id) %}
+        <tr>
+          <td class="font-monospace small">{{ a.asset_code }}</td>
+          <td class="fw-medium">{{ a.asset_name }}</td>
+          <td>
+            <span class="text-muted small">{{ a.room.room_name }}</span>
+          </td>
+          <td class="text-muted small">{{ a.category.category_name }}</td>
+          <td>
+            {% if a.condition == 'baik' %}<span class="badge bg-success">Baik</span>
+            {% elif a.condition == 'perlu_perhatian' %}<span class="badge bg-warning text-dark">Perlu Perhatian</span>
+            {% elif a.condition == 'kritis' %}<span class="badge bg-danger">Kritis</span>
+            {% else %}<span class="badge bg-secondary">Tidak Layak</span>{% endif %}
+          </td>
+          <td>
+            {% if a.status == 'aktif' %}<span class="badge bg-success-subtle text-success border border-success-subtle">Aktif</span>
+            {% elif a.status == 'dalam_perbaikan' %}<span class="badge bg-warning-subtle text-warning border border-warning-subtle">Dalam Perbaikan</span>
+            {% elif a.status == 'tidak_aktif' %}<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Tidak Aktif</span>
+            {% else %}<span class="badge bg-info-subtle text-info border border-info-subtle">Menunggu Approval</span>{% endif %}
+          </td>
+          <td class="text-center">
+            {% if last_f %}
+              {% if last_f.risk_category == 'tinggi' %}<span class="badge bg-danger">{{ last_f.rpn_score }}</span>
+              {% elif last_f.risk_category == 'sedang' %}<span class="badge bg-warning text-dark">{{ last_f.rpn_score }}</span>
+              {% else %}<span class="badge bg-success">{{ last_f.rpn_score }}</span>{% endif %}
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="text-muted small">
+            {% if last_f %}{{ last_f.evaluation_date.strftime('%d/%m/%Y') }}{% else %}—{% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('divisi.assets_detail', id=a.id) }}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-eye"></i> Detail
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-center text-muted py-4">Tidak ada aset yang sesuai filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if assets.pages > 1 %}
+  <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+    <small class="text-muted">{{ assets.total }} aset ditemukan</small>
+    <nav><ul class="pagination pagination-sm mb-0">
+      <li class="page-item {{ 'disabled' if not assets.has_prev }}">
+        <a class="page-link" href="{{ url_for('divisi.assets_index', page=assets.prev_num, room=room_filter, kondisi=kondisi_filter, status=status_filter, rpn=rpn_filter) }}">‹</a>
+      </li>
+      {% for p in assets.iter_pages() %}
+        {% if p %}<li class="page-item {{ 'active' if p == assets.page }}">
+          <a class="page-link" href="{{ url_for('divisi.assets_index', page=p, room=room_filter, kondisi=kondisi_filter, status=status_filter, rpn=rpn_filter) }}">{{ p }}</a>
+        </li>
+        {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+      {% endfor %}
+      <li class="page-item {{ 'disabled' if not assets.has_next }}">
+        <a class="page-link" href="{{ url_for('divisi.assets_index', page=assets.next_num, room=room_filter, kondisi=kondisi_filter, status=status_filter, rpn=rpn_filter) }}">›</a>
+      </li>
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

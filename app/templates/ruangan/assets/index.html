@@ -1,0 +1,129 @@
+{% extends "layouts/base_ruangan.html" %}
+{% block title %}Daftar Aset — Admin Ruangan{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">Daftar Aset</h4>
+    <p class="text-muted mb-0">{{ current_user.room.room_name }}</p>
+  </div>
+  <a href="{{ url_for('ruangan.assets_create') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Tambah Aset
+  </a>
+</div>
+
+<!-- Filter -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-sm-3">
+        <label class="form-label small fw-semibold mb-1">Kondisi</label>
+        <select name="kondisi" class="form-select form-select-sm">
+          <option value="">Semua Kondisi</option>
+          <option value="baik" {{ 'selected' if kondisi_filter=='baik' }}>Baik</option>
+          <option value="perlu_perhatian" {{ 'selected' if kondisi_filter=='perlu_perhatian' }}>Perlu Perhatian</option>
+          <option value="kritis" {{ 'selected' if kondisi_filter=='kritis' }}>Kritis</option>
+          <option value="tidak_layak" {{ 'selected' if kondisi_filter=='tidak_layak' }}>Tidak Layak</option>
+        </select>
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label small fw-semibold mb-1">Kategori</label>
+        <select name="kategori" class="form-select form-select-sm">
+          <option value="0">Semua Kategori</option>
+          {% for c in categories %}
+          <option value="{{ c.id }}" {{ 'selected' if kategori_filter==c.id }}>{{ c.category_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label small fw-semibold mb-1">Status</label>
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Semua Status</option>
+          <option value="aktif" {{ 'selected' if status_filter=='aktif' }}>Aktif</option>
+          <option value="dalam_perbaikan" {{ 'selected' if status_filter=='dalam_perbaikan' }}>Dalam Perbaikan</option>
+          <option value="tidak_aktif" {{ 'selected' if status_filter=='tidak_aktif' }}>Tidak Aktif</option>
+          <option value="menunggu_approval" {{ 'selected' if status_filter=='menunggu_approval' }}>Menunggu Approval</option>
+        </select>
+      </div>
+      <div class="col-sm-3 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-filter me-1"></i>Filter</button>
+        <a href="{{ url_for('ruangan.assets_index') }}" class="btn btn-sm btn-outline-secondary w-100">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th>Kode</th><th>Nama Aset</th><th>Kategori</th><th>Kondisi</th>
+          <th>Status</th><th class="text-center">RPN</th><th>Tgl Evaluasi</th>
+          <th class="text-center">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in assets.items %}
+        {% set last_fmea = a.fmea_records.order_by_desc('created_at').first() if false else namespace(val=none) %}
+        {% set last_fmea = a.fmea_records.order_by(a.fmea_records._query_cls.__table__.c.created_at.desc()).first() if false else none %}
+        {% set records = a.fmea_records.all() %}
+        {% set last_fmea = records|sort(attribute='created_at', reverse=True)|first if records else none %}
+        <tr>
+          <td><span class="badge bg-secondary">{{ a.asset_code }}</span></td>
+          <td class="fw-semibold">{{ a.asset_name }}</td>
+          <td>{{ a.category.category_name }}</td>
+          <td>
+            {% if a.condition == 'baik' %}<span class="badge bg-success">Baik</span>
+            {% elif a.condition == 'perlu_perhatian' %}<span class="badge bg-warning text-dark">Perlu Perhatian</span>
+            {% elif a.condition == 'kritis' %}<span class="badge" style="background:#fd7e14">Kritis</span>
+            {% else %}<span class="badge bg-danger">Tidak Layak</span>{% endif %}
+          </td>
+          <td>
+            {% if a.status == 'aktif' %}<span class="badge bg-success">Aktif</span>
+            {% elif a.status == 'dalam_perbaikan' %}<span class="badge bg-warning text-dark">Dalam Perbaikan</span>
+            {% elif a.status == 'tidak_aktif' %}<span class="badge bg-secondary">Tidak Aktif</span>
+            {% else %}<span class="badge bg-primary">Menunggu Approval</span>{% endif %}
+          </td>
+          <td class="text-center">
+            {% if last_fmea %}
+              <span class="fw-bold {% if last_fmea.risk_category == 'tinggi' %}text-danger{% elif last_fmea.risk_category == 'sedang' %}text-warning{% else %}text-success{% endif %}">
+                {{ last_fmea.rpn_score }}
+              </span>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="text-muted">
+            {% if last_fmea %}{{ last_fmea.evaluation_date.strftime('%d %b %Y') }}{% else %}—{% endif %}
+          </td>
+          <td class="text-center">
+            <div class="d-flex gap-1 justify-content-center">
+              <a href="{{ url_for('ruangan.assets_detail', id=a.id) }}" class="btn btn-sm btn-outline-secondary" title="Detail"><i class="bi bi-eye"></i></a>
+              <a href="{{ url_for('ruangan.assets_edit', id=a.id) }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+              <a href="{{ url_for('ruangan.fmea_form', id=a.id) }}" class="btn btn-sm btn-outline-info" title="Evaluasi FMEA"><i class="bi bi-clipboard-check"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-4">Belum ada aset di ruangan ini.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if assets.pages > 1 %}
+  <div class="card-footer bg-white d-flex justify-content-center">
+    <nav><ul class="pagination pagination-sm mb-0">
+      <li class="page-item {{ 'disabled' if not assets.has_prev }}">
+        <a class="page-link" href="{{ url_for('ruangan.assets_index', page=assets.prev_num, kondisi=kondisi_filter, kategori=kategori_filter, status=status_filter) }}">‹</a>
+      </li>
+      {% for p in assets.iter_pages() %}
+        {% if p %}<li class="page-item {{ 'active' if p == assets.page }}"><a class="page-link" href="{{ url_for('ruangan.assets_index', page=p, kondisi=kondisi_filter, kategori=kategori_filter, status=status_filter) }}">{{ p }}</a></li>
+        {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+      {% endfor %}
+      <li class="page-item {{ 'disabled' if not assets.has_next }}">
+        <a class="page-link" href="{{ url_for('ruangan.assets_index', page=assets.next_num, kondisi=kondisi_filter, kategori=kategori_filter, status=status_filter) }}">›</a>
+      </li>
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

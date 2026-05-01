@@ -1,0 +1,208 @@
+{% extends "layouts/base_super_admin.html" %}
+{% block title %}Dashboard — Super Admin{% endblock %}
+
+{% block breadcrumb %}
+  <i class="bi bi-house"></i><span>Dashboard</span>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <h4 style="font-weight:900; font-size:22px; color:#0F172A; margin:0; letter-spacing:-.02em;">Dashboard</h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:13px;">
+      Selamat datang kembali, <strong style="color:#374151;">{{ current_user.name }}</strong> 👋
+    </p>
+  </div>
+  <a href="{{ url_for('super_admin.users_create') }}" class="btn btn-primary btn-sm px-4">
+    <i class="bi bi-person-plus me-2"></i>Tambah User
+  </a>
+</div>
+
+{# ── Stat Cards ── #}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="stat-card card blue h-100">
+      <div class="card-body d-flex align-items-center gap-3 p-4" style="padding-top:20px !important;">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);">
+          <i class="bi bi-diagram-3" style="color:#2563EB;"></i>
+        </div>
+        <div>
+          <div class="stat-value">{{ total_divisi }}</div>
+          <div class="stat-label">Divisi Aktif</div>
+          <div class="stat-trend neutral"><i class="bi bi-circle-fill" style="font-size:6px;"></i> Total divisi</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card card green h-100">
+      <div class="card-body d-flex align-items-center gap-3 p-4" style="padding-top:20px !important;">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#F0FDF4,#DCFCE7);">
+          <i class="bi bi-door-open" style="color:#16A34A;"></i>
+        </div>
+        <div>
+          <div class="stat-value">{{ total_ruangan_aktif }}</div>
+          <div class="stat-label">Ruangan Aktif</div>
+          <div class="stat-trend neutral"><i class="bi bi-circle-fill" style="font-size:6px;"></i> Seluruh ruangan</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card card purple h-100">
+      <div class="card-body d-flex align-items-center gap-3 p-4" style="padding-top:20px !important;">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);">
+          <i class="bi bi-person-badge" style="color:#7C3AED;"></i>
+        </div>
+        <div>
+          <div class="stat-value">{{ total_admin_divisi }}</div>
+          <div class="stat-label">Admin Divisi</div>
+          <div class="stat-trend neutral"><i class="bi bi-circle-fill" style="font-size:6px;"></i> Terdaftar</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card card teal h-100">
+      <div class="card-body d-flex align-items-center gap-3 p-4" style="padding-top:20px !important;">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#F0FDFA,#CCFBF1);">
+          <i class="bi bi-person-gear" style="color:#0D9488;"></i>
+        </div>
+        <div>
+          <div class="stat-value">{{ total_admin_ruangan }}</div>
+          <div class="stat-label">Admin Ruangan</div>
+          <div class="stat-trend neutral"><i class="bi bi-circle-fill" style="font-size:6px;"></i> Terdaftar</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+
+  {# ── Ringkasan Divisi ── #}
+  {% if divisi_summary %}
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <span class="fw-bold" style="font-size:14px; color:#0F172A;">Ringkasan Divisi</span>
+          <span class="badge ms-2" style="background:#EFF6FF; color:#2563EB; font-weight:700;">{{ divisi_summary|length }}</span>
+        </div>
+        <a href="{{ url_for('super_admin.divisions_index') }}"
+           class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-arrow-right me-1"></i>Kelola
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th>Divisi</th>
+              <th>Admin</th>
+              <th class="text-center">Ruangan</th>
+              <th class="text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in divisi_summary %}
+            <tr>
+              <td>
+                <div class="fw-semibold" style="font-size:13px; color:#0F172A;">{{ item.divisi.division_name }}</div>
+              </td>
+              <td>
+                {% if item.admin %}
+                  <div style="font-size:12px; color:#7C3AED; font-weight:600;">{{ item.admin.name }}</div>
+                {% else %}
+                  <span class="badge" style="background:#FEF3C7; color:#92400E;">Belum ada</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <span class="badge" style="background:#EFF6FF; color:#2563EB; font-weight:700;">{{ item.ruangan_count }}</span>
+              </td>
+              <td class="text-center">
+                <span class="badge" style="background:#F0FDF4; color:#16A34A;">Aktif</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── User Terbaru ── #}
+  <div class="col-lg-{% if divisi_summary %}6{% else %}12{% endif %}">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <span class="fw-bold" style="font-size:14px; color:#0F172A;">User Terbaru</span>
+          <span class="badge ms-2" style="background:#F5F3FF; color:#7C3AED; font-weight:700;">{{ user_terbaru|length }}</span>
+        </div>
+        <a href="{{ url_for('super_admin.users_admin_divisi') }}"
+           class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-arrow-right me-1"></i>Lihat Semua
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th>Pengguna</th>
+              <th>Role</th>
+              <th class="text-center">Status</th>
+              <th>Dibuat</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in user_terbaru %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div style="width:30px; height:30px; border-radius:50%;
+                              background:linear-gradient(135deg,#3B82F6,#8B5CF6);
+                              display:flex; align-items:center; justify-content:center;
+                              color:#fff; font-weight:700; font-size:12px; flex-shrink:0;">
+                    {{ u.name[0].upper() }}
+                  </div>
+                  <div>
+                    <div class="fw-semibold" style="font-size:13px;">{{ u.name }}</div>
+                    <div style="font-size:11px; color:#94A3B8;">{{ u.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                {% if u.role == 'super_admin' %}
+                  <span class="badge" style="background:#F5F3FF; color:#7C3AED;">Super Admin</span>
+                {% elif u.role == 'admin_divisi' %}
+                  <span class="badge" style="background:#EFF6FF; color:#2563EB;">Admin Divisi</span>
+                {% else %}
+                  <span class="badge" style="background:#F0FDF4; color:#16A34A;">Admin Ruangan</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if u.is_active %}
+                  <span class="badge" style="background:#F0FDF4; color:#16A34A;">Aktif</span>
+                {% else %}
+                  <span class="badge" style="background:#FEF2F2; color:#DC2626;">Nonaktif</span>
+                {% endif %}
+              </td>
+              <td style="font-size:12px; color:#94A3B8;">{{ u.created_at.strftime('%d %b %Y') }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-4" style="font-size:13px;">
+                Belum ada pengguna terdaftar.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

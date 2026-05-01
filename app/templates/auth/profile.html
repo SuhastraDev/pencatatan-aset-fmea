@@ -1,0 +1,263 @@
+{% if current_user.is_super_admin() %}
+  {% extends "layouts/base_super_admin.html" %}
+{% elif current_user.is_admin_divisi() %}
+  {% extends "layouts/base_divisi.html" %}
+{% else %}
+  {% extends "layouts/base_ruangan.html" %}
+{% endif %}
+
+{% block title %}Profil Saya — SIMASET RSKGM{% endblock %}
+
+{% block breadcrumb %}<i class="bi bi-person-circle"></i><span>Profil Saya</span>{% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center gap-3 mb-4">
+  <div>
+    <h4 class="fw-bold mb-0" style="color:#0F172A;">Profil Saya</h4>
+    <p class="text-muted mb-0" style="font-size:13px;">Kelola informasi akun dan keamanan</p>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7 col-md-9">
+
+    {# ── Info card ── #}
+    <div class="card mb-4">
+      <div class="card-body d-flex align-items-center gap-4 p-4">
+        <div style="width:56px; height:56px; border-radius:50%;
+                    background:linear-gradient(135deg,#2563EB,#7C3AED);
+                    display:flex; align-items:center; justify-content:center;
+                    color:#fff; font-weight:800; font-size:22px; flex-shrink:0;
+                    box-shadow:0 4px 14px rgba(37,99,235,.35);">
+          {{ current_user.name[0].upper() if current_user.name else '?' }}
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div class="fw-bold" style="font-size:16px; color:#0F172A;">{{ current_user.name }}</div>
+          <div style="font-size:12px; color:#64748B; margin-top:2px;">{{ current_user.email }}</div>
+          <div style="margin-top:8px;">
+            {% if current_user.is_super_admin() %}
+              <span class="badge" style="background:#F5F3FF; color:#7C3AED; font-weight:600; font-size:11px;">
+                <i class="bi bi-shield-lock me-1"></i>Super Admin
+              </span>
+            {% elif current_user.is_admin_divisi() %}
+              <span class="badge" style="background:#EFF6FF; color:#2563EB; font-weight:600; font-size:11px;">
+                <i class="bi bi-person-badge me-1"></i>Admin Divisi
+                {% if current_user.division %}· {{ current_user.division.division_name }}{% endif %}
+              </span>
+            {% else %}
+              <span class="badge" style="background:#F0FDF4; color:#16A34A; font-weight:600; font-size:11px;">
+                <i class="bi bi-person-gear me-1"></i>Admin Ruangan
+                {% if current_user.room %}· {{ current_user.room.room_name }}{% endif %}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+        <div style="text-align:right; flex-shrink:0;">
+          <div style="font-size:10.5px; color:#94A3B8; text-transform:uppercase; letter-spacing:.06em; font-weight:700;">Login Terakhir</div>
+          <div style="font-size:12px; color:#374151; margin-top:2px;">
+            {% if current_user.last_login %}
+              {{ current_user.last_login.strftime('%d %b %Y') }}<br>
+              <span style="color:#64748B;">{{ current_user.last_login.strftime('%H:%M') }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Form ── #}
+    <div class="card">
+      <div class="card-header">
+        <span class="fw-semibold" style="font-size:14px;">Edit Profil</span>
+      </div>
+      <div class="card-body" style="padding:28px;">
+        <form method="POST" action="{{ url_for('auth.profile') }}" novalidate id="profileForm">
+          {{ form.hidden_tag() }}
+
+          {# Informasi Dasar #}
+          <div class="form-section"><i class="bi bi-person-circle me-1"></i> Informasi Dasar</div>
+
+          <div class="mb-4">
+            <label class="form-label">
+              Nama Lengkap <span style="color:#DC2626;">*</span>
+            </label>
+            <div class="input-icon-wrap">
+              <i class="bi bi-person field-icon"></i>
+              {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""),
+                 placeholder="Nama lengkap Anda", maxlength=100, id="nameInput") }}
+            </div>
+            {% for e in form.name.errors %}
+              <div class="invalid-feedback d-block">{{ e }}</div>
+            {% endfor %}
+            <span class="char-counter" id="nameCounter"></span>
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label">Email</label>
+            <div class="input-icon-wrap">
+              <i class="bi bi-envelope field-icon"></i>
+              <input type="email" class="form-control" value="{{ current_user.email }}" disabled
+                     style="padding-left:38px; background:#F8FAFC;">
+            </div>
+            <div class="field-hint"><i class="bi bi-info-circle"></i> Email tidak dapat diubah langsung. Hubungi Super Admin.</div>
+          </div>
+
+          <div class="divider my-4"></div>
+
+          {# Ganti Password #}
+          <div class="form-section"><i class="bi bi-shield-lock me-1"></i> Ganti Password</div>
+          <p style="font-size:12.5px; color:#94A3B8; margin-bottom:20px; margin-top:-8px;">
+            Biarkan kosong jika tidak ingin mengubah password.
+          </p>
+
+          <div class="mb-4">
+            <label class="form-label">Password Saat Ini</label>
+            <div class="input-group input-icon-wrap">
+              <i class="bi bi-lock field-icon"></i>
+              {{ form.current_password(class="form-control" + (" is-invalid" if form.current_password.errors else ""),
+                 placeholder="Masukkan password saat ini", id="curPassInput",
+                 style="padding-left:38px;") }}
+              <button type="button" class="input-group-text" style="cursor:pointer;"
+                      onclick="togglePass('curPassInput','iconCur')">
+                <i class="bi bi-eye" id="iconCur" style="font-size:14px; color:#64748B;"></i>
+              </button>
+            </div>
+            {% for e in form.current_password.errors %}
+              <div class="invalid-feedback d-block" style="margin-top:4px;">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-sm-6">
+              <label class="form-label">Password Baru</label>
+              <div class="input-group input-icon-wrap">
+                <i class="bi bi-key field-icon"></i>
+                {{ form.new_password(class="form-control" + (" is-invalid" if form.new_password.errors else ""),
+                   placeholder="Min. 8 karakter", id="newPassInput",
+                   style="padding-left:38px;") }}
+                <button type="button" class="input-group-text" style="cursor:pointer;"
+                        onclick="togglePass('newPassInput','iconNew')">
+                  <i class="bi bi-eye" id="iconNew" style="font-size:14px; color:#64748B;"></i>
+                </button>
+              </div>
+              {% for e in form.new_password.errors %}
+                <div class="invalid-feedback d-block" style="margin-top:4px;">{{ e }}</div>
+              {% endfor %}
+              {# Password strength bar #}
+              <div id="passStrengthWrap" style="display:none; margin-top:8px;">
+                <div style="height:4px; border-radius:4px; background:#F1F5F9; overflow:hidden;">
+                  <div id="passStrengthBar" style="height:100%; width:0%; transition:all .3s; border-radius:4px;"></div>
+                </div>
+                <div id="passStrengthLabel" style="font-size:11px; margin-top:3px; color:#94A3B8;"></div>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Konfirmasi Password Baru</label>
+              <div class="input-group input-icon-wrap">
+                <i class="bi bi-key field-icon"></i>
+                {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""),
+                   placeholder="Ulangi password baru", id="confirmPassInput",
+                   style="padding-left:38px;") }}
+                <button type="button" class="input-group-text" style="cursor:pointer;"
+                        onclick="togglePass('confirmPassInput','iconConfirm')">
+                  <i class="bi bi-eye" id="iconConfirm" style="font-size:14px; color:#64748B;"></i>
+                </button>
+              </div>
+              {% for e in form.confirm_password.errors %}
+                <div class="invalid-feedback d-block" style="margin-top:4px;">{{ e }}</div>
+              {% endfor %}
+              <div id="passMatchHint" style="font-size:11px; margin-top:5px; display:none;"></div>
+            </div>
+          </div>
+
+          <div class="divider mb-4"></div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-5" id="submitBtn">
+              <i class="bi bi-save me-2"></i>Simpan Perubahan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePass(inputId, iconId) {
+  const inp  = document.getElementById(inputId);
+  const icon = document.getElementById(iconId);
+  inp.type   = inp.type === 'password' ? 'text' : 'password';
+  icon.className = inp.type === 'text' ? 'bi bi-eye-slash' : 'bi bi-eye';
+}
+
+/* Char counter for name */
+const nameInput   = document.getElementById('nameInput');
+const nameCounter = document.getElementById('nameCounter');
+if (nameInput) {
+  function updateNameCounter() {
+    const len = nameInput.value.length;
+    const max = parseInt(nameInput.getAttribute('maxlength')) || 100;
+    nameCounter.textContent = len + ' / ' + max;
+    nameCounter.classList.toggle('warn', len > max * 0.85);
+  }
+  nameInput.addEventListener('input', updateNameCounter);
+  updateNameCounter();
+}
+
+/* Password strength */
+const newPassInput = document.getElementById('newPassInput');
+if (newPassInput) {
+  newPassInput.addEventListener('input', function() {
+    const val  = this.value;
+    const wrap = document.getElementById('passStrengthWrap');
+    const bar  = document.getElementById('passStrengthBar');
+    const lbl  = document.getElementById('passStrengthLabel');
+    if (!val) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    let score = 0;
+    if (val.length >= 8) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+    const levels = [
+      { w:'25%', color:'#DC2626', label:'Lemah' },
+      { w:'50%', color:'#D97706', label:'Cukup' },
+      { w:'75%', color:'#2563EB', label:'Baik' },
+      { w:'100%', color:'#16A34A', label:'Kuat' },
+    ];
+    const lvl = levels[score - 1] || levels[0];
+    bar.style.width = lvl.w;
+    bar.style.background = lvl.color;
+    lbl.textContent = lvl.label;
+    lbl.style.color = lvl.color;
+  });
+}
+
+/* Password match hint */
+const confirmPassInput = document.getElementById('confirmPassInput');
+if (confirmPassInput && newPassInput) {
+  confirmPassInput.addEventListener('input', function() {
+    const hint = document.getElementById('passMatchHint');
+    if (!this.value) { hint.style.display = 'none'; return; }
+    hint.style.display = 'block';
+    if (this.value === newPassInput.value) {
+      hint.innerHTML = '<i class="bi bi-check-circle" style="color:#16A34A;"></i> <span style="color:#16A34A;">Password cocok</span>';
+    } else {
+      hint.innerHTML = '<i class="bi bi-x-circle" style="color:#DC2626;"></i> <span style="color:#DC2626;">Password tidak cocok</span>';
+    }
+  });
+}
+
+/* Submit loading state */
+document.getElementById('profileForm').addEventListener('submit', function() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Menyimpan...';
+});
+</script>
+{% endblock %}
