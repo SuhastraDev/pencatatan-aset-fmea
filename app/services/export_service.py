@@ -143,12 +143,15 @@ def generate_excel_divisi(asset_data, room_stats):
 
 def generate_pdf(template_string):
     """
-    Generate PDF dari HTML string menggunakan WeasyPrint.
+    Generate PDF dari HTML string menggunakan xhtml2pdf.
     template_string: hasil render_template HTML
     Return: bytes PDF
     """
-    from weasyprint import HTML
-    return HTML(string=template_string).write_pdf()
+    from xhtml2pdf import pisa
+    buf = io.BytesIO()
+    pisa.CreatePDF(template_string, dest=buf, encoding='utf-8')
+    buf.seek(0)
+    return buf.read()
 
 
 def build_filename(prefix, room_code, ext):
@@ -159,27 +162,34 @@ def build_filename(prefix, room_code, ext):
 
 def generate_kir_pdf(asset, printed_by, base_url):
     """
-    Generate PDF Kartu KIR untuk satu aset menggunakan WeasyPrint.
+    Generate PDF Kartu KIR untuk satu aset menggunakan xhtml2pdf.
 
     Args:
         asset:       instance model Asset
         printed_by:  string nama user yang mencetak
-        base_url:    base URL aplikasi (untuk embed QR image via file://)
+        base_url:    base URL aplikasi (tidak digunakan, QR embed sebagai base64)
 
     Returns:
         bytes: isi file PDF
     """
-    import os
+    import base64
     from datetime import date
     from flask import render_template
-    from weasyprint import HTML
+    from xhtml2pdf import pisa
     from app.utils.helpers import generate_qr_code, format_date
 
     # Generate (atau reuse) QR code
     qr_path = generate_qr_code(asset.id, base_url)
 
-    # WeasyPrint butuh URI file:// untuk load gambar lokal
-    qr_uri = f"file:///{qr_path.replace(os.sep, '/')}" if qr_path else None
+    # xhtml2pdf mendukung data URI base64 — tidak butuh file:// atau server running
+    qr_uri = None
+    if qr_path:
+        try:
+            with open(qr_path, 'rb') as f:
+                qr_b64 = base64.b64encode(f.read()).decode('utf-8')
+            qr_uri = f"data:image/png;base64,{qr_b64}"
+        except Exception:
+            qr_uri = None
 
     from app.models.fmea import FmeaRecord
     fmea_terakhir = (FmeaRecord.query
@@ -198,4 +208,7 @@ def generate_kir_pdf(asset, printed_by, base_url):
         format_date=format_date,
     )
 
-    return HTML(string=html_string).write_pdf()
+    buf = io.BytesIO()
+    pisa.CreatePDF(html_string, dest=buf, encoding='utf-8')
+    buf.seek(0)
+    return buf.read()
