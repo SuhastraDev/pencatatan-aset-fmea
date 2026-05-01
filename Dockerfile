@@ -22,4 +22,4 @@ RUN mkdir -p exports app/static/qrcodes
 
 EXPOSE 8000
 
-CMD gunicorn run:app --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120
+CMD ["sh", "-c", "gunicorn run:app --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120"]
