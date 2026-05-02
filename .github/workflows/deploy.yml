@@ -52,21 +52,6 @@ jobs:
           DATABASE_URL: "sqlite:///:memory:"
           FLASK_ENV: testing
 
-  # ─── JOB 2: CD — Deploy ke Railway (hanya di push main) ─────────────────
-  deploy:
-    name: Deploy to Railway
-    runs-on: ubuntu-latest
-    needs: ci
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout kode
-        uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy ke Railway
-        run: railway up --detach --service ${{ secrets.RAILWAY_SERVICE_NAME }} --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment production
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+  # ─── NOTE: CD sudah ditangani Railway GitHub Integration ─────────────────
+  # Railway otomatis deploy saat ada push ke main via GitHub integration.
+  # Tidak perlu CD job terpisah di sini.
