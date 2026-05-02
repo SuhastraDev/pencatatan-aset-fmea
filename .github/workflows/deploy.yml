@@ -67,6 +67,6 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy ke Railway
-        run: railway up --detach --service ${{ secrets.RAILWAY_SERVICE_NAME }} --project ${{ secrets.RAILWAY_PROJECT_ID }}
+        run: railway up --detach --service ${{ secrets.RAILWAY_SERVICE_NAME }} --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment production
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
