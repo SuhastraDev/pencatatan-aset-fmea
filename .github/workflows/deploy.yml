@@ -46,7 +46,7 @@ jobs:
           "
         env:
           SECRET_KEY: ci-test-secret-key-dummy
-          DATABASE_URL: sqlite:///:memory:
+          DATABASE_URL: "sqlite:///:memory:"
           FLASK_ENV: testing
 
   # ─── JOB 2: CD — Deploy ke Railway (hanya di push main) ─────────────────
