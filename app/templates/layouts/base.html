@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}SIMASET RSKGM{% endblock %}</title>
 
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="SIMASET — Sistem Informasi Manajemen Aset RSKGM">
+  <meta property="og:description" content="Aplikasi pencatatan dan pemantauan aset rumah sakit dengan evaluasi risiko FMEA, approval workflow, dan ekspor laporan.">
+  <meta property="og:image" content="{{ url_for('static', filename='img/og-image.svg', _external=True) }}">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SIMASET RSKGM">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SIMASET — Sistem Informasi Manajemen Aset RSKGM">
+  <meta name="twitter:description" content="Aplikasi pencatatan dan pemantauan aset rumah sakit dengan evaluasi risiko FMEA.">
+  <meta name="twitter:image" content="{{ url_for('static', filename='img/og-image.svg', _external=True) }}">
+
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
