@@ -167,7 +167,7 @@ Seeder dijalankan dengan `flask seed`. Membuat akun awal jika belum ada.
 | Field | Value |
 |---|---|
 | **Email** | `superadmin@rskgm.id` |
-| **Password** | `Admin@12345` |
+| **Password** | `password` |
 | **Role** | `super_admin` |
 | **Status** | Aktif |
 
