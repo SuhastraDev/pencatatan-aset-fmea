@@ -385,6 +385,8 @@ Workflow GitHub saat ini melakukan:
 
 Secrets untuk deploy disimpan di GitHub repository klien, bukan di kode.
 Lihat `deployment/README.md` untuk daftar secrets dan template file production.
+Workflow juga melakukan health check ke
+`https://simaset-rskgm.duckdns.org/login` setelah restart service.
 
 ## Target Production VPS + Supabase
 

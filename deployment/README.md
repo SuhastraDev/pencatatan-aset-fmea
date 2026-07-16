@@ -18,10 +18,10 @@ Tambahkan secrets berikut di repository GitHub klien:
 
 | Secret | Isi |
 | --- | --- |
-| `VPS_HOST` | IP/domain VPS, contoh `52.65.94.214` |
-| `VPS_USER` | User SSH, contoh `ubuntu` |
+| `VPS_HOST` | `52.65.94.214` |
+| `VPS_USER` | `ubuntu` |
 | `VPS_SSH_KEY` | Isi private key SSH untuk deploy |
-| `VPS_APP_DIR` | Path project di VPS, contoh `/var/www/simaset` |
+| `VPS_APP_DIR` | `/var/www/simaset` |
 
 ## Catatan
 
@@ -29,3 +29,5 @@ Tambahkan secrets berikut di repository GitHub klien:
 - `DATABASE_URL` production menggunakan connection string Supabase PostgreSQL.
 - Jalankan `flask db upgrade` dari VPS setelah environment production benar.
 - Pastikan folder `exports/` dan `app/static/qrcodes/` writable oleh user service.
+- Aplikasi production saat ini memakai port internal `127.0.0.1:8001`.
+- URL production sementara: `https://simaset-rskgm.duckdns.org/login`.
