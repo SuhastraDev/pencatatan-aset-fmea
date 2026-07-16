@@ -144,15 +144,16 @@
     justify-content: center;
     padding: 48px 40px;
     position: relative;
+    overflow-y: auto;
   }
 
   .login-form-wrap {
     width: 100%;
-    max-width: 400px;
+    max-width: 430px;
   }
 
   .login-form-header {
-    margin-bottom: 36px;
+    margin-bottom: 28px;
   }
   .login-form-header h2 {
     font-size: 26px;
@@ -261,24 +262,119 @@
     transform: none;
   }
 
-  .login-notice {
-    margin-top: 24px;
-    padding: 12px 16px;
+  .demo-login-panel {
+    margin-top: 22px;
     background: #fff;
-    border-radius: 10px;
+    border-radius: 12px;
     border: 1px solid #EBF0FA;
-    font-size: 12.5px;
-    color: #64748B;
+    box-shadow: 0 10px 30px rgba(15,23,42,.08);
+    overflow: hidden;
+  }
+  .demo-login-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #EDF2F7;
+  }
+  .demo-login-title {
     display: flex;
     align-items: center;
     gap: 10px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    color: #0F172A;
+    font-size: 13px;
+    font-weight: 800;
   }
-  .login-notice i { color: #94A3B8; font-size: 15px; flex-shrink: 0; }
+  .demo-login-title i {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    background: #E0F7FE;
+    color: #0891B2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .demo-login-pass {
+    color: #0891B2;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .demo-account-list {
+    display: grid;
+    gap: 0;
+  }
+  .demo-account {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #F1F5F9;
+  }
+  .demo-account:last-child {
+    border-bottom: 0;
+  }
+  .demo-account-role {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 800;
+    margin-bottom: 3px;
+  }
+  .demo-account-role i {
+    color: #0E7490;
+  }
+  .demo-account-email {
+    color: #64748B;
+    font-size: 12px;
+    word-break: break-all;
+  }
+  .demo-use-btn {
+    border: 1px solid #BAE6FD;
+    background: #F0F9FF;
+    color: #0369A1;
+    border-radius: 9px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition: all .16s;
+    white-space: nowrap;
+  }
+  .demo-use-btn:hover {
+    background: #E0F2FE;
+    border-color: #7DD3FC;
+  }
 
   @media (max-width: 768px) {
     .login-left { display: none; }
-    .login-right { padding: 32px 24px; }
+    .login-right {
+      align-items: flex-start;
+      padding: 32px 24px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .demo-login-head,
+    .demo-account {
+      padding-left: 13px;
+      padding-right: 13px;
+    }
+    .demo-account {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .demo-use-btn {
+      width: 100%;
+      padding: 9px 10px;
+    }
   }
 </style>
 {% endblock %}
@@ -344,6 +440,7 @@
           <div class="login-input-wrap">
             <i class="bi bi-envelope fi"></i>
             <input type="email" name="{{ form.email.name }}"
+                   id="loginEmailInput"
                    value="{{ form.email.data or '' }}"
                    class="login-input {% if form.email.errors %}is-invalid{% endif %}"
                    placeholder="email@rskgm.id"
@@ -379,9 +476,44 @@
         </button>
       </form>
 
-      <div class="login-notice">
-        <i class="bi bi-info-circle"></i>
-        Akun hanya dapat dibuat oleh Super Admin sistem.
+      <div class="demo-login-panel" aria-label="Akun demo untuk login">
+        <div class="demo-login-head">
+          <div class="demo-login-title">
+            <i class="bi bi-person-badge"></i>
+            Akun demo
+          </div>
+          <div class="demo-login-pass">Password: Admin@12345</div>
+        </div>
+        <div class="demo-account-list">
+          <div class="demo-account">
+            <div>
+              <div class="demo-account-role"><i class="bi bi-stars"></i> Super Admin</div>
+              <div class="demo-account-email">superadmin@rskgm.id</div>
+            </div>
+            <button type="button" class="demo-use-btn" onclick="useDemoAccount('superadmin@rskgm.id')">Pakai</button>
+          </div>
+          <div class="demo-account">
+            <div>
+              <div class="demo-account-role"><i class="bi bi-diagram-3"></i> Admin Divisi Rawat Jalan</div>
+              <div class="demo-account-email">admin.divisi.rj@rskgm.id</div>
+            </div>
+            <button type="button" class="demo-use-btn" onclick="useDemoAccount('admin.divisi.rj@rskgm.id')">Pakai</button>
+          </div>
+          <div class="demo-account">
+            <div>
+              <div class="demo-account-role"><i class="bi bi-hospital"></i> Admin Ruangan RJ 01</div>
+              <div class="demo-account-email">admin.ruangan.rj01@rskgm.id</div>
+            </div>
+            <button type="button" class="demo-use-btn" onclick="useDemoAccount('admin.ruangan.rj01@rskgm.id')">Pakai</button>
+          </div>
+          <div class="demo-account">
+            <div>
+              <div class="demo-account-role"><i class="bi bi-clipboard2-pulse"></i> Admin Ruangan OK 01</div>
+              <div class="demo-account-email">admin.ruangan.ok01@rskgm.id</div>
+            </div>
+            <button type="button" class="demo-use-btn" onclick="useDemoAccount('admin.ruangan.ok01@rskgm.id')">Pakai</button>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -397,6 +529,14 @@ function toggleLoginPass() {
   const icon = document.getElementById('loginPassIcon');
   inp.type   = inp.type === 'password' ? 'text' : 'password';
   icon.className = inp.type === 'text' ? 'bi bi-eye-slash' : 'bi bi-eye';
+}
+
+function useDemoAccount(email) {
+  const emailInput = document.getElementById('loginEmailInput');
+  const passInput = document.getElementById('loginPassInput');
+  emailInput.value = email;
+  passInput.value = 'Admin@12345';
+  passInput.focus();
 }
 
 document.getElementById('loginForm').addEventListener('submit', function() {
