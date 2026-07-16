@@ -30,4 +30,16 @@ venv/bin/flask db upgrade
 sudo systemctl restart "$SERVICE_NAME"
 sudo systemctl --no-pager --full status "$SERVICE_NAME"
 
-curl --fail --head --max-time 20 "$HEALTHCHECK_URL"
+for attempt in $(seq 1 30); do
+  if curl --fail --head --max-time 5 "$HEALTHCHECK_URL"; then
+    echo "Health check passed on attempt $attempt"
+    exit 0
+  fi
+
+  echo "Health check attempt $attempt failed, retrying..."
+  sleep 1
+done
+
+echo "Health check failed after 30 attempts: $HEALTHCHECK_URL" >&2
+sudo journalctl -u "$SERVICE_NAME" -n 80 --no-pager
+exit 1
