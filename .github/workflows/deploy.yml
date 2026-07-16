@@ -56,16 +56,26 @@ jobs:
 
     steps:
       - name: Setup SSH key
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+          VPS_HOST_CLEAN="$(printf '%s' "$VPS_HOST" | tr -d '\r\n')"
+          ssh-keyscan -H "$VPS_HOST_CLEAN" >> ~/.ssh/known_hosts
 
       - name: Run deploy script on VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_APP_DIR: ${{ secrets.VPS_APP_DIR }}
         run: |
-          ssh -i ~/.ssh/deploy_key "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "cd '${{ secrets.VPS_APP_DIR }}' && bash deployment/deploy.sh"
+          VPS_HOST_CLEAN="$(printf '%s' "$VPS_HOST" | tr -d '\r\n')"
+          VPS_USER_CLEAN="$(printf '%s' "$VPS_USER" | tr -d '\r\n')"
+          VPS_APP_DIR_CLEAN="$(printf '%s' "$VPS_APP_DIR" | tr -d '\r\n')"
+          ssh -i ~/.ssh/deploy_key "$VPS_USER_CLEAN@$VPS_HOST_CLEAN" \
+            "cd '$VPS_APP_DIR_CLEAN' && bash deployment/deploy.sh"
 
       - name: Check production health
         run: curl --fail --head --max-time 20 https://simaset-rskgm.duckdns.org/login
