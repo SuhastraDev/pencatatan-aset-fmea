@@ -75,7 +75,7 @@ jobs:
           VPS_USER_CLEAN="$(printf '%s' "$VPS_USER" | tr -d '\r\n')"
           VPS_APP_DIR_CLEAN="$(printf '%s' "$VPS_APP_DIR" | tr -d '\r\n')"
           ssh -i ~/.ssh/deploy_key "$VPS_USER_CLEAN@$VPS_HOST_CLEAN" \
-            "cd '$VPS_APP_DIR_CLEAN' && bash deployment/deploy.sh"
+            "cd '$VPS_APP_DIR_CLEAN' && git fetch origin main && git reset --hard origin/main && bash deployment/deploy.sh"
 
       - name: Check production health
         run: curl --fail --head --max-time 20 https://simaset-rskgm.duckdns.org/login

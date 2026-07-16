@@ -7,6 +7,7 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 HEALTHCHECK_URL="${HEALTHCHECK_URL:-http://127.0.0.1:8001/login}"
 
 cd "$APP_DIR"
+echo "Running SIMASET deploy script with retrying health check"
 
 if [ ! -f ".env" ]; then
   echo "Missing .env in $APP_DIR" >&2
