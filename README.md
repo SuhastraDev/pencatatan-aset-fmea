@@ -313,11 +313,30 @@ http://localhost:5000
 | Field | Value |
 | --- | --- |
 | Email | `superadmin@rskgm.id` |
-| Password | `password` |
+| Password | `Admin@12345` |
 | Role | `super_admin` |
 | Status | Aktif |
 
 Segera ganti password setelah login pertama melalui menu profil.
+
+Seeder juga menyiapkan akun demo untuk semua role agar sistem tidak kosong
+saat pertama kali diuji.
+
+| Role | Email | Password awal |
+| --- | --- | --- |
+| Super Admin | `superadmin@rskgm.id` | `Admin@12345` |
+| Admin Divisi | `admin.divisi.rj@rskgm.id` | `Admin@12345` |
+| Admin Divisi | `admin.divisi.ok@rskgm.id` | `Admin@12345` |
+| Admin Ruangan | `admin.ruangan.rj01@rskgm.id` | `Admin@12345` |
+| Admin Ruangan | `admin.ruangan.rj02@rskgm.id` | `Admin@12345` |
+| Admin Ruangan | `admin.ruangan.ok01@rskgm.id` | `Admin@12345` |
+
+Data demo yang ikut dibuat:
+
+- Divisi Rawat Jalan.
+- Divisi Operasi & Tindakan.
+- Ruang Poli Gigi Umum, Poli Ortodonti, dan Ruang Operasi Gigi.
+- Beberapa aset demo dengan FMEA rendah, sedang, dan tinggi.
 
 ## Endpoint Ringkas
 

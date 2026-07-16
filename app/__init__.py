@@ -84,14 +84,15 @@ def create_app():
     # CLI command: flask seed
     @app.cli.command('seed')
     def seed():
-        """Buat data awal: Super Admin, divisi, dan kategori aset."""
-        from app.utils.seeder import seed_super_admin, seed_divisions
+        """Buat data awal dan akun demo untuk semua role."""
+        from app.utils.seeder import seed_demo_accounts_and_assets, seed_super_admin, seed_divisions
         from app.models.asset_category import seed_kategori
 
         steps = [
             ('Super Admin',      seed_super_admin),
             ('Divisi awal',      seed_divisions),
             ('Kategori aset',    lambda: seed_kategori(db.session)),
+            ('Akun dan aset demo', seed_demo_accounts_and_assets),
         ]
         for label, fn in steps:
             try:
