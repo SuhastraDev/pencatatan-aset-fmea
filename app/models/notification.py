@@ -16,7 +16,10 @@ class Notification(db.Model):
             'approval_baru',
             'approval_disetujui',
             'approval_ditolak',
-            'maintenance_terlambat'
+            'maintenance_terlambat',
+            name='notification_type',
+            native_enum=False,
+            length=50,
         ),
         nullable=False
     )

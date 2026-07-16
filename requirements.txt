@@ -5,9 +5,10 @@ Flask-Migrate==4.0.7
 Flask-Bcrypt==1.0.1
 Flask-Mail==0.10.0
 Flask-WTF==1.2.1
-PyMySQL==1.1.1
+psycopg2-binary==2.9.9
 SQLAlchemy==2.0.30
 OpenPyXL==3.1.2
+xhtml2pdf==0.2.16
 python-dotenv==1.0.1
 Gunicorn==22.0.0
 WTForms==3.1.2

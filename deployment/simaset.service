@@ -1,0 +1,15 @@
+[Unit]
+Description=SIMASET RSKGM Palembang Flask Application
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/var/www/simaset
+EnvironmentFile=/var/www/simaset/.env
+ExecStart=/var/www/simaset/venv/bin/gunicorn run:app --bind 127.0.0.1:8000 --workers 2 --timeout 120
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,338 +1,467 @@
-# SIMASET — Sistem Informasi Manajemen Aset RSKGM Palembang
+# SIMASET RSKGM Palembang
 
-Aplikasi web berbasis Flask untuk pencatatan dan pemantauan aset rumah sakit. Dilengkapi evaluasi risiko FMEA, alur approval perubahan status aset, ekspor laporan (Excel & PDF), dan notifikasi real-time antar peran.
+SIMASET adalah Sistem Informasi Manajemen Aset untuk RS Khusus Gigi dan
+Mulut (RSKGM) Palembang. Aplikasi ini membantu pencatatan aset, pemantauan
+kondisi aset, evaluasi risiko FMEA, approval perubahan status, riwayat
+maintenance, notifikasi internal, serta ekspor laporan.
 
----
+Dokumen ini menjelaskan kondisi repository saat ini, cara menjalankan sistem,
+komponen utama aplikasi, dan catatan production yang perlu diperhatikan saat
+sistem diserahterimakan ke klien.
 
-## Tech Stack
+## Status Repository
+
+| Area | Status saat ini |
+| --- | --- |
+| Tipe aplikasi | Flask monolith: backend, frontend template, dan server-side rendering dalam satu aplikasi |
+| Frontend | Jinja2 template + Bootstrap |
+| Backend | Flask routes, services, forms, dan SQLAlchemy models |
+| Database default kode | PostgreSQL melalui `psycopg2-binary` |
+| Migration | Flask-Migrate / Alembic |
+| Production server | Gunicorn |
+| Deployment config yang tersedia | Dockerfile, Procfile, Railway config |
+| CI | GitHub Actions untuk syntax check dan import check |
+
+> Catatan penting: repository sudah diarahkan ke PostgreSQL. Untuk Supabase,
+> gunakan `DATABASE_URL` PostgreSQL dengan `sslmode=require`, lalu jalankan
+> migration dan seeder pada database production.
+
+## Fitur Utama
+
+- Manajemen divisi dan ruangan.
+- Manajemen user dengan role bertingkat.
+- Manajemen aset berdasarkan ruangan.
+- Kode aset otomatis.
+- Evaluasi FMEA dengan perhitungan RPN.
+- Kategori risiko otomatis berdasarkan RPN.
+- Approval perubahan status aset.
+- Riwayat maintenance aset.
+- Notifikasi internal untuk risiko, approval, dan maintenance.
+- Ekspor laporan Excel.
+- Ekspor laporan PDF menggunakan `xhtml2pdf`.
+- Generate KIR dan QR code aset.
+
+## Role dan Hak Akses
+
+### Super Admin
+
+Super Admin mengelola struktur utama sistem:
+
+- Mengelola divisi.
+- Mengelola ruangan.
+- Membuat dan mengelola akun Admin Divisi dan Admin Ruangan.
+- Mengaktifkan atau menonaktifkan akun.
+- Melihat dashboard ringkasan seluruh sistem.
+
+### Admin Divisi
+
+Admin Divisi memantau aset pada divisinya:
+
+- Melihat aset seluruh ruangan dalam divisi.
+- Memproses approval perubahan status aset.
+- Melihat laporan dan riwayat maintenance per ruangan.
+- Mengekspor laporan divisi.
+- Menerima notifikasi risiko tinggi.
+
+### Admin Ruangan
+
+Admin Ruangan mengelola aset harian dalam ruangan:
+
+- Menambah, mengubah, dan melihat aset ruangan.
+- Melakukan evaluasi FMEA.
+- Mengajukan perubahan status aset.
+- Mencatat riwayat maintenance.
+- Mengunduh KIR dan QR code aset.
+- Mengekspor laporan ruangan.
+
+## Alur Utama Sistem
+
+### Manajemen Aset
+
+Kode aset dibuat otomatis dengan pola:
+
+```text
+AST-{KODERUANGAN}-{TAHUN}-{URUTAN}
+```
+
+Status aset yang digunakan:
+
+- `aktif`
+- `dalam_perbaikan`
+- `tidak_aktif`
+- `menunggu_approval`
+
+Kondisi aset yang digunakan:
+
+- `baik`
+- `perlu_perhatian`
+- `kritis`
+- `tidak_layak`
+
+### Evaluasi FMEA
+
+Admin Ruangan mengisi nilai:
+
+- Severity: 1-10
+- Occurrence: 1-10
+- Detection: 1-10
+
+RPN dihitung dengan rumus:
+
+```text
+RPN = Severity x Occurrence x Detection
+```
+
+Kategori risiko:
+
+| Nilai RPN | Kategori | Dampak sistem |
+| --- | --- | --- |
+| `< 80` | Rendah | Kondisi aset menjadi `baik` |
+| `80 - 199` | Sedang | Kondisi aset menjadi `perlu_perhatian` |
+| `>= 200` | Tinggi | Kondisi aset menjadi `kritis` dan notifikasi dikirim ke Admin Divisi |
+
+### Approval Perubahan Status
+
+1. Admin Ruangan mengajukan perubahan status aset.
+2. Aset masuk status `menunggu_approval`.
+3. Admin Divisi menerima notifikasi.
+4. Admin Divisi menyetujui atau menolak request.
+5. Sistem memperbarui status aset, mencatat log, dan mengirim notifikasi hasil.
+
+## Stack Teknologi
 
 | Layer | Teknologi |
-|---|---|
-| Backend | Python 3.11, Flask 3.0.3 |
-| ORM | Flask-SQLAlchemy 3.1.1 + SQLAlchemy 2.0 |
-| Database | MySQL (driver: PyMySQL 1.1.1) |
-| Auth | Flask-Login 0.6.3 + Flask-Bcrypt 1.0.1 |
-| Form & CSRF | Flask-WTF 1.2.1 + WTForms 3.1.2 |
-| Migrasi DB | Flask-Migrate 4.0.7 (Alembic) |
-| Export PDF | WeasyPrint 62.3 |
-| Export Excel | OpenPyXL 3.1.2 |
-| QR Code | qrcode[pil] 7.4.2 + Pillow 10.3.0 |
-| Template | Jinja2 (bawaan Flask) |
-| Frontend | Bootstrap 5.3.3 + Bootstrap Icons 1.11.3 + Inter Font |
-| Production | Gunicorn 22.0.0 |
+| --- | --- |
+| Bahasa | Python 3.11 |
+| Framework | Flask 3.0.3 |
+| ORM | Flask-SQLAlchemy 3.1.1, SQLAlchemy 2.0.30 |
+| Database default kode | PostgreSQL dengan psycopg2-binary 2.9.9 |
+| Database target production final | Supabase PostgreSQL |
+| Auth | Flask-Login, Flask-Bcrypt |
+| Form dan CSRF | Flask-WTF, WTForms |
+| Migration | Flask-Migrate / Alembic |
+| PDF | xhtml2pdf |
+| Excel | OpenPyXL |
+| QR Code | qrcode[pil], Pillow |
+| Template | Jinja2 |
+| UI | Bootstrap 5, Bootstrap Icons, Inter Font |
+| App server | Gunicorn |
 
----
+## Struktur Project
 
-## Struktur Proyek
-
-```
+```text
 simaset/
-├── run.py                    # Entry point aplikasi
-├── config.py                 # Konfigurasi (env vars, thresholds)
-├── requirements.txt
-├── .env.example
-├── exports/                  # File ekspor yang digenerate (runtime)
-├── migrations/               # Alembic migrations
-└── app/
-    ├── __init__.py           # Application factory (create_app)
-    ├── models/               # SQLAlchemy models
-    │   ├── user.py
-    │   ├── division.py
-    │   ├── room.py
-    │   ├── asset.py
-    │   ├── asset_category.py
-    │   ├── fmea.py
-    │   ├── maintenance_log.py
-    │   ├── approval_request.py
-    │   └── notification.py
-    ├── routes/               # Blueprints
-    │   ├── auth.py
-    │   ├── super_admin.py
-    │   ├── divisi.py
-    │   └── ruangan.py
-    ├── forms/                # WTForms form classes
-    ├── services/             # Business logic
-    │   ├── fmea_service.py
-    │   ├── notif_service.py
-    │   └── export_service.py
-    ├── utils/
-    │   ├── decorators.py     # @role_required, @check_room_ownership
-    │   ├── helpers.py        # generate_asset_code, time_ago, QR code
-    │   └── seeder.py         # flask seed command
-    ├── static/
-    │   └── qrcodes/          # QR code PNG yang digenerate
-    └── templates/
-        ├── layouts/          # base.html, base_super_admin.html, dll
-        ├── auth/
-        ├── super_admin/
-        ├── divisi/
-        ├── ruangan/
-        ├── shared/
-        ├── exports/          # Template KIR PDF
-        └── errors/           # 403, 404, 500
+|-- run.py
+|-- config.py
+|-- requirements.txt
+|-- .env.example
+|-- Dockerfile
+|-- Procfile
+|-- railway.json
+|-- nixpacks.toml
+|-- exports/
+|-- migrations/
+|-- tests/
+`-- app/
+    |-- __init__.py
+    |-- models/
+    |   |-- user.py
+    |   |-- division.py
+    |   |-- room.py
+    |   |-- asset.py
+    |   |-- asset_category.py
+    |   |-- fmea.py
+    |   |-- maintenance_log.py
+    |   |-- approval_request.py
+    |   `-- notification.py
+    |-- routes/
+    |   |-- auth.py
+    |   |-- super_admin.py
+    |   |-- divisi.py
+    |   `-- ruangan.py
+    |-- forms/
+    |-- services/
+    |   |-- fmea_service.py
+    |   |-- notif_service.py
+    |   `-- export_service.py
+    |-- utils/
+    |-- static/
+    `-- templates/
 ```
 
----
+## Environment Variable
 
-## Instalasi & Setup
+| Variable | Fungsi | Catatan |
+| --- | --- | --- |
+| `SECRET_KEY` | Kunci session dan security Flask | Wajib diganti di production |
+| `DATABASE_URL` | Connection string database | Gunakan PostgreSQL URL |
+| `MAIL_SERVER` | SMTP server | Default `smtp.gmail.com` |
+| `MAIL_PORT` | SMTP port | Default `587` |
+| `MAIL_USERNAME` | Akun email pengirim | Opsional sesuai fitur email |
+| `MAIL_PASSWORD` | App password email | Jangan commit ke Git |
 
-### 1. Clone & Virtual Environment
-
-```bash
-git clone https://github.com/SuhastraDev/pencatatan-aset-fmea.git
-cd pencatatan-aset-fmea
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# Linux/Mac
-source venv/bin/activate
-```
-
-### 2. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Konfigurasi Environment
-
-Salin `.env.example` menjadi `.env` lalu sesuaikan:
-
-```bash
-cp .env.example .env
-```
-
-Isi file `.env`:
+Contoh `.env` untuk PostgreSQL lokal:
 
 ```env
-SECRET_KEY=ganti-dengan-secret-key-yang-kuat
-DATABASE_URL=mysql+pymysql://root:password@localhost/simaset_db
+SECRET_KEY=ganti-dengan-string-random-panjang
+DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/simaset_db
 MAIL_SERVER=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USERNAME=email@gmail.com
 MAIL_PASSWORD=app-password-gmail
 ```
 
-### 4. Buat Database
+Contoh format production jika memakai Supabase PostgreSQL:
 
-```sql
-CREATE DATABASE simaset_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```env
+DATABASE_URL=postgresql+psycopg2://USER:PASSWORD@HOST:PORT/postgres?sslmode=require
 ```
 
-### 5. Jalankan Migrasi
+Format Supabase di atas tetap perlu dites dengan `flask db upgrade` dari
+environment production.
+
+## Setup Lokal
+
+### 1. Clone repository
+
+```bash
+git clone https://github.com/SuhastraDev/pencatatan-aset-fmea.git
+cd pencatatan-aset-fmea
+```
+
+Jika project berada di subfolder `simaset`, masuk ke folder tersebut sebelum
+menjalankan command berikutnya.
+
+### 2. Buat virtual environment
+
+```bash
+python -m venv venv
+```
+
+Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+Linux/macOS:
+
+```bash
+source venv/bin/activate
+```
+
+### 3. Install dependency
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Buat file environment
+
+```bash
+cp .env.example .env
+```
+
+Sesuaikan `SECRET_KEY`, `DATABASE_URL`, dan konfigurasi email.
+
+### 5. Siapkan database
+
+Untuk PostgreSQL lokal:
+
+```sql
+CREATE DATABASE simaset_db;
+```
+
+### 6. Jalankan migration
 
 ```bash
 flask db upgrade
 ```
 
-### 6. Seed Data Awal
+### 7. Jalankan seeder awal
 
 ```bash
 flask seed
 ```
 
-Perintah ini akan membuat:
-- **1 akun Super Admin** (lihat seksi [User Seeder](#user-seeder) di bawah)
-- **2 divisi** awal: `Divisi Rawat Jalan` dan `Divisi Operasi & Tindakan`
-- **5 kategori aset**: Alat Diagnostik, Alat Terapi, Alat Sterilisasi, Alat Penunjang, Alat Darurat
+Seeder membuat data awal:
 
-### 7. Jalankan Aplikasi
+- 1 akun Super Admin.
+- Divisi awal.
+- Kategori aset awal.
 
-**Development:**
+### 8. Jalankan aplikasi
+
 ```bash
 flask run
 ```
+
 atau:
+
 ```bash
 python run.py
 ```
 
-**Production:**
-```bash
-gunicorn run:app --bind 0.0.0.0:8000 --workers 4
+Default lokal dapat diakses melalui:
+
+```text
+http://localhost:5000
 ```
 
-Akses di: `http://localhost:5000`
-
----
-
-## User Seeder
-
-Seeder dijalankan dengan `flask seed`. Membuat akun awal jika belum ada.
-
-### Akun Super Admin
+## Akun Awal Seeder
 
 | Field | Value |
-|---|---|
-| **Email** | `superadmin@rskgm.id` |
-| **Password** | `password` |
-| **Role** | `super_admin` |
-| **Status** | Aktif |
+| --- | --- |
+| Email | `superadmin@rskgm.id` |
+| Password | `password` |
+| Role | `super_admin` |
+| Status | Aktif |
 
-> **Penting:** Segera ganti password setelah login pertama melalui menu **Profil Saya**.
+Segera ganti password setelah login pertama melalui menu profil.
 
-### Alur Pembuatan Akun Lain
+## Endpoint Ringkas
 
-Semua akun (Admin Divisi & Admin Ruangan) **hanya dapat dibuat oleh Super Admin** melalui menu **Tambah User** di panel admin. Tidak ada halaman registrasi publik.
+### Auth
 
----
-
-## Peran & Hak Akses
-
-Sistem memiliki **tiga peran** dengan hierarki bertingkat:
-
-### Super Admin
-Mengelola seluruh struktur organisasi sistem:
-- CRUD divisi dan ruangan
-- Membuat & mengelola akun Admin Divisi dan Admin Ruangan
-- Mengaktifkan/menonaktifkan akun pengguna
-- Melihat dashboard ringkasan keseluruhan
-
-### Admin Divisi
-Memantau dan menyetujui perubahan di tingkat divisi:
-- Melihat daftar aset seluruh ruangan dalam divisinya
-- Memproses approval request perubahan status aset
-- Melihat laporan & riwayat maintenance per ruangan
-- Ekspor laporan ke Excel dan PDF
-- Menerima notifikasi RPN tinggi (≥ 200)
-
-### Admin Ruangan
-Pengelola aset harian di tingkat ruangan:
-- CRUD aset dalam ruangannya
-- Melakukan evaluasi FMEA (Severity × Occurrence × Detection = RPN)
-- Mengajukan permintaan perubahan status aset
-- Mencatat riwayat perbaikan/maintenance
-- Mengunduh KIR (Kartu Identitas Registrasi) dan QR code aset
-- Ekspor laporan ruangan ke Excel dan PDF
-
----
-
-## Fitur Utama
-
-### Manajemen Aset
-- Kode aset otomatis: format `AST-{KODERUANGAN}-{TAHUN}-{URUTAN}`
-- Kondisi aset: `baik`, `perlu_perhatian`, `kritis`, `tidak_layak`
-- Status aset: `aktif`, `dalam_perbaikan`, `tidak_aktif`, `menunggu_approval`
-- QR code otomatis per aset (disimpan di `app/static/qrcodes/`)
-
-### Evaluasi FMEA
-- Input: Severity (1–10), Occurrence (1–10), Detection (1–10)
-- **RPN = S × O × D**
-- Kategori risiko otomatis:
-  - RPN ≥ 200 → **Tinggi** → kondisi aset: `kritis` → notifikasi ke Admin Divisi
-  - RPN 80–199 → **Sedang** → kondisi aset: `perlu_perhatian` → notifikasi ke Admin Ruangan
-  - RPN < 80 → **Rendah** → kondisi aset: `baik`
-- Rekomendasi tindakan digenerate otomatis berdasarkan kategori risiko
-
-### Alur Approval
-1. Admin Ruangan mengajukan permintaan perubahan status aset
-2. Aset masuk status `menunggu_approval` (terkunci, tidak bisa diedit)
-3. Admin Divisi menerima notifikasi dan memproses di **Approval Center**
-4. Jika disetujui → status aset diperbarui + log tercatat + notifikasi ke Admin Ruangan
-5. Jika ditolak → status aset dikembalikan + alasan penolakan dikirim
-
-### Laporan & Ekspor
-- Ekspor Excel (Admin Ruangan: 1 sheet; Admin Divisi: 2 sheet — data aset + statistik per ruangan)
-- Ekspor PDF via WeasyPrint
-- KIR (Kartu Identitas Registrasi) aset dalam format PDF, lengkap QR code
-
-### Notifikasi
-| Tipe | Trigger | Penerima |
-|---|---|---|
-| `rpn_tinggi` | RPN ≥ 200 | Semua Admin Divisi di divisi tersebut |
-| `rpn_sedang` | RPN 80–199 | Admin Ruangan yang submit |
-| `approval_baru` | Request change diajukan | Semua Admin Divisi di divisi tersebut |
-| `approval_disetujui` | Approval disetujui | Admin Ruangan pemohon |
-| `approval_ditolak` | Approval ditolak | Admin Ruangan pemohon |
-| `maintenance_terlambat` | Login (lazy check) | Pengguna yang login (jika ada aset overdue) |
-
----
-
-## Endpoint URL Ringkasan
-
-### Auth (`/`)
-| Method | URL | Keterangan |
-|---|---|---|
-| GET/POST | `/login` | Halaman login |
+| Method | URL | Fungsi |
+| --- | --- | --- |
+| GET/POST | `/login` | Login |
 | GET | `/logout` | Logout |
-| GET/POST | `/profile` | Edit profil & ganti password |
+| GET/POST | `/profile` | Edit profil dan password |
 | GET | `/notifications` | Daftar notifikasi |
 
-### Super Admin (`/super-admin/`)
-| URL | Keterangan |
-|---|---|
-| `/super-admin/dashboard` | Dashboard ringkasan |
+### Super Admin
+
+| URL | Fungsi |
+| --- | --- |
+| `/super-admin/dashboard` | Dashboard Super Admin |
 | `/super-admin/divisions` | Manajemen divisi |
 | `/super-admin/rooms` | Manajemen ruangan |
 | `/super-admin/users/admin-divisi` | Daftar Admin Divisi |
 | `/super-admin/users/admin-ruangan` | Daftar Admin Ruangan |
-| `/super-admin/users/create` | Tambah user baru |
+| `/super-admin/users/create` | Tambah user |
 
-### Admin Divisi (`/divisi/`)
-| URL | Keterangan |
-|---|---|
-| `/divisi/dashboard` | Dashboard divisi + grafik RPN |
-| `/divisi/assets` | Daftar aset seluruh ruangan |
+### Admin Divisi
+
+| URL | Fungsi |
+| --- | --- |
+| `/divisi/dashboard` | Dashboard divisi |
+| `/divisi/assets` | Daftar aset divisi |
 | `/divisi/approvals` | Approval Center |
-| `/divisi/reports` | Laporan & ekspor divisi |
-| `/divisi/members` | Daftar ruangan & adminnya |
+| `/divisi/reports` | Laporan divisi |
+| `/divisi/members` | Daftar ruangan dan admin |
 | `/divisi/maintenance-logs` | Riwayat maintenance divisi |
 
-### Admin Ruangan (`/ruangan/`)
-| URL | Keterangan |
-|---|---|
+### Admin Ruangan
+
+| URL | Fungsi |
+| --- | --- |
 | `/ruangan/dashboard` | Dashboard ruangan |
 | `/ruangan/assets` | Daftar aset ruangan |
-| `/ruangan/assets/create` | Tambah aset baru |
-| `/ruangan/assets/<id>/fmea` | Form evaluasi FMEA |
+| `/ruangan/assets/create` | Tambah aset |
+| `/ruangan/assets/<id>/fmea` | Evaluasi FMEA |
 | `/ruangan/assets/<id>/request-change` | Ajukan perubahan status |
-| `/ruangan/assets/<id>/kir` | Download KIR PDF |
-| `/ruangan/reports` | Laporan & ekspor ruangan |
+| `/ruangan/assets/<id>/kir` | Download KIR |
+| `/ruangan/reports` | Laporan ruangan |
 | `/ruangan/maintenance-logs` | Riwayat maintenance ruangan |
 
----
+## Production dan Hosting
 
-## Konfigurasi Penting
+Repository saat ini memiliki beberapa file pendukung deployment:
 
-| Variabel | Default | Keterangan |
-|---|---|---|
-| `SECRET_KEY` | `dev-secret-key` | **Wajib diganti** di production |
-| `DATABASE_URL` | `mysql+pymysql://root:@localhost/simaset_db` | URI koneksi database |
-| `RPN_HIGH_THRESHOLD` | `200` | Batas RPN kategori tinggi |
-| `RPN_MEDIUM_THRESHOLD` | `80` | Batas RPN kategori sedang |
-| `PERMANENT_SESSION_LIFETIME` | 8 jam | Durasi sesi login |
-| `EXPORTS_FOLDER` | `<root>/exports` | Folder output file ekspor |
+- `Dockerfile`
+- `Procfile`
+- `railway.json`
+- `nixpacks.toml`
+- `.github/workflows/deploy.yml`
+- `deployment/`
 
----
+Workflow GitHub saat ini melakukan:
 
-## Database Migrations
+- install dependency,
+- compile semua file Python,
+- import `create_app()`,
+- deploy ke VPS via SSH saat ada push ke branch `main`.
+
+Secrets untuk deploy disimpan di GitHub repository klien, bukan di kode.
+Lihat `deployment/README.md` untuk daftar secrets dan template file production.
+
+## Target Production VPS + Supabase
+
+Rencana production yang disarankan:
+
+```text
+GitHub client
+  -> VPS Ubuntu
+  -> Gunicorn + Nginx
+  -> Flask SIMASET
+  -> Supabase PostgreSQL
+```
+
+Checklist teknis sebelum memakai Supabase:
+
+- Set `DATABASE_URL` PostgreSQL di `.env` VPS.
+- Jalankan `flask db upgrade` ke database Supabase.
+- Jalankan `flask seed` jika database masih kosong.
+- Tes login Super Admin.
+- Tes export Excel.
+- Tes export PDF.
+- Tes pembuatan QR code.
+
+## File Runtime yang Perlu Dijaga
+
+| Path | Fungsi | Catatan |
+| --- | --- | --- |
+| `exports/` | Output file export | Pastikan writable di production |
+| `app/static/qrcodes/` | QR code aset | Pastikan writable dan dibackup bila perlu |
+| `.env` | Konfigurasi production | Jangan commit ke Git |
+
+## Migration Database
+
+Command umum:
 
 ```bash
-# Terapkan semua migrasi
 flask db upgrade
+```
 
-# Buat migrasi baru setelah mengubah model
+Membuat migration baru setelah model berubah:
+
+```bash
 flask db migrate -m "deskripsi perubahan"
 flask db upgrade
+```
 
-# Rollback satu versi
+Rollback satu versi:
+
+```bash
 flask db downgrade
 ```
 
----
+## Keamanan Production
 
-## Catatan Deployment Production
+- Jangan gunakan `SECRET_KEY` default.
+- Jangan commit `.env`, private key SSH, password database, atau app password email.
+- Ganti password akun Super Admin setelah login pertama.
+- Gunakan HTTPS untuk production.
+- Pastikan folder runtime hanya writable sesuai kebutuhan aplikasi.
+- Simpan credential final di password manager atau akun resmi klien, bukan di README.
 
-1. Set `FLASK_ENV=production` dan `FLASK_DEBUG=0`
-2. Ganti `SECRET_KEY` dengan nilai acak yang kuat (min 32 karakter)
-3. Pastikan folder `exports/` dan `app/static/qrcodes/` dapat ditulis oleh proses web server
-4. Konfigurasi reverse proxy (Nginx/Apache) di depan Gunicorn
-5. Gunakan HTTPS — WeasyPrint & QR code menggunakan path file absolut yang sensitif terhadap base URL
+## Catatan Serah Terima
 
----
+Untuk serah-terima ke klien, dokumentasikan minimal:
 
-## Lisensi
+- URL website production.
+- Domain dan DNS.
+- IP VPS.
+- Provider VPS.
+- User SSH dan lokasi penyimpanan private key.
+- Repository GitHub dan branch production.
+- Provider database.
+- Nama project database.
+- Lokasi file `.env` di VPS.
+- Nama service systemd.
+- Cara backup database dan file runtime.
 
-Dibuat untuk keperluan internal **RS Khusus Gigi dan Mulut (RSKGM) Palembang**.
+## Lisensi / Kepemilikan
+
+Dibuat untuk kebutuhan internal RS Khusus Gigi dan Mulut (RSKGM) Palembang.

@@ -6,7 +6,6 @@ Create Date: 2026-04-30 12:02:35.530604
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
@@ -17,6 +16,9 @@ depends_on = None
 
 
 def upgrade():
+    if op.get_context().dialect.name != 'mysql':
+        return
+
     op.execute(
         "ALTER TABLE maintenance_logs MODIFY COLUMN action_type "
         "ENUM('evaluasi_fmea','perbaikan','penggantian','pemeriksaan_rutin',"
@@ -25,6 +27,9 @@ def upgrade():
 
 
 def downgrade():
+    if op.get_context().dialect.name != 'mysql':
+        return
+
     op.execute(
         "ALTER TABLE maintenance_logs MODIFY COLUMN action_type "
         "ENUM('evaluasi_fmea','perbaikan','penggantian','pemeriksaan_rutin',"

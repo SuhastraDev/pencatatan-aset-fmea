@@ -18,6 +18,9 @@ class MaintenanceLog(db.Model):
             'approval_ditolak',
             'pengajuan_status',   # admin_ruangan ajukan perubahan status
             'cetak_kir',          # log cetak KIR — tidak mengubah kondisi aset
+            name='maintenance_action_type',
+            native_enum=False,
+            length=50,
         ),
         nullable=False
     )

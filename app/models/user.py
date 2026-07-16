@@ -10,7 +10,17 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.Enum('super_admin', 'admin_divisi', 'admin_ruangan'), nullable=False)
+    role = db.Column(
+        db.Enum(
+            'super_admin',
+            'admin_divisi',
+            'admin_ruangan',
+            name='user_role',
+            native_enum=False,
+            length=50,
+        ),
+        nullable=False
+    )
     division_id = db.Column(db.Integer, db.ForeignKey('divisions.id'), nullable=True)
     room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'), nullable=True)
     is_active = db.Column(db.Boolean, default=True)

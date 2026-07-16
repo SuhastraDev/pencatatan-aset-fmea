@@ -13,7 +13,14 @@ class ApprovalRequest(db.Model):
     requested_status = db.Column(db.String(50), nullable=False)
     reason = db.Column(db.Text, nullable=False)
     approval_status = db.Column(
-        db.Enum('pending', 'approved', 'rejected'),
+        db.Enum(
+            'pending',
+            'approved',
+            'rejected',
+            name='approval_status',
+            native_enum=False,
+            length=50,
+        ),
         default='pending',
         nullable=False
     )

@@ -14,7 +14,17 @@ class FmeaRecord(db.Model):
     occurrence = db.Column(db.Integer, nullable=False)     # 1-10
     detection = db.Column(db.Integer, nullable=False)      # 1-10
     rpn_score = db.Column(db.Integer, nullable=False)      # otomatis = S × O × D
-    risk_category = db.Column(db.Enum('rendah', 'sedang', 'tinggi'), nullable=False)
+    risk_category = db.Column(
+        db.Enum(
+            'rendah',
+            'sedang',
+            'tinggi',
+            name='risk_category',
+            native_enum=False,
+            length=50,
+        ),
+        nullable=False
+    )
     recommendation = db.Column(db.Text, nullable=False)
     evaluation_date = db.Column(db.Date, nullable=False)
     notes = db.Column(db.Text, nullable=True)

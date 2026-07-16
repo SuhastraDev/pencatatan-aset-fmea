@@ -16,12 +16,28 @@ class Asset(db.Model):
     purchase_date = db.Column(db.Date, nullable=True)
     purchase_price = db.Column(db.Numeric(15, 2), nullable=True)
     condition = db.Column(
-        db.Enum('baik', 'perlu_perhatian', 'kritis', 'tidak_layak'),
+        db.Enum(
+            'baik',
+            'perlu_perhatian',
+            'kritis',
+            'tidak_layak',
+            name='asset_condition',
+            native_enum=False,
+            length=50,
+        ),
         default='baik',
         nullable=False
     )
     status = db.Column(
-        db.Enum('aktif', 'dalam_perbaikan', 'tidak_aktif', 'menunggu_approval'),
+        db.Enum(
+            'aktif',
+            'dalam_perbaikan',
+            'tidak_aktif',
+            'menunggu_approval',
+            name='asset_status',
+            native_enum=False,
+            length=50,
+        ),
         default='aktif',
         nullable=False
     )
