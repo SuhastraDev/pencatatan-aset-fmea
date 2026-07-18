@@ -12,16 +12,31 @@ from app.utils.decorators import role_required, check_room_ownership
 from app.utils.helpers import generate_asset_code, generate_qr_code
 from app.forms.asset_forms import CreateAssetForm, EditAssetForm, RequestChangeForm, RepairLogForm
 from app.forms.fmea_forms import FmeaEvaluationForm
-from app.services.fmea_service import calculate_rpn, update_asset_condition, should_notify, generate_recommendation
+from app.services.fmea_service import (
+    calculate_rpn,
+    update_asset_condition,
+    sync_asset_condition_from_latest_fmea,
+    should_notify,
+    generate_recommendation,
+)
 from app.services.notif_service import notify_high_rpn, notify_medium_rpn, notify_new_approval_request
 from app.services.export_service import generate_excel, generate_pdf, generate_kir_pdf, build_filename
 
 ruangan_bp = Blueprint('ruangan', __name__, url_prefix='/ruangan')
 
 
-def _category_choices():
-    cats = AssetCategory.query.order_by(AssetCategory.category_name).all()
-    return [(c.id, c.category_name) for c in cats]
+def _default_asset_category():
+    category = AssetCategory.query.filter_by(category_name='Umum').first()
+    if category:
+        return category
+
+    category = AssetCategory(
+        category_name='Umum',
+        description='Kategori internal default untuk aset yang tidak diklasifikasikan di form input.',
+    )
+    db.session.add(category)
+    db.session.flush()
+    return category
 
 
 # ── Dashboard ──────────────────────────────────────────────────────────────────
@@ -62,24 +77,19 @@ def dashboard():
 def assets_index():
     page = request.args.get('page', 1, type=int)
     kondisi_filter = request.args.get('kondisi', '')
-    kategori_filter = request.args.get('kategori', 0, type=int)
     status_filter = request.args.get('status', '')
 
     query = Asset.query.filter_by(room_id=current_user.room_id)
     if kondisi_filter:
         query = query.filter_by(condition=kondisi_filter)
-    if kategori_filter:
-        query = query.filter_by(category_id=kategori_filter)
     if status_filter:
         query = query.filter_by(status=status_filter)
 
     assets = query.order_by(Asset.created_at.desc()).paginate(page=page, per_page=10)
-    categories = AssetCategory.query.order_by(AssetCategory.category_name).all()
 
     return render_template('ruangan/assets/index.html',
-        assets=assets, categories=categories,
+        assets=assets,
         kondisi_filter=kondisi_filter,
-        kategori_filter=kategori_filter,
         status_filter=status_filter,
     )
 
@@ -94,9 +104,9 @@ def assets_create():
         return redirect(url_for('ruangan.dashboard'))
 
     form = CreateAssetForm()
-    form.category_id.choices = _category_choices()
 
     if form.validate_on_submit():
+        category = _default_asset_category()
         # Generate kode aset — gunakan MAX sequence agar aman dari race condition
         from sqlalchemy import func
         last_code = (db.session.query(func.max(Asset.asset_code))
@@ -113,11 +123,12 @@ def assets_create():
 
         asset = Asset(
             asset_code=kode,
+            item_code=form.item_code.data,
             asset_name=form.asset_name.data,
-            category_id=form.category_id.data,
+            category=category,
             room_id=current_user.room_id,
-            brand=form.brand.data,
-            model=form.model.data,
+            brand=form.brand_model.data,
+            model='',
             serial_number=form.serial_number.data,
             purchase_date=form.purchase_date.data,
             purchase_price=form.purchase_price.data,
@@ -169,10 +180,17 @@ def assets_edit(id):
         return redirect(url_for('ruangan.assets_detail', id=id))
 
     form = EditAssetForm(obj=asset)
-    form.category_id.choices = _category_choices()
 
     if form.validate_on_submit():
-        form.populate_obj(asset)
+        asset.asset_name = form.asset_name.data
+        asset.item_code = form.item_code.data
+        asset.brand_model = form.brand_model.data
+        asset.serial_number = form.serial_number.data
+        asset.purchase_date = form.purchase_date.data
+        asset.purchase_price = form.purchase_price.data
+        asset.condition = form.condition.data
+        asset.notes = form.notes.data
+
         log = MaintenanceLog(
             asset_id=asset.id,
             logged_by=current_user.id,
@@ -420,7 +438,85 @@ def fmea_form(id):
 
         return redirect(url_for('ruangan.assets_detail', id=id))
 
-    return render_template('ruangan/fmea/form.html', form=form, asset=asset)
+    return render_template('ruangan/fmea/form.html',
+        form=form,
+        asset=asset,
+        form_action=url_for('ruangan.fmea_form', id=asset.id),
+        page_title='Evaluasi FMEA',
+        submit_label='Simpan Evaluasi',
+    )
+
+
+@ruangan_bp.route('/assets/<int:id>/fmea/<int:fmea_id>/edit', methods=['GET', 'POST'])
+@login_required
+@role_required('admin_ruangan')
+@check_room_ownership
+def fmea_edit(id, fmea_id):
+    asset = Asset.query.get_or_404(id)
+    record = FmeaRecord.query.filter_by(id=fmea_id, asset_id=asset.id).first_or_404()
+    form = FmeaEvaluationForm(obj=record)
+
+    if form.validate_on_submit():
+        hasil = calculate_rpn(form.severity.data, form.occurrence.data, form.detection.data)
+
+        record.failure_mode = form.failure_mode.data
+        record.failure_effect = form.failure_effect.data
+        record.severity = form.severity.data
+        record.occurrence = form.occurrence.data
+        record.detection = form.detection.data
+        record.rpn_score = hasil['rpn_score']
+        record.risk_category = hasil['risk_category']
+        record.recommendation = generate_recommendation(hasil['rpn_score'])
+        record.evaluation_date = form.evaluation_date.data
+        record.notes = form.notes.data
+
+        sync_asset_condition_from_latest_fmea(asset)
+
+        db.session.add(MaintenanceLog(
+            asset_id=asset.id,
+            logged_by=current_user.id,
+            action_type='evaluasi_fmea',
+            description=f'FMEA diperbarui: RPN={hasil["rpn_score"]} ({hasil["risk_category"].upper()}). Mode: {form.failure_mode.data}',
+            action_date=date.today(),
+        ))
+        db.session.commit()
+        flash(f'FMEA berhasil diperbarui. RPN={hasil["rpn_score"]} ({hasil["risk_category"].upper()}).', 'success')
+        return redirect(url_for('ruangan.fmea_history', id=asset.id))
+
+    return render_template('ruangan/fmea/form.html',
+        form=form,
+        asset=asset,
+        record=record,
+        form_action=url_for('ruangan.fmea_edit', id=asset.id, fmea_id=record.id),
+        page_title='Edit Evaluasi FMEA',
+        submit_label='Simpan Perubahan',
+    )
+
+
+@ruangan_bp.route('/assets/<int:id>/fmea/<int:fmea_id>/delete', methods=['POST'])
+@login_required
+@role_required('admin_ruangan')
+@check_room_ownership
+def fmea_delete(id, fmea_id):
+    asset = Asset.query.get_or_404(id)
+    record = FmeaRecord.query.filter_by(id=fmea_id, asset_id=asset.id).first_or_404()
+    old_rpn = record.rpn_score
+    old_mode = record.failure_mode
+
+    db.session.delete(record)
+    db.session.flush()
+    sync_asset_condition_from_latest_fmea(asset)
+
+    db.session.add(MaintenanceLog(
+        asset_id=asset.id,
+        logged_by=current_user.id,
+        action_type='evaluasi_fmea',
+        description=f'FMEA dihapus: RPN={old_rpn}. Mode: {old_mode}',
+        action_date=date.today(),
+    ))
+    db.session.commit()
+    flash('Evaluasi FMEA berhasil dihapus dan kondisi aset sudah diperbarui.', 'success')
+    return redirect(url_for('ruangan.fmea_history', id=asset.id))
 
 
 @ruangan_bp.route('/assets/<int:id>/fmea/history')
@@ -554,5 +650,3 @@ def maintenance_logs():
         # Kembalikan objek paginate kosong agar template tidak crash
         logs = MaintenanceLog.query.filter(db.false()).paginate(page=1, per_page=15)
     return render_template('ruangan/maintenance_logs.html', logs=logs)
-
-

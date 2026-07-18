@@ -131,9 +131,9 @@
         <tr>
           <th>No</th>
           <th>Kode Aset</th>
+          <th>Kode Barang</th>
           <th>Nama Aset</th>
           <th>Ruangan</th>
-          <th>Kategori</th>
           <th>Kondisi</th>
           <th>RPN Terakhir</th>
           <th>Tgl Evaluasi</th>
@@ -147,11 +147,11 @@
         <tr>
           <td class="text-muted small">{{ loop.index }}</td>
           <td class="font-monospace small">{{ a.asset_code }}</td>
+          <td class="small text-muted">{{ a.item_code or '—' }}</td>
           <td class="fw-medium">
             <a href="{{ url_for('divisi.assets_detail', id=a.id) }}" class="text-decoration-none">{{ a.asset_name }}</a>
           </td>
           <td class="small text-muted">{{ a.room.room_name }}</td>
-          <td class="small text-muted">{{ a.category.category_name }}</td>
           <td>
             {% if a.condition == 'baik' %}<span class="badge bg-success">Baik</span>
             {% elif a.condition == 'perlu_perhatian' %}<span class="badge bg-warning text-dark">Perlu Perhatian</span>

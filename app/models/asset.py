@@ -7,6 +7,7 @@ class Asset(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     asset_code = db.Column(db.String(50), unique=True, nullable=False)
+    item_code = db.Column(db.String(100), nullable=True)
     asset_name = db.Column(db.String(150), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('asset_categories.id'), nullable=False)
     room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'), nullable=False)
@@ -59,3 +60,14 @@ class Asset(db.Model):
 
     def __repr__(self):
         return f'<Asset {self.asset_code} - {self.asset_name}>'
+
+    @property
+    def brand_model(self):
+        if self.model:
+            return f'{self.brand} / {self.model}'
+        return self.brand
+
+    @brand_model.setter
+    def brand_model(self, value):
+        self.brand = (value or '').strip()
+        self.model = ''

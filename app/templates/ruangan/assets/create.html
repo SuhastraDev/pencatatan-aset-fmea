@@ -17,29 +17,28 @@
         <form method="POST" action="{{ url_for('ruangan.assets_create') }}" novalidate>
           {{ form.hidden_tag() }}
           <div class="row g-3">
-            <div class="col-md-8">
+            <div class="col-md-6">
               <label class="form-label fw-semibold">Nama Aset</label>
               {{ form.asset_name(class="form-control" + (" is-invalid" if form.asset_name.errors else "")) }}
               {% for e in form.asset_name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Kategori</label>
-              {{ form.category_id(class="form-select" + (" is-invalid" if form.category_id.errors else "")) }}
-              {% for e in form.category_id.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nama Ruangan</label>
+              <input type="text" class="form-control bg-light" value="{{ current_user.room.room_name }}" readonly>
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Merek</label>
-              {{ form.brand(class="form-control" + (" is-invalid" if form.brand.errors else ""), placeholder="Contoh: Carestream") }}
-              {% for e in form.brand.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+              <label class="form-label fw-semibold">Kode Barang</label>
+              {{ form.item_code(class="form-control" + (" is-invalid" if form.item_code.errors else ""), placeholder="Contoh: BMN-2026-001") }}
+              {% for e in form.item_code.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Model</label>
-              {{ form.model(class="form-control" + (" is-invalid" if form.model.errors else ""), placeholder="Contoh: CS 8200 3D") }}
-              {% for e in form.model.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+              <label class="form-label fw-semibold">Merk / Model</label>
+              {{ form.brand_model(class="form-control" + (" is-invalid" if form.brand_model.errors else ""), placeholder="Contoh: Carestream CS 8200 3D") }}
+              {% for e in form.brand_model.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Nomor Seri <span class="text-muted fw-normal">(opsional)</span></label>
-              {{ form.serial_number(class="form-control" + (" is-invalid" if form.serial_number.errors else "")) }}
+              <label class="form-label fw-semibold">No Seri</label>
+              {{ form.serial_number(class="form-control" + (" is-invalid" if form.serial_number.errors else ""), required=true) }}
               {% for e in form.serial_number.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
             <div class="col-md-6">

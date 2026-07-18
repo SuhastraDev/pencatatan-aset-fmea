@@ -69,6 +69,9 @@ def profile():
 
     if form.validate_on_submit():
         current_user.name = form.name.data
+        current_user.nip = form.nip.data or None
+        current_user.jabatan = form.jabatan.data or None
+        current_user.tanggal_lahir = form.tanggal_lahir.data
 
         if form.new_password.data:
             if not form.current_password.data:

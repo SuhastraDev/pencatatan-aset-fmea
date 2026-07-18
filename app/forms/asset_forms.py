@@ -6,10 +6,9 @@ from wtforms.validators import DataRequired, Optional, Length, NumberRange, Vali
 
 class CreateAssetForm(FlaskForm):
     asset_name = StringField('Nama Aset', validators=[DataRequired(), Length(max=150)])
-    category_id = SelectField('Kategori', coerce=int, validators=[DataRequired()])
-    brand = StringField('Merek', validators=[DataRequired(), Length(max=100)])
-    model = StringField('Model', validators=[DataRequired(), Length(max=100)])
-    serial_number = StringField('Nomor Seri', validators=[Optional(), Length(max=100)])
+    item_code = StringField('Kode Barang', validators=[Optional(), Length(max=100)])
+    brand_model = StringField('Merk / Model', validators=[DataRequired(), Length(max=100)])
+    serial_number = StringField('No Seri', validators=[DataRequired(), Length(max=100)])
     purchase_date = DateField('Tanggal Pembelian', validators=[Optional()])
     purchase_price = DecimalField('Harga Pembelian (Rp)', validators=[Optional(), NumberRange(min=0, message='Harga tidak boleh negatif.')], places=2)
     condition = SelectField('Kondisi', choices=[
@@ -24,10 +23,9 @@ class CreateAssetForm(FlaskForm):
 
 class EditAssetForm(FlaskForm):
     asset_name = StringField('Nama Aset', validators=[DataRequired(), Length(max=150)])
-    category_id = SelectField('Kategori', coerce=int, validators=[DataRequired()])
-    brand = StringField('Merek', validators=[DataRequired(), Length(max=100)])
-    model = StringField('Model', validators=[DataRequired(), Length(max=100)])
-    serial_number = StringField('Nomor Seri', validators=[Optional(), Length(max=100)])
+    item_code = StringField('Kode Barang', validators=[Optional(), Length(max=100)])
+    brand_model = StringField('Merk / Model', validators=[DataRequired(), Length(max=100)])
+    serial_number = StringField('No Seri', validators=[DataRequired(), Length(max=100)])
     purchase_date = DateField('Tanggal Pembelian', validators=[Optional()])
     purchase_price = DecimalField('Harga Pembelian (Rp)', validators=[Optional(), NumberRange(min=0, message='Harga tidak boleh negatif.')], places=2)
     condition = SelectField('Kondisi', choices=[

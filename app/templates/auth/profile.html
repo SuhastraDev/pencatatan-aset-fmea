@@ -34,6 +34,10 @@
         <div style="flex:1; min-width:0;">
           <div class="fw-bold" style="font-size:16px; color:#0F172A;">{{ current_user.name }}</div>
           <div style="font-size:12px; color:#64748B; margin-top:2px;">{{ current_user.email }}</div>
+          <div style="font-size:12px; color:#64748B; margin-top:2px;">
+            {{ current_user.jabatan or 'Jabatan belum diisi' }}
+            {% if current_user.nip %} · NIP {{ current_user.nip }}{% endif %}
+          </div>
           <div style="margin-top:8px;">
             {% if current_user.is_super_admin() %}
               <span class="badge" style="background:#F5F3FF; color:#7C3AED; font-weight:600; font-size:11px;">
@@ -101,6 +105,43 @@
                      style="padding-left:38px; background:#F8FAFC;">
             </div>
             <div class="field-hint"><i class="bi bi-info-circle"></i> Email tidak dapat diubah langsung. Hubungi Super Admin.</div>
+          </div>
+
+          <div class="row g-3 mb-4 mt-2">
+            <div class="col-sm-6">
+              <label class="form-label">NIP</label>
+              <div class="input-icon-wrap">
+                <i class="bi bi-person-vcard field-icon"></i>
+                {{ form.nip(class="form-control" + (" is-invalid" if form.nip.errors else ""),
+                   placeholder="Nomor induk pegawai", maxlength=50) }}
+              </div>
+              {% for e in form.nip.errors %}
+                <div class="invalid-feedback d-block">{{ e }}</div>
+              {% endfor %}
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Tanggal Lahir</label>
+              <div class="input-icon-wrap">
+                <i class="bi bi-calendar-date field-icon"></i>
+                {{ form.tanggal_lahir(class="form-control" + (" is-invalid" if form.tanggal_lahir.errors else ""),
+                   style="padding-left:38px;") }}
+              </div>
+              {% for e in form.tanggal_lahir.errors %}
+                <div class="invalid-feedback d-block">{{ e }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label">Jabatan</label>
+            <div class="input-icon-wrap">
+              <i class="bi bi-briefcase field-icon"></i>
+              {{ form.jabatan(class="form-control" + (" is-invalid" if form.jabatan.errors else ""),
+                 placeholder="Jabatan atau tanggung jawab", maxlength=100) }}
+            </div>
+            {% for e in form.jabatan.errors %}
+              <div class="invalid-feedback d-block">{{ e }}</div>
+            {% endfor %}
           </div>
 
           <div class="divider my-4"></div>

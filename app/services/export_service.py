@@ -20,7 +20,7 @@ def generate_excel(asset_data, room_name, room_code):
 
     # Header
     headers = [
-        'No', 'Kode Aset', 'Nama Aset', 'Kategori', 'Merek', 'Model',
+        'No', 'Kode Aset', 'Kode Barang', 'Nama Aset', 'Merk / Model', 'No Seri',
         'Kondisi', 'Status', 'RPN Terakhir', 'Kategori RPN', 'Tanggal Evaluasi'
     ]
     ws.append(headers)
@@ -38,10 +38,10 @@ def generate_excel(asset_data, room_name, room_code):
         ws.append([
             i,
             a.asset_code,
+            a.item_code or '-',
             a.asset_name,
-            a.category.category_name,
-            a.brand,
-            a.model,
+            a.brand_model,
+            a.serial_number,
             a.condition.replace('_', ' ').title(),
             a.status.replace('_', ' ').title(),
             f.rpn_score if f else '-',
@@ -74,7 +74,7 @@ def generate_excel_divisi(asset_data, room_stats):
     ws1 = wb.active
     ws1.title = 'Data Aset'
 
-    headers = ['No', 'Kode Aset', 'Nama Aset', 'Ruangan', 'Kategori', 'Merek', 'Model',
+    headers = ['No', 'Kode Aset', 'Kode Barang', 'Nama Aset', 'Ruangan', 'Merk / Model', 'No Seri',
                'Kondisi', 'Status', 'RPN Terakhir', 'Kategori RPN', 'Tgl Evaluasi']
     ws1.append(headers)
     hdr_fill = PatternFill('solid', fgColor='1F4E79')
@@ -96,9 +96,10 @@ def generate_excel_divisi(asset_data, room_stats):
         a = item['asset']
         f = item['last_fmea']
         ws1.append([
-            i, a.asset_code, a.asset_name,
-            a.room.room_name, a.category.category_name,
-            a.brand, a.model,
+            i, a.asset_code, a.item_code or '-',
+            a.asset_name,
+            a.room.room_name, a.brand_model,
+            a.serial_number,
             a.condition.replace('_', ' ').title(),
             a.status.replace('_', ' ').title(),
             f.rpn_score if f else '-',

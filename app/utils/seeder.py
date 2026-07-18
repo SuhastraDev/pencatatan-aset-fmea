@@ -10,12 +10,20 @@ from app.models.division import Division
 
 def seed_super_admin():
     """Buat akun Super Admin awal jika belum ada."""
-    if User.query.filter_by(email='superadmin@rskgm.id').first():
-        print('Super Admin sudah ada, seeder dilewati.')
+    existing = User.query.filter_by(email='superadmin@rskgm.id').first()
+    if existing:
+        existing.nip = existing.nip or '198001012006041001'
+        existing.jabatan = existing.jabatan or 'Super Admin SIMASET'
+        existing.tanggal_lahir = existing.tanggal_lahir or date(1980, 1, 1)
+        db.session.commit()
+        print('Super Admin sudah ada, identitas dipastikan.')
         return
 
     admin = User(
         name='Super Administrator',
+        nip='198001012006041001',
+        jabatan='Super Admin SIMASET',
+        tanggal_lahir=date(1980, 1, 1),
         email='superadmin@rskgm.id',
         role='super_admin',
         is_active=True,
@@ -90,6 +98,9 @@ def seed_demo_accounts_and_assets():
     accounts = [
         {
             'name': 'Admin Divisi Rawat Jalan',
+            'nip': '198505142010012001',
+            'jabatan': 'Koordinator Aset Divisi Rawat Jalan',
+            'tanggal_lahir': date(1985, 5, 14),
             'email': 'admin.divisi.rj@rskgm.id',
             'role': 'admin_divisi',
             'division': rawat_jalan,
@@ -97,6 +108,9 @@ def seed_demo_accounts_and_assets():
         },
         {
             'name': 'Admin Divisi Operasi',
+            'nip': '198703212011012002',
+            'jabatan': 'Koordinator Aset Divisi Operasi dan Tindakan',
+            'tanggal_lahir': date(1987, 3, 21),
             'email': 'admin.divisi.ok@rskgm.id',
             'role': 'admin_divisi',
             'division': operasi,
@@ -104,6 +118,9 @@ def seed_demo_accounts_and_assets():
         },
         {
             'name': 'Admin Ruangan Poli Gigi Umum',
+            'nip': '199002172014032001',
+            'jabatan': 'Penanggung Jawab Aset Poli Gigi Umum',
+            'tanggal_lahir': date(1990, 2, 17),
             'email': 'admin.ruangan.rj01@rskgm.id',
             'role': 'admin_ruangan',
             'division': rawat_jalan,
@@ -111,6 +128,9 @@ def seed_demo_accounts_and_assets():
         },
         {
             'name': 'Admin Ruangan Poli Ortodonti',
+            'nip': '199104082015032002',
+            'jabatan': 'Penanggung Jawab Aset Poli Ortodonti',
+            'tanggal_lahir': date(1991, 4, 8),
             'email': 'admin.ruangan.rj02@rskgm.id',
             'role': 'admin_ruangan',
             'division': rawat_jalan,
@@ -118,6 +138,9 @@ def seed_demo_accounts_and_assets():
         },
         {
             'name': 'Admin Ruangan Operasi Gigi',
+            'nip': '198911302013032003',
+            'jabatan': 'Penanggung Jawab Aset Ruang Operasi Gigi',
+            'tanggal_lahir': date(1989, 11, 30),
             'email': 'admin.ruangan.ok01@rskgm.id',
             'role': 'admin_ruangan',
             'division': operasi,
@@ -136,6 +159,7 @@ def seed_demo_accounts_and_assets():
     asset_specs = [
         {
             'asset_code': 'AST-RJ-01-2026-0001',
+            'item_code': 'BMN-RJ01-2026-001',
             'asset_name': 'Dental Unit Demo RJ-01',
             'category': 'Alat Terapi',
             'room': room_map['RJ-01'],
@@ -150,6 +174,7 @@ def seed_demo_accounts_and_assets():
         },
         {
             'asset_code': 'AST-RJ-02-2026-0001',
+            'item_code': 'BMN-RJ02-2026-001',
             'asset_name': 'Autoclave Demo RJ-02',
             'category': 'Alat Sterilisasi',
             'room': room_map['RJ-02'],
@@ -164,6 +189,7 @@ def seed_demo_accounts_and_assets():
         },
         {
             'asset_code': 'AST-OK-01-2026-0001',
+            'item_code': 'BMN-OK01-2026-001',
             'asset_name': 'Monitor Pasien Demo OK-01',
             'category': 'Alat Darurat',
             'room': room_map['OK-01'],
@@ -222,10 +248,13 @@ def _get_or_create_room(room_code, room_name, floor, division, description):
     return room
 
 
-def _get_or_create_user(name, email, role, division, room):
+def _get_or_create_user(name, nip, jabatan, tanggal_lahir, email, role, division, room):
     user = User.query.filter_by(email=email).first()
     if user:
         user.name = name
+        user.nip = nip
+        user.jabatan = jabatan
+        user.tanggal_lahir = tanggal_lahir
         user.role = role
         user.division = division
         user.room = room
@@ -234,6 +263,9 @@ def _get_or_create_user(name, email, role, division, room):
 
     user = User(
         name=name,
+        nip=nip,
+        jabatan=jabatan,
+        tanggal_lahir=tanggal_lahir,
         email=email,
         role=role,
         division=division,
@@ -249,6 +281,7 @@ def _get_or_create_asset(spec, category, fallback_creator):
     asset = Asset.query.filter_by(asset_code=spec['asset_code']).first()
     if asset:
         asset.asset_name = spec['asset_name']
+        asset.item_code = spec.get('item_code')
         asset.category = category
         asset.room = spec['room']
         asset.brand = spec['brand']
@@ -261,6 +294,7 @@ def _get_or_create_asset(spec, category, fallback_creator):
 
     asset = Asset(
         asset_code=spec['asset_code'],
+        item_code=spec.get('item_code'),
         asset_name=spec['asset_name'],
         category=category,
         room=spec['room'],

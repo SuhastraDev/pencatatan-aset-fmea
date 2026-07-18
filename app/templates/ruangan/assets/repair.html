@@ -35,8 +35,8 @@
         <dl class="row mb-0">
           <dt class="col-5 text-muted">Nama</dt>
           <dd class="col-7 fw-medium">{{ asset.asset_name }}</dd>
-          <dt class="col-5 text-muted">Merek</dt>
-          <dd class="col-7">{{ asset.brand }} / {{ asset.model }}</dd>
+          <dt class="col-5 text-muted">Merk / Model</dt>
+          <dd class="col-7">{{ asset.brand_model }}</dd>
           <dt class="col-5 text-muted">Kondisi</dt>
           <dd class="col-7">
             {% if asset.condition == 'baik' %}<span class="badge bg-success">Baik</span>

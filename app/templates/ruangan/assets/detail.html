@@ -44,10 +44,10 @@
       <div class="card-body">
         <dl class="row mb-0 small">
           <dt class="col-5 text-muted">Kode Aset</dt><dd class="col-7"><code>{{ asset.asset_code }}</code></dd>
-          <dt class="col-5 text-muted">Kategori</dt><dd class="col-7">{{ asset.category.category_name }}</dd>
-          <dt class="col-5 text-muted">Merek</dt><dd class="col-7">{{ asset.brand }}</dd>
-          <dt class="col-5 text-muted">Model</dt><dd class="col-7">{{ asset.model }}</dd>
-          <dt class="col-5 text-muted">Nomor Seri</dt><dd class="col-7">{{ asset.serial_number or '—' }}</dd>
+          <dt class="col-5 text-muted">Kode Barang</dt><dd class="col-7">{{ asset.item_code or '—' }}</dd>
+          <dt class="col-5 text-muted">Nama Ruangan</dt><dd class="col-7">{{ asset.room.room_name }}</dd>
+          <dt class="col-5 text-muted">Merk / Model</dt><dd class="col-7">{{ asset.brand_model }}</dd>
+          <dt class="col-5 text-muted">No Seri</dt><dd class="col-7">{{ asset.serial_number or '—' }}</dd>
           <dt class="col-5 text-muted">Tgl Pembelian</dt><dd class="col-7">{{ asset.purchase_date.strftime('%d %b %Y') if asset.purchase_date else '—' }}</dd>
           <dt class="col-5 text-muted">Harga</dt><dd class="col-7">{% if asset.purchase_price %}Rp {{ '{:,.0f}'.format(asset.purchase_price) }}{% else %}—{% endif %}</dd>
           <dt class="col-5 text-muted">Catatan</dt><dd class="col-7">{{ asset.notes or '—' }}</dd>
@@ -135,7 +135,7 @@
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0 small">
           <thead class="table-light">
-            <tr><th>Tanggal</th><th>Mode Kegagalan</th><th class="text-center">S</th><th class="text-center">O</th><th class="text-center">D</th><th class="text-center">RPN</th><th>Kategori</th></tr>
+            <tr><th>Tanggal</th><th>Mode Kegagalan</th><th class="text-center">S</th><th class="text-center">O</th><th class="text-center">D</th><th class="text-center">RPN</th><th>Kategori</th><th class="text-end">Aksi</th></tr>
           </thead>
           <tbody>
             {% for f in fmea_terbaru %}
@@ -151,9 +151,24 @@
                 {% elif f.risk_category == 'sedang' %}<span class="badge bg-warning text-dark">Sedang</span>
                 {% else %}<span class="badge bg-success">Rendah</span>{% endif %}
               </td>
+              <td class="text-end text-nowrap">
+                <a href="{{ url_for('ruangan.fmea_edit', id=asset.id, fmea_id=f.id) }}"
+                   class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <form method="POST"
+                      action="{{ url_for('ruangan.fmea_delete', id=asset.id, fmea_id=f.id) }}"
+                      class="d-inline"
+                      onsubmit="return confirm('Hapus evaluasi FMEA ini? Kondisi aset akan dihitung ulang dari evaluasi yang tersisa.');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
             </tr>
             {% else %}
-            <tr><td colspan="7" class="text-center text-muted py-3">Belum ada evaluasi FMEA.</td></tr>
+            <tr><td colspan="8" class="text-center text-muted py-3">Belum ada evaluasi FMEA.</td></tr>
             {% endfor %}
           </tbody>
         </table>

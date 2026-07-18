@@ -82,7 +82,7 @@
     <table class="table table-hover align-middle mb-0 small">
       <thead class="table-light">
         <tr>
-          <th>Kode</th><th>Nama Aset</th><th>Kategori</th><th>Kondisi</th>
+          <th>Kode Aset</th><th>Kode Barang</th><th>Nama Aset</th><th>Kondisi</th>
           <th class="text-center">RPN</th><th>Kategori RPN</th><th>Tgl Evaluasi</th>
         </tr>
       </thead>
@@ -92,8 +92,8 @@
         {% set f = item.last_fmea %}
         <tr>
           <td><span class="badge bg-secondary">{{ a.asset_code }}</span></td>
+          <td>{{ a.item_code or '—' }}</td>
           <td class="fw-semibold">{{ a.asset_name }}</td>
-          <td>{{ a.category.category_name }}</td>
           <td>
             {% if a.condition == 'baik' %}<span class="badge bg-success">Baik</span>
             {% elif a.condition == 'perlu_perhatian' %}<span class="badge bg-warning text-dark">Perlu Perhatian</span>

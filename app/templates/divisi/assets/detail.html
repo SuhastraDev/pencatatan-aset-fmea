@@ -28,10 +28,10 @@
       <div class="card-body">
         <table class="table table-sm table-borderless mb-0">
           <tr><td class="text-muted w-40">Kode Aset</td><td class="font-monospace">{{ asset.asset_code }}</td></tr>
+          <tr><td class="text-muted">Kode Barang</td><td>{{ asset.item_code or '—' }}</td></tr>
           <tr><td class="text-muted">Nama</td><td class="fw-medium">{{ asset.asset_name }}</td></tr>
           <tr><td class="text-muted">Ruangan</td><td>{{ asset.room.room_name }} <span class="text-muted small">({{ asset.room.room_code }})</span></td></tr>
-          <tr><td class="text-muted">Kategori</td><td>{{ asset.category.category_name }}</td></tr>
-          <tr><td class="text-muted">Merek / Model</td><td>{{ asset.brand }} / {{ asset.model }}</td></tr>
+          <tr><td class="text-muted">Merk / Model</td><td>{{ asset.brand_model }}</td></tr>
           <tr><td class="text-muted">No. Seri</td><td>{{ asset.serial_number or '—' }}</td></tr>
           <tr><td class="text-muted">Tgl Pembelian</td><td>{{ asset.purchase_date.strftime('%d %b %Y') if asset.purchase_date else '—' }}</td></tr>
           <tr><td class="text-muted">Harga Beli</td><td>{{ 'Rp {:,.0f}'.format(asset.purchase_price) if asset.purchase_price else '—' }}</td></tr>

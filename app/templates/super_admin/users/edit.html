@@ -16,7 +16,7 @@
 </div>
 
 <div class="row justify-content-center">
-  <div class="col-lg-6 col-md-8">
+  <div class="col-lg-7 col-md-9">
 
     {# Info card user #}
     <div class="d-flex align-items-center gap-3 p-3 mb-4"
@@ -29,6 +29,9 @@
       </div>
       <div style="flex:1;">
         <div class="fw-semibold" style="font-size:14px; color:#0F172A;">{{ user.name }}</div>
+        <div style="font-size:12px; color:#64748B;">
+          {{ user.jabatan or 'Jabatan belum diisi' }}{% if user.nip %} · NIP {{ user.nip }}{% endif %}
+        </div>
         <div style="font-size:12px; color:#64748B;">
           Terdaftar {{ user.created_at.strftime('%d %B %Y') }}
         </div>
@@ -71,6 +74,37 @@
               {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
             </div>
             {% for e in form.email.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-sm-6">
+              <label class="form-label">NIP</label>
+              <div class="input-icon-wrap">
+                <i class="bi bi-person-vcard field-icon"></i>
+                {{ form.nip(class="form-control" + (" is-invalid" if form.nip.errors else ""),
+                   placeholder="Nomor induk pegawai", maxlength=50) }}
+              </div>
+              {% for e in form.nip.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Tanggal Lahir</label>
+              <div class="input-icon-wrap">
+                <i class="bi bi-calendar-date field-icon"></i>
+                {{ form.tanggal_lahir(class="form-control" + (" is-invalid" if form.tanggal_lahir.errors else ""),
+                   style="padding-left:38px;") }}
+              </div>
+              {% for e in form.tanggal_lahir.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label">Jabatan</label>
+            <div class="input-icon-wrap">
+              <i class="bi bi-briefcase field-icon"></i>
+              {{ form.jabatan(class="form-control" + (" is-invalid" if form.jabatan.errors else ""),
+                 placeholder="Contoh: Penanggung Jawab Aset Ruangan", maxlength=100) }}
+            </div>
+            {% for e in form.jabatan.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
           </div>
 
           <div class="divider my-4"></div>

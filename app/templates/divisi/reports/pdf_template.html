@@ -107,9 +107,9 @@
       <tr>
         <th style="width:24px">No</th>
         <th style="width:90px">Kode Aset</th>
+        <th style="width:80px">Kode Barang</th>
         <th>Nama Aset</th>
         <th style="width:100px">Ruangan</th>
-        <th style="width:80px">Kategori</th>
         <th style="width:75px">Kondisi</th>
         <th style="width:40px">RPN</th>
         <th style="width:55px">Kat. RPN</th>
@@ -124,9 +124,9 @@
       <tr>
         <td>{{ loop.index }}</td>
         <td>{{ a.asset_code }}</td>
+        <td>{{ a.item_code or '—' }}</td>
         <td><strong>{{ a.asset_name }}</strong></td>
         <td>{{ a.room.room_name }}</td>
-        <td>{{ a.category.category_name }}</td>
         <td>
           {% if a.condition == 'baik' %}<span class="badge badge-success">Baik</span>
           {% elif a.condition == 'perlu_perhatian' %}<span class="badge badge-warning">Perlu Perhatian</span>

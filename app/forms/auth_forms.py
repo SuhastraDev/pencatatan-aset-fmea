@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
+from wtforms import DateField, StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, Optional
 
 
@@ -11,6 +11,9 @@ class LoginForm(FlaskForm):
 
 class ProfileForm(FlaskForm):
     name = StringField('Nama Lengkap', validators=[DataRequired(message='Nama wajib diisi.'), Length(max=100)])
+    nip = StringField('NIP', validators=[Optional(), Length(max=50)])
+    jabatan = StringField('Jabatan', validators=[Optional(), Length(max=100)])
+    tanggal_lahir = DateField('Tanggal Lahir', validators=[Optional()])
     current_password = PasswordField('Password Saat Ini', validators=[Optional()])
     new_password = PasswordField('Password Baru', validators=[Optional(), Length(min=8, message='Password minimal 8 karakter.')])
     confirm_password = PasswordField('Konfirmasi Password Baru', validators=[

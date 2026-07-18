@@ -30,24 +30,44 @@ def _room_choices():
 @role_required('super_admin')
 def dashboard():
     total_divisi = Division.query.filter_by(is_active=True).count()
-    total_user_aktif = User.query.filter_by(is_active=True).count()
     total_ruangan_aktif = Room.query.filter_by(is_active=True).count()
-    total_admin_divisi = User.query.filter_by(role='admin_divisi').count()
-    total_admin_ruangan = User.query.filter_by(role='admin_ruangan').count()
-    user_terbaru = User.query.order_by(User.created_at.desc()).limit(5).all()
+    total_assets = Asset.query.count()
+    total_admin_divisi = User.query.filter_by(role='admin_divisi', is_active=True).count()
+    total_admin_ruangan = User.query.filter_by(role='admin_ruangan', is_active=True).count()
+    total_user_nonaktif = User.query.filter_by(is_active=False).count()
+    ruangan_tanpa_divisi = Room.query.filter(Room.division_id == None).count()
+    admin_divisi_tanpa_divisi = User.query.filter(
+        User.role == 'admin_divisi', User.is_active == True, User.division_id == None
+    ).count()
+    admin_ruangan_tanpa_ruangan = User.query.filter(
+        User.role == 'admin_ruangan', User.is_active == True, User.room_id == None
+    ).count()
+    user_terbaru = User.query.filter(
+        User.role.in_(('admin_divisi', 'admin_ruangan'))
+    ).order_by(User.created_at.desc()).limit(5).all()
 
     divisi_summary = []
     for d in Division.query.filter_by(is_active=True).order_by(Division.division_name).all():
         admin = User.query.filter_by(division_id=d.id, role='admin_divisi', is_active=True).first()
         ruangan_count = Room.query.filter_by(division_id=d.id, is_active=True).count()
-        divisi_summary.append({'divisi': d, 'admin': admin, 'ruangan_count': ruangan_count})
+        asset_count = Asset.query.join(Room).filter(Room.division_id == d.id).count()
+        divisi_summary.append({
+            'divisi': d,
+            'admin': admin,
+            'ruangan_count': ruangan_count,
+            'asset_count': asset_count,
+        })
 
     return render_template('super_admin/dashboard.html',
         total_divisi=total_divisi,
-        total_user_aktif=total_user_aktif,
         total_ruangan_aktif=total_ruangan_aktif,
+        total_assets=total_assets,
         total_admin_divisi=total_admin_divisi,
         total_admin_ruangan=total_admin_ruangan,
+        total_user_nonaktif=total_user_nonaktif,
+        ruangan_tanpa_divisi=ruangan_tanpa_divisi,
+        admin_divisi_tanpa_divisi=admin_divisi_tanpa_divisi,
+        admin_ruangan_tanpa_ruangan=admin_ruangan_tanpa_ruangan,
         user_terbaru=user_terbaru,
         divisi_summary=divisi_summary,
     )
@@ -135,7 +155,12 @@ def users_admin_divisi():
         query = query.filter_by(is_active=False)
     if search:
         query = query.filter(
-            db.or_(User.name.ilike(f'%{search}%'), User.email.ilike(f'%{search}%'))
+            db.or_(
+                User.name.ilike(f'%{search}%'),
+                User.email.ilike(f'%{search}%'),
+                User.nip.ilike(f'%{search}%'),
+                User.jabatan.ilike(f'%{search}%'),
+            )
         )
     users = query.order_by(User.name).all()
     return render_template('super_admin/users/admin_divisi.html',
@@ -156,7 +181,12 @@ def users_admin_ruangan():
         query = query.filter_by(is_active=False)
     if search:
         query = query.filter(
-            db.or_(User.name.ilike(f'%{search}%'), User.email.ilike(f'%{search}%'))
+            db.or_(
+                User.name.ilike(f'%{search}%'),
+                User.email.ilike(f'%{search}%'),
+                User.nip.ilike(f'%{search}%'),
+                User.jabatan.ilike(f'%{search}%'),
+            )
         )
     users = query.order_by(User.name).all()
     return render_template('super_admin/users/admin_ruangan.html',
@@ -204,6 +234,9 @@ def users_create():
 
         user = User(
             name=form.name.data,
+            nip=form.nip.data or None,
+            jabatan=form.jabatan.data or None,
+            tanggal_lahir=form.tanggal_lahir.data,
             email=form.email.data.lower(),
             role=role,
             division_id=division_id,
@@ -274,6 +307,9 @@ def users_edit(id):
                 return render_template('super_admin/users/edit.html', form=form, user=user)
 
         user.name = form.name.data
+        user.nip = form.nip.data or None
+        user.jabatan = form.jabatan.data or None
+        user.tanggal_lahir = form.tanggal_lahir.data
         user.email = form.email.data.lower()
         user.role = role
         user.division_id = division_id

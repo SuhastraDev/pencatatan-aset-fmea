@@ -1,11 +1,14 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SelectField, SubmitField
+from wtforms import DateField, StringField, PasswordField, SelectField, SubmitField
 from wtforms.validators import DataRequired, Email, Length, Optional, ValidationError
 from app.models.user import User
 
 
 class CreateUserForm(FlaskForm):
     name = StringField('Nama Lengkap', validators=[DataRequired(), Length(max=100)])
+    nip = StringField('NIP', validators=[Optional(), Length(max=50)])
+    jabatan = StringField('Jabatan', validators=[Optional(), Length(max=100)])
+    tanggal_lahir = DateField('Tanggal Lahir', validators=[Optional()])
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8, message='Password minimal 8 karakter.')])
     role = SelectField('Role', choices=[
@@ -31,6 +34,9 @@ class CreateUserForm(FlaskForm):
 
 class EditUserForm(FlaskForm):
     name = StringField('Nama Lengkap', validators=[DataRequired(), Length(max=100)])
+    nip = StringField('NIP', validators=[Optional(), Length(max=50)])
+    jabatan = StringField('Jabatan', validators=[Optional(), Length(max=100)])
+    tanggal_lahir = DateField('Tanggal Lahir', validators=[Optional()])
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password Baru', validators=[Optional(), Length(min=8, message='Password minimal 8 karakter.')])
     role = SelectField('Role', choices=[

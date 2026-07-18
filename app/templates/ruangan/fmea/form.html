@@ -1,11 +1,11 @@
 {% extends "layouts/base_ruangan.html" %}
-{% block title %}Evaluasi FMEA — {{ asset.asset_name }}{% endblock %}
+{% block title %}{{ page_title or 'Evaluasi FMEA' }} - {{ asset.asset_name }}{% endblock %}
 
 {% block content %}
 <div class="d-flex align-items-center mb-4">
   <a href="{{ url_for('ruangan.assets_detail', id=asset.id) }}" class="btn btn-sm btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
   <div>
-    <h4 class="fw-bold mb-0">Evaluasi FMEA</h4>
+    <h4 class="fw-bold mb-0">{{ page_title or 'Evaluasi FMEA' }}</h4>
     <p class="text-muted mb-0">{{ asset.asset_code }} — {{ asset.asset_name }}</p>
   </div>
 </div>
@@ -15,7 +15,7 @@
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-white fw-semibold"><i class="bi bi-clipboard-check me-2 text-info"></i>Form Evaluasi</div>
       <div class="card-body p-4">
-        <form method="POST" action="{{ url_for('ruangan.fmea_form', id=asset.id) }}" novalidate id="fmeaForm">
+        <form method="POST" action="{{ form_action or url_for('ruangan.fmea_form', id=asset.id) }}" novalidate id="fmeaForm">
           {{ form.hidden_tag() }}
 
           <div class="mb-3">
@@ -89,7 +89,7 @@
           </div>
 
           <button type="submit" class="btn btn-info text-white px-4">
-            <i class="bi bi-save me-2"></i>Simpan Evaluasi
+            <i class="bi bi-save me-2"></i>{{ submit_label or 'Simpan Evaluasi' }}
           </button>
         </form>
       </div>

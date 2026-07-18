@@ -8,6 +8,9 @@ class User(UserMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    nip = db.Column(db.String(50), nullable=True)
+    jabatan = db.Column(db.String(100), nullable=True)
+    tanggal_lahir = db.Column(db.Date, nullable=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(

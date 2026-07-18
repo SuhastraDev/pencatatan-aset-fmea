@@ -27,15 +27,6 @@
         </select>
       </div>
       <div class="col-sm-3">
-        <label class="form-label small fw-semibold mb-1">Kategori</label>
-        <select name="kategori" class="form-select form-select-sm">
-          <option value="0">Semua Kategori</option>
-          {% for c in categories %}
-          <option value="{{ c.id }}" {{ 'selected' if kategori_filter==c.id }}>{{ c.category_name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-sm-3">
         <label class="form-label small fw-semibold mb-1">Status</label>
         <select name="status" class="form-select form-select-sm">
           <option value="">Semua Status</option>
@@ -58,7 +49,7 @@
     <table class="table table-hover align-middle mb-0 small">
       <thead class="table-light">
         <tr>
-          <th>Kode</th><th>Nama Aset</th><th>Kategori</th><th>Kondisi</th>
+          <th>Kode Aset</th><th>Kode Barang</th><th>Nama Aset</th><th>Kondisi</th>
           <th>Status</th><th class="text-center">RPN</th><th>Tgl Evaluasi</th>
           <th class="text-center">Aksi</th>
         </tr>
@@ -71,8 +62,8 @@
         {% set last_fmea = records|sort(attribute='created_at', reverse=True)|first if records else none %}
         <tr>
           <td><span class="badge bg-secondary">{{ a.asset_code }}</span></td>
+          <td>{{ a.item_code or '—' }}</td>
           <td class="fw-semibold">{{ a.asset_name }}</td>
-          <td>{{ a.category.category_name }}</td>
           <td>
             {% if a.condition == 'baik' %}<span class="badge bg-success">Baik</span>
             {% elif a.condition == 'perlu_perhatian' %}<span class="badge bg-warning text-dark">Perlu Perhatian</span>
@@ -113,14 +104,14 @@
   <div class="card-footer bg-white d-flex justify-content-center">
     <nav><ul class="pagination pagination-sm mb-0">
       <li class="page-item {{ 'disabled' if not assets.has_prev }}">
-        <a class="page-link" href="{{ url_for('ruangan.assets_index', page=assets.prev_num, kondisi=kondisi_filter, kategori=kategori_filter, status=status_filter) }}">‹</a>
+        <a class="page-link" href="{{ url_for('ruangan.assets_index', page=assets.prev_num, kondisi=kondisi_filter, status=status_filter) }}">‹</a>
       </li>
       {% for p in assets.iter_pages() %}
-        {% if p %}<li class="page-item {{ 'active' if p == assets.page }}"><a class="page-link" href="{{ url_for('ruangan.assets_index', page=p, kondisi=kondisi_filter, kategori=kategori_filter, status=status_filter) }}">{{ p }}</a></li>
+        {% if p %}<li class="page-item {{ 'active' if p == assets.page }}"><a class="page-link" href="{{ url_for('ruangan.assets_index', page=p, kondisi=kondisi_filter, status=status_filter) }}">{{ p }}</a></li>
         {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
       {% endfor %}
       <li class="page-item {{ 'disabled' if not assets.has_next }}">
-        <a class="page-link" href="{{ url_for('ruangan.assets_index', page=assets.next_num, kondisi=kondisi_filter, kategori=kategori_filter, status=status_filter) }}">›</a>
+        <a class="page-link" href="{{ url_for('ruangan.assets_index', page=assets.next_num, kondisi=kondisi_filter, status=status_filter) }}">›</a>
       </li>
     </ul></nav>
   </div>

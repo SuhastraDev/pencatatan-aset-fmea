@@ -178,20 +178,20 @@
       <td class="value"><strong>{{ asset.asset_code }}</strong></td>
     </tr>
     <tr>
+      <td class="label">Kode Barang</td>
+      <td class="value">{{ asset.item_code or '—' }}</td>
+    </tr>
+    <tr>
       <td class="label">Nama Alat</td>
       <td class="value">{{ asset.asset_name }}</td>
     </tr>
     <tr>
-      <td class="label">Merek / Model</td>
-      <td class="value">{{ asset.brand }} / {{ asset.model }}</td>
+      <td class="label">Merk / Model</td>
+      <td class="value">{{ asset.brand_model }}</td>
     </tr>
     <tr>
       <td class="label">No. Seri</td>
       <td class="value">{{ asset.serial_number or '—' }}</td>
-    </tr>
-    <tr>
-      <td class="label">Kategori</td>
-      <td class="value">{{ asset.category.category_name }}</td>
     </tr>
     <tr>
       <td class="label">Tanggal Pembelian</td>

@@ -43,10 +43,13 @@ def dashboard():
     room_ids = get_division_room_ids(current_user)
     rooms = get_division_rooms(current_user)
 
-    total_assets = Asset.query.filter(Asset.room_id.in_(room_ids)).count() if room_ids else 0
     kritis_count = Asset.query.filter(
         Asset.room_id.in_(room_ids),
         Asset.condition.in_(['kritis', 'tidak_layak'])
+    ).count() if room_ids else 0
+    perlu_count = Asset.query.filter(
+        Asset.room_id.in_(room_ids),
+        Asset.condition == 'perlu_perhatian'
     ).count() if room_ids else 0
     pending_count = (
         ApprovalRequest.query
@@ -54,6 +57,14 @@ def dashboard():
         .filter(Asset.room_id.in_(room_ids), ApprovalRequest.approval_status == 'pending')
         .count()
     ) if room_ids else 0
+    latest_maintenance = (
+        MaintenanceLog.query
+        .join(Asset, MaintenanceLog.asset_id == Asset.id)
+        .filter(Asset.room_id.in_(room_ids))
+        .order_by(MaintenanceLog.created_at.desc())
+        .limit(5)
+        .all()
+    ) if room_ids else []
 
     cond_baik = Asset.query.filter(Asset.room_id.in_(room_ids), Asset.condition == 'baik').count() if room_ids else 0
     cond_perlu = Asset.query.filter(Asset.room_id.in_(room_ids), Asset.condition == 'perlu_perhatian').count() if room_ids else 0
@@ -100,7 +111,8 @@ def dashboard():
         chart_rpn_rendah.append(rr)
 
     return render_template('divisi/dashboard.html',
-        total_assets=total_assets, kritis_count=kritis_count, pending_count=pending_count,
+        kritis_count=kritis_count, perlu_count=perlu_count, pending_count=pending_count,
+        latest_maintenance=latest_maintenance,
         cond_baik=cond_baik, cond_perlu=cond_perlu,
         cond_kritis=cond_kritis, cond_tidak=cond_tidak,
         room_stats=room_stats,

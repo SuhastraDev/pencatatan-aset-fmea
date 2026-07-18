@@ -62,9 +62,9 @@
       <thead class="table-light">
         <tr>
           <th>Kode Aset</th>
+          <th>Kode Barang</th>
           <th>Nama Aset</th>
           <th>Ruangan</th>
-          <th>Kategori</th>
           <th>Kondisi</th>
           <th>Status</th>
           <th>RPN Terakhir</th>
@@ -77,11 +77,11 @@
         {% set last_f = fmea_map.get(a.id) %}
         <tr>
           <td class="font-monospace small">{{ a.asset_code }}</td>
+          <td class="small text-muted">{{ a.item_code or '—' }}</td>
           <td class="fw-medium">{{ a.asset_name }}</td>
           <td>
             <span class="text-muted small">{{ a.room.room_name }}</span>
           </td>
-          <td class="text-muted small">{{ a.category.category_name }}</td>
           <td>
             {% if a.condition == 'baik' %}<span class="badge bg-success">Baik</span>
             {% elif a.condition == 'perlu_perhatian' %}<span class="badge bg-warning text-dark">Perlu Perhatian</span>
