@@ -411,11 +411,11 @@ class ClientExcelImporter:
             return None
 
         log = MaintenanceLog(**payload)
-        log.ai_recommendation = generate_ai_recommendation(asset, maintenance_log=log)
         db.session.add(log)
         if payload['action_date']:
             asset.last_maintenance_date = payload['action_date']
         recalculate_asset_condition_from_history(asset)
+        log.ai_recommendation = generate_ai_recommendation(asset, maintenance_log=log)
         return log
 
     def _create_preventive(self, payload):
@@ -435,9 +435,8 @@ class ClientExcelImporter:
             return None
 
         preventive = PreventiveMaintenance(**payload)
-        preventive.ai_recommendation = generate_ai_recommendation(asset, preventive=preventive)
         db.session.add(preventive)
-        db.session.add(MaintenanceLog(
+        log = MaintenanceLog(
             asset=asset,
             logged_by=payload['checked_by'],
             action_type='preventive_check',
@@ -445,11 +444,13 @@ class ClientExcelImporter:
             result=payload['result'],
             recommendation=payload.get('recommendation'),
             condition_after=payload.get('condition_after'),
-            ai_recommendation=preventive.ai_recommendation,
             action_date=payload['check_date'],
-        ))
+        )
+        db.session.add(log)
         asset.last_maintenance_date = payload['check_date']
         recalculate_asset_condition_from_history(asset)
+        preventive.ai_recommendation = generate_ai_recommendation(asset, preventive=preventive)
+        log.ai_recommendation = preventive.ai_recommendation
         return preventive
 
 

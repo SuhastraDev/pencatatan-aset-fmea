@@ -125,6 +125,18 @@ def create_app():
             db.session.rollback()
             raise
 
+    @app.cli.command('refresh-ai-recommendations')
+    def refresh_ai_recommendations_command():
+        """Sinkronkan ulang rekomendasi AI dengan kondisi aset terbaru."""
+        from app.utils.ai_refresh import refresh_ai_recommendations
+
+        try:
+            refresh_ai_recommendations()
+        except Exception as exc:
+            print(f'[ERROR] Refresh rekomendasi AI gagal: {exc}')
+            db.session.rollback()
+            raise
+
     @app.cli.command('import-client-excel')
     @click.option('--history-file', type=click.Path(exists=True), default=None, help='Path Data History Maintenance Aset.xlsx')
     @click.option('--kib-file', type=click.Path(exists=True), default=None, help='Path INTRA EKSTRA KIB B.xlsx')
