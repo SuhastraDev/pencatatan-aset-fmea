@@ -350,20 +350,20 @@ class ClientExcelImporter:
         return None
 
     def _find_assets_by_kib_name(self, item_name, specification):
-        candidates = [_asset_match_key(item_name), _asset_match_key(specification)]
-        candidates = [candidate for candidate in candidates if candidate]
+        candidates = [item_name, specification]
+        candidates = [candidate for candidate in candidates if _text(candidate)]
         if not candidates:
             return []
 
         matches = []
         for asset in Asset.query.all():
-            asset_keys = [
-                _asset_match_key(asset.asset_name),
-                _asset_match_key(asset.specification),
-                _asset_match_key(asset.brand_model),
+            asset_values = [
+                asset.asset_name,
+                asset.specification,
+                asset.brand_model,
             ]
-            asset_keys = [key for key in asset_keys if key]
-            if any(_asset_key_matches(candidate, asset_key) for candidate in candidates for asset_key in asset_keys):
+            asset_values = [value for value in asset_values if _text(value)]
+            if any(_asset_text_matches(candidate, value) for candidate in candidates for value in asset_values):
                 matches.append(asset)
         return matches
 
@@ -541,6 +541,42 @@ def _asset_key_matches(kib_key, asset_key):
     if len(kib_key) >= 8 and kib_key in asset_key:
         return True
     if len(asset_key) >= 8 and asset_key in kib_key:
+        return True
+    return False
+
+
+def _asset_match_tokens(value):
+    text = _asset_match_key(value)
+    words = re.findall(r'[a-z0-9]+', _text(value).lower())
+    tokens = set()
+    stopwords = {
+        'alat', 'unit', 'dan', 'lain', 'lainlain', 'kedokteran', 'gigi',
+        'dental', 'medical', 'equipment',
+    }
+    for word in words:
+        normalized = _asset_match_key(word)
+        if len(normalized) >= 3 and normalized not in stopwords:
+            tokens.add(normalized)
+    if text and len(text) <= 24:
+        tokens.add(text)
+    return tokens
+
+
+def _asset_text_matches(kib_value, asset_value):
+    kib_key = _asset_match_key(kib_value)
+    asset_key = _asset_match_key(asset_value)
+    if _asset_key_matches(kib_key, asset_key):
+        return True
+
+    kib_tokens = _asset_match_tokens(kib_value)
+    asset_tokens = _asset_match_tokens(asset_value)
+    if not kib_tokens or not asset_tokens:
+        return False
+
+    overlap = kib_tokens & asset_tokens
+    if len(overlap) >= 2:
+        return True
+    if len(overlap) == 1 and len(asset_tokens) <= 2:
         return True
     return False
 
