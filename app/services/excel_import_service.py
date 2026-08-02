@@ -565,15 +565,21 @@ def _clean_room_name(raw_name):
     text = _text(raw_name)
     if not text:
         return 'Import'
-    if text.isdigit():
-        return f'Ruangan {text}'
     aliases = {
+        '160': 'IGD',
         'igd': 'IGD',
         'icu': 'ICU',
         'bedah': 'BEDAH',
         'poli vip': 'POLI VIP',
+        'poli umum': 'Poli Umum',
         'rawat jalan': 'Rawat Jalan',
+        'rawat jalan poli umum': 'Poli Umum',
+        'radiologi': 'Radiologi',
     }
+    if text.lower() in aliases:
+        return aliases[text.lower()]
+    if text.isdigit():
+        return f'Ruangan {text}'
     return aliases.get(text.lower(), text)
 
 

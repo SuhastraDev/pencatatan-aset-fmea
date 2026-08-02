@@ -101,6 +101,18 @@ def create_app():
                 print(f'[ERROR] Seeder "{label}" gagal: {exc}')
                 db.session.rollback()
 
+    @app.cli.command('seed-real-accounts')
+    def seed_real_accounts_command():
+        """Buat/rapikan akun real sesuai mapping data Excel klien."""
+        from app.utils.real_accounts import seed_real_accounts
+
+        try:
+            seed_real_accounts()
+        except Exception as exc:
+            print(f'[ERROR] Seeder akun real gagal: {exc}')
+            db.session.rollback()
+            raise
+
     @app.cli.command('import-client-excel')
     @click.option('--history-file', type=click.Path(exists=True), default=None, help='Path Data History Maintenance Aset.xlsx')
     @click.option('--kib-file', type=click.Path(exists=True), default=None, help='Path INTRA EKSTRA KIB B.xlsx')
