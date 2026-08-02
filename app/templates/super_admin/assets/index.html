@@ -1,0 +1,169 @@
+{% extends "layouts/base_super_admin.html" %}
+{% block title %}Data Seluruh Aset - Super Admin{% endblock %}
+
+{% block breadcrumb %}
+  <i class="bi bi-box-seam"></i>
+  <span>Data Seluruh Aset</span>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div>
+    <h4 class="fw-bold mb-0">Data Seluruh Aset</h4>
+    <p class="text-muted mb-0">Monitoring aset dari semua divisi dan ruangan.</p>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label small text-muted mb-1">Cari</label>
+        <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm"
+               placeholder="Kode, nama, serial, ruangan">
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label small text-muted mb-1">Divisi</label>
+        <select name="division" class="form-select form-select-sm">
+          <option value="0">Semua Divisi</option>
+          {% for d in divisions %}
+          <option value="{{ d.id }}" {{ 'selected' if division_filter == d.id }}>{{ d.division_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label small text-muted mb-1">Ruangan</label>
+        <select name="room" class="form-select form-select-sm">
+          <option value="0">Semua Ruangan</option>
+          {% for r in rooms %}
+          <option value="{{ r.id }}" {{ 'selected' if room_filter == r.id }}>{{ r.room_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label small text-muted mb-1">Kondisi</label>
+        <select name="kondisi" class="form-select form-select-sm">
+          <option value="">Semua Kondisi</option>
+          <option value="baik" {{ 'selected' if kondisi_filter == 'baik' }}>Baik</option>
+          <option value="perlu_perhatian" {{ 'selected' if kondisi_filter == 'perlu_perhatian' }}>Perlu Perhatian</option>
+          <option value="kritis" {{ 'selected' if kondisi_filter == 'kritis' }}>Kritis</option>
+          <option value="tidak_layak" {{ 'selected' if kondisi_filter == 'tidak_layak' }}>Tidak Layak</option>
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label small text-muted mb-1">Status</label>
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Semua Status</option>
+          <option value="aktif" {{ 'selected' if status_filter == 'aktif' }}>Aktif</option>
+          <option value="dalam_perbaikan" {{ 'selected' if status_filter == 'dalam_perbaikan' }}>Dalam Perbaikan</option>
+          <option value="tidak_aktif" {{ 'selected' if status_filter == 'tidak_aktif' }}>Tidak Aktif</option>
+          <option value="menunggu_approval" {{ 'selected' if status_filter == 'menunggu_approval' }}>Menunggu Approval</option>
+        </select>
+      </div>
+      <div class="col-lg-1 col-md-6 d-flex gap-1">
+        <button type="submit" class="btn btn-primary btn-sm flex-fill">
+          <i class="bi bi-search"></i>
+        </button>
+        <a href="{{ url_for('super_admin.assets_index') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-clockwise"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Kode Aset</th>
+          <th>Nama Aset</th>
+          <th>Divisi</th>
+          <th>Ruangan</th>
+          <th>No Seri</th>
+          <th>Kondisi</th>
+          <th>Status</th>
+          <th class="text-center">RPN</th>
+          <th class="text-end">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for asset in assets.items %}
+        {% set last_f = fmea_map.get(asset.id) %}
+        <tr>
+          <td>
+            <div class="font-monospace small">{{ asset.asset_code }}</div>
+            <div class="text-muted small">{{ asset.item_code or '-' }}</div>
+          </td>
+          <td class="fw-medium">{{ asset.asset_name }}</td>
+          <td class="small">{{ asset.room.division.division_name if asset.room and asset.room.division else '-' }}</td>
+          <td class="small">
+            {{ asset.room.room_name if asset.room else '-' }}
+            {% if asset.room %}<span class="text-muted">({{ asset.room.room_code }})</span>{% endif %}
+          </td>
+          <td class="small text-muted">{{ asset.serial_number or '-' }}</td>
+          <td>
+            {% if asset.condition == 'baik' %}<span class="badge bg-success">Baik</span>
+            {% elif asset.condition == 'perlu_perhatian' %}<span class="badge bg-warning text-dark">Perlu Perhatian</span>
+            {% elif asset.condition == 'kritis' %}<span class="badge bg-danger">Kritis</span>
+            {% else %}<span class="badge bg-secondary">Tidak Layak</span>{% endif %}
+          </td>
+          <td>
+            {% if asset.status == 'aktif' %}<span class="badge bg-success-subtle text-success border border-success-subtle">Aktif</span>
+            {% elif asset.status == 'dalam_perbaikan' %}<span class="badge bg-warning-subtle text-warning border border-warning-subtle">Dalam Perbaikan</span>
+            {% elif asset.status == 'tidak_aktif' %}<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Tidak Aktif</span>
+            {% else %}<span class="badge bg-info-subtle text-info border border-info-subtle">Menunggu Approval</span>{% endif %}
+          </td>
+          <td class="text-center">
+            {% if last_f %}
+              {% if last_f.risk_category == 'tinggi' %}<span class="badge bg-danger">{{ last_f.rpn_score }}</span>
+              {% elif last_f.risk_category == 'sedang' %}<span class="badge bg-warning text-dark">{{ last_f.rpn_score }}</span>
+              {% else %}<span class="badge bg-success">{{ last_f.rpn_score }}</span>{% endif %}
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{{ url_for('super_admin.assets_detail', id=asset.id) }}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-eye"></i> Detail
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" class="text-center text-muted py-4">
+            Belum ada aset sesuai filter.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <small class="text-muted">{{ assets.total }} aset ditemukan</small>
+    {% if assets.pages > 1 %}
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item {{ 'disabled' if not assets.has_prev }}">
+          <a class="page-link" href="{{ url_for('super_admin.assets_index', page=assets.prev_num, q=search, division=division_filter, room=room_filter, kondisi=kondisi_filter, status=status_filter) }}">Prev</a>
+        </li>
+        {% for p in assets.iter_pages() %}
+          {% if p %}
+          <li class="page-item {{ 'active' if p == assets.page }}">
+            <a class="page-link" href="{{ url_for('super_admin.assets_index', page=p, q=search, division=division_filter, room=room_filter, kondisi=kondisi_filter, status=status_filter) }}">{{ p }}</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled"><span class="page-link">...</span></li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if not assets.has_next }}">
+          <a class="page-link" href="{{ url_for('super_admin.assets_index', page=assets.next_num, q=search, division=division_filter, room=room_filter, kondisi=kondisi_filter, status=status_filter) }}">Next</a>
+        </li>
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

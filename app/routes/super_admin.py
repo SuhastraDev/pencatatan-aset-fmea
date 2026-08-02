@@ -1,10 +1,17 @@
+from datetime import date
+import json
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
+from sqlalchemy import func
 from app import db
 from app.models.division import Division
 from app.models.user import User
 from app.models.room import Room
 from app.models.asset import Asset
+from app.models.fmea import FmeaRecord
+from app.models.maintenance_log import MaintenanceLog
+from app.models.preventive_maintenance import PreventiveMaintenance
 from app.utils.decorators import role_required
 from app.forms.division_forms import CreateDivisionForm, EditDivisionForm
 from app.forms.user_forms import CreateUserForm, EditUserForm
@@ -74,6 +81,133 @@ def dashboard():
 
 
 # ── Manajemen Divisi ───────────────────────────────────────────────────────────
+
+@super_admin_bp.route('/assets')
+@login_required
+@role_required('super_admin')
+def assets_index():
+    page = request.args.get('page', 1, type=int)
+    division_filter = request.args.get('division', 0, type=int)
+    room_filter = request.args.get('room', 0, type=int)
+    kondisi_filter = request.args.get('kondisi', '')
+    status_filter = request.args.get('status', '')
+    search = request.args.get('q', '').strip()
+
+    query = Asset.query.join(Room).outerjoin(Division)
+    if division_filter:
+        query = query.filter(Room.division_id == division_filter)
+    if room_filter:
+        query = query.filter(Asset.room_id == room_filter)
+    if kondisi_filter:
+        query = query.filter(Asset.condition == kondisi_filter)
+    if status_filter:
+        query = query.filter(Asset.status == status_filter)
+    if search:
+        like = f'%{search}%'
+        query = query.filter(db.or_(
+            Asset.asset_code.ilike(like),
+            Asset.item_code.ilike(like),
+            Asset.asset_name.ilike(like),
+            Asset.serial_number.ilike(like),
+            Room.room_name.ilike(like),
+            Division.division_name.ilike(like),
+        ))
+
+    assets = query.order_by(
+        Division.division_name.asc(),
+        Room.room_name.asc(),
+        Asset.asset_name.asc(),
+    ).paginate(page=page, per_page=20)
+
+    asset_ids_page = [asset.id for asset in assets.items]
+    latest_rows = []
+    if asset_ids_page:
+        latest_dates = (
+            db.session.query(
+                FmeaRecord.asset_id,
+                func.max(FmeaRecord.evaluation_date).label('max_date'),
+            )
+            .filter(FmeaRecord.asset_id.in_(asset_ids_page))
+            .group_by(FmeaRecord.asset_id)
+            .subquery()
+        )
+        latest_rows = (
+            FmeaRecord.query
+            .join(
+                latest_dates,
+                db.and_(
+                    FmeaRecord.asset_id == latest_dates.c.asset_id,
+                    FmeaRecord.evaluation_date == latest_dates.c.max_date,
+                )
+            )
+            .order_by(FmeaRecord.created_at.desc())
+            .all()
+        )
+
+    fmea_map = {}
+    for row in latest_rows:
+        fmea_map.setdefault(row.asset_id, row)
+
+    divisions = Division.query.order_by(Division.division_name).all()
+    rooms = Room.query.order_by(Room.room_name).all()
+    return render_template(
+        'super_admin/assets/index.html',
+        assets=assets,
+        divisions=divisions,
+        rooms=rooms,
+        fmea_map=fmea_map,
+        division_filter=division_filter,
+        room_filter=room_filter,
+        kondisi_filter=kondisi_filter,
+        status_filter=status_filter,
+        search=search,
+    )
+
+
+@super_admin_bp.route('/assets/<int:id>')
+@login_required
+@role_required('super_admin')
+def assets_detail(id):
+    asset = Asset.query.get_or_404(id)
+    fmea_records = asset.fmea_records.order_by(FmeaRecord.created_at.desc()).all()
+    logs = asset.maintenance_logs.order_by(MaintenanceLog.created_at.desc()).all()
+    maintenance_terakhir = logs[0] if logs else None
+    preventive_records = (
+        asset.preventive_records
+        .order_by(PreventiveMaintenance.check_date.desc(), PreventiveMaintenance.created_at.desc())
+        .all()
+    )
+    preventive_terakhir = preventive_records[0] if preventive_records else None
+    ai_rekomendasi = None
+    if maintenance_terakhir and maintenance_terakhir.ai_recommendation:
+        ai_rekomendasi = maintenance_terakhir.ai_recommendation
+    if preventive_terakhir and preventive_terakhir.ai_recommendation:
+        ai_rekomendasi = preventive_terakhir.ai_recommendation
+    if fmea_records and fmea_records[0].recommendation and 'AI rekomendasi awal:' in fmea_records[0].recommendation:
+        ai_rekomendasi = fmea_records[0].recommendation.split('AI rekomendasi awal:', 1)[1].strip()
+        ai_rekomendasi = f'AI rekomendasi awal: {ai_rekomendasi}'
+
+    log_user_ids = {log.logged_by for log in logs}
+    users_map = {u.id: u for u in User.query.filter(User.id.in_(log_user_ids)).all()} if log_user_ids else {}
+    chart_dates = json.dumps([str(f.evaluation_date) for f in reversed(fmea_records)])
+    chart_rpn = json.dumps([f.rpn_score for f in reversed(fmea_records)])
+
+    return render_template(
+        'super_admin/assets/detail.html',
+        asset=asset,
+        fmea_records=fmea_records,
+        fmea_terakhir=fmea_records[0] if fmea_records else None,
+        preventive_records=preventive_records,
+        preventive_terakhir=preventive_terakhir,
+        maintenance_terakhir=maintenance_terakhir,
+        ai_rekomendasi=ai_rekomendasi,
+        logs=logs,
+        users_map=users_map,
+        chart_dates=chart_dates,
+        chart_rpn=chart_rpn,
+        today=date.today(),
+    )
+
 
 @super_admin_bp.route('/divisions')
 @login_required

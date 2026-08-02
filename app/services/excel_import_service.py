@@ -77,12 +77,12 @@ class ClientExcelImporter:
     def run(self, history_file=None, kib_file=None, preventive_file=None):
         self._ensure_basics()
 
-        if kib_file:
-            self.import_kib(kib_file)
         if history_file:
             self.import_history(history_file)
         if preventive_file:
             self.import_preventive(preventive_file)
+        if kib_file:
+            self.import_kib(kib_file)
 
         if self.dry_run:
             db.session.rollback()

@@ -113,6 +113,18 @@ def create_app():
             db.session.rollback()
             raise
 
+    @app.cli.command('clear-demo-data')
+    def clear_demo_data_command():
+        """Hapus data demo lama tanpa menyentuh data real klien."""
+        from app.utils.demo_cleanup import clear_demo_data
+
+        try:
+            clear_demo_data()
+        except Exception as exc:
+            print(f'[ERROR] Bersihkan data demo gagal: {exc}')
+            db.session.rollback()
+            raise
+
     @app.cli.command('import-client-excel')
     @click.option('--history-file', type=click.Path(exists=True), default=None, help='Path Data History Maintenance Aset.xlsx')
     @click.option('--kib-file', type=click.Path(exists=True), default=None, help='Path INTRA EKSTRA KIB B.xlsx')

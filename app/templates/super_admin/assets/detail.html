@@ -1,0 +1,237 @@
+{% extends "layouts/base_super_admin.html" %}
+{% block title %}Detail Aset - Super Admin{% endblock %}
+
+{% block breadcrumb %}
+  <i class="bi bi-box-seam"></i>
+  <a href="{{ url_for('super_admin.assets_index') }}" class="text-decoration-none">Data Seluruh Aset</a>
+  <span>/</span>
+  <span>Detail</span>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-4 flex-wrap">
+  <a href="{{ url_for('super_admin.assets_index') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div class="flex-grow-1">
+    <h4 class="fw-bold mb-0">{{ asset.asset_name }}</h4>
+    <p class="text-muted mb-0 font-monospace small">{{ asset.asset_code }}</p>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold border-0 pt-3">
+        <i class="bi bi-info-circle me-2 text-primary"></i>Informasi Aset
+      </div>
+      <div class="card-body">
+        <table class="table table-sm table-borderless mb-0">
+          <tr><td class="text-muted w-40">Kode Aset</td><td class="font-monospace">{{ asset.asset_code }}</td></tr>
+          <tr><td class="text-muted">Kode Barang</td><td>{{ asset.item_code or '-' }}</td></tr>
+          <tr><td class="text-muted">Nama</td><td class="fw-medium">{{ asset.asset_name }}</td></tr>
+          <tr><td class="text-muted">Divisi</td><td>{{ asset.room.division.division_name if asset.room and asset.room.division else '-' }}</td></tr>
+          <tr><td class="text-muted">Ruangan</td><td>{{ asset.room.room_name if asset.room else '-' }} {% if asset.room %}<span class="text-muted small">({{ asset.room.room_code }})</span>{% endif %}</td></tr>
+          <tr><td class="text-muted">Merk / Model</td><td>{{ asset.brand_model }}</td></tr>
+          <tr><td class="text-muted">No Seri</td><td>{{ asset.serial_number or '-' }}</td></tr>
+          <tr><td class="text-muted">Jumlah</td><td>{{ asset.quantity }} {{ asset.unit or 'unit' }}</td></tr>
+          <tr><td class="text-muted">Spesifikasi</td><td>{{ asset.specification or '-' }}</td></tr>
+          <tr><td class="text-muted">Tgl Pembelian</td><td>{{ asset.purchase_date.strftime('%d %b %Y') if asset.purchase_date else '-' }}</td></tr>
+          <tr><td class="text-muted">Harga Beli</td><td>{{ 'Rp {:,.0f}'.format(asset.purchase_price) if asset.purchase_price else '-' }}</td></tr>
+          <tr><td class="text-muted">Dokumen/BAST</td><td>{{ asset.acquisition_document_number or '-' }}</td></tr>
+          <tr><td class="text-muted">Sumber Dana</td><td>{{ asset.funding_source or '-' }}</td></tr>
+          <tr><td class="text-muted">Catatan</td><td>{{ asset.notes or '-' }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold border-0 pt-3">
+        <i class="bi bi-activity me-2 text-primary"></i>Kondisi, Status, dan AI
+      </div>
+      <div class="card-body">
+        <div class="d-flex gap-2 mb-3 flex-wrap">
+          {% if asset.condition == 'baik' %}<span class="badge bg-success fs-6">Baik</span>
+          {% elif asset.condition == 'perlu_perhatian' %}<span class="badge bg-warning text-dark fs-6">Perlu Perhatian</span>
+          {% elif asset.condition == 'kritis' %}<span class="badge bg-danger fs-6">Kritis</span>
+          {% else %}<span class="badge bg-secondary fs-6">Tidak Layak</span>{% endif %}
+
+          {% if asset.status == 'aktif' %}<span class="badge bg-success-subtle text-success border border-success-subtle fs-6">Aktif</span>
+          {% elif asset.status == 'dalam_perbaikan' %}<span class="badge bg-warning-subtle text-warning border border-warning-subtle fs-6">Dalam Perbaikan</span>
+          {% elif asset.status == 'tidak_aktif' %}<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle fs-6">Tidak Aktif</span>
+          {% else %}<span class="badge bg-info-subtle text-info border border-info-subtle fs-6">Menunggu Approval</span>{% endif %}
+        </div>
+
+        <table class="table table-sm table-borderless mb-3">
+          <tr><td class="text-muted w-40">Maintenance Terakhir</td><td>{{ asset.last_maintenance_date.strftime('%d %b %Y') if asset.last_maintenance_date else '-' }}</td></tr>
+          <tr><td class="text-muted">Maintenance Berikutnya</td>
+            <td>
+              {% if asset.next_maintenance_date %}
+                {% if asset.next_maintenance_date < today %}
+                  <span class="text-danger fw-semibold">{{ asset.next_maintenance_date.strftime('%d %b %Y') }} terlambat</span>
+                {% else %}
+                  {{ asset.next_maintenance_date.strftime('%d %b %Y') }}
+                {% endif %}
+              {% else %}-{% endif %}
+            </td>
+          </tr>
+        </table>
+
+        {% if fmea_terakhir %}
+        <div class="border-top pt-3 mb-3">
+          <div class="fw-semibold small mb-2">Evaluasi FMEA Terakhir</div>
+          <div class="d-flex align-items-center gap-3">
+            <div class="display-6 fw-bold {% if fmea_terakhir.risk_category == 'tinggi' %}text-danger{% elif fmea_terakhir.risk_category == 'sedang' %}text-warning{% else %}text-success{% endif %}">
+              {{ fmea_terakhir.rpn_score }}
+            </div>
+            <div>
+              <div class="small text-muted">{{ fmea_terakhir.evaluation_date.strftime('%d %b %Y') }}</div>
+              <div class="small">S/O/D: {{ fmea_terakhir.severity }}/{{ fmea_terakhir.occurrence }}/{{ fmea_terakhir.detection }}</div>
+              <span class="badge {% if fmea_terakhir.risk_category == 'tinggi' %}bg-danger{% elif fmea_terakhir.risk_category == 'sedang' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                {{ fmea_terakhir.risk_category.title() }}
+              </span>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="rounded-3 p-3" style="background:#F0F9FF;border:1px solid #BAE6FD;">
+          <div class="fw-semibold small mb-2"><i class="bi bi-stars me-1 text-info"></i>Rekomendasi AI</div>
+          <div class="small text-muted">
+            {{ ai_rekomendasi or 'Belum ada rekomendasi AI. Isi FMEA, catat perbaikan, atau catat preventive agar sistem membuat saran awal.' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if fmea_records %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold border-0 pt-3">Tren RPN dari Waktu ke Waktu</div>
+  <div class="card-body">
+    <canvas id="chartTren" style="max-height:200px"></canvas>
+  </div>
+</div>
+{% endif %}
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold border-0 pt-3">Riwayat Evaluasi FMEA</div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Tanggal</th>
+          <th>Mode Kegagalan</th>
+          <th class="text-center">S</th>
+          <th class="text-center">O</th>
+          <th class="text-center">D</th>
+          <th class="text-center">RPN</th>
+          <th>Kategori</th>
+          <th>Rekomendasi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in fmea_records %}
+        <tr>
+          <td class="small">{{ f.evaluation_date.strftime('%d %b %Y') }}</td>
+          <td class="small">{{ f.failure_mode }}</td>
+          <td class="text-center">{{ f.severity }}</td>
+          <td class="text-center">{{ f.occurrence }}</td>
+          <td class="text-center">{{ f.detection }}</td>
+          <td class="text-center fw-bold">{{ f.rpn_score }}</td>
+          <td><span class="badge {% if f.risk_category == 'tinggi' %}bg-danger{% elif f.risk_category == 'sedang' %}bg-warning text-dark{% else %}bg-success{% endif %}">{{ f.risk_category.title() }}</span></td>
+          <td class="small text-muted">{{ f.recommendation or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-3">Belum ada evaluasi FMEA.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold border-0 pt-3">Riwayat Preventive Maintenance</div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr><th>Tanggal</th><th>Hasil</th><th>Keterangan</th><th>Rekomendasi AI</th></tr>
+      </thead>
+      <tbody>
+        {% for p in preventive_records %}
+        <tr>
+          <td class="small text-muted">{{ p.check_date.strftime('%d %b %Y') }}</td>
+          <td class="small">{{ p.result }}</td>
+          <td class="small">{{ p.notes or p.recommendation or '-' }}</td>
+          <td class="small text-muted">{{ p.ai_recommendation or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center text-muted py-3">Belum ada preventive maintenance.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white fw-semibold border-0 pt-3">Riwayat Maintenance</div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr><th>Tanggal</th><th>Tipe</th><th>Pelapor</th><th>Keluhan/Hasil</th><th>Dicatat Oleh</th></tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="small text-muted">{{ log.action_date.strftime('%d %b %Y') }}</td>
+          <td><span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small">{{ log.action_type.replace('_', ' ').title() }}</span></td>
+          <td class="small">
+            {{ log.reporter_name or '-' }}
+            {% if log.reporter_unit %}<div class="text-muted">{{ log.reporter_unit }}</div>{% endif %}
+          </td>
+          <td class="small text-muted">
+            {% if log.complaint %}<div><strong>Keluhan:</strong> {{ log.complaint }}</div>{% endif %}
+            {% if log.result %}<div><strong>Hasil:</strong> {{ log.result }}</div>{% endif %}
+            {% if log.recommendation %}<div><strong>Saran:</strong> {{ log.recommendation }}</div>{% endif %}
+            {% if not log.complaint and not log.result and not log.recommendation %}{{ log.description or '-' }}{% endif %}
+          </td>
+          <td class="small text-muted">{{ users_map[log.logged_by].name if log.logged_by in users_map else '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-3">Belum ada riwayat maintenance.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if fmea_records %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+new Chart(document.getElementById('chartTren'), {
+  type: 'line',
+  data: {
+    labels: {{ chart_dates | safe }},
+    datasets: [{
+      label: 'RPN Score',
+      data: {{ chart_rpn | safe }},
+      borderColor: '#0d6efd',
+      backgroundColor: 'rgba(13,110,253,0.1)',
+      tension: 0.3,
+      fill: true,
+      pointRadius: 5
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: { y: { beginAtZero: true, max: 1000 } }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

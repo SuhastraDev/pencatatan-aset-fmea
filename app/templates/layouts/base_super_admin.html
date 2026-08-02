@@ -36,6 +36,12 @@
           <i class="bi bi-door-open"></i><span>Manajemen Ruangan</span>
         </a>
       </li>
+      <li>
+        <a href="{{ url_for('super_admin.assets_index') }}"
+           class="sidebar-link {% if request.endpoint and 'assets' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-box-seam"></i><span>Data Seluruh Aset</span>
+        </a>
+      </li>
     </ul>
 
     {# Pengguna #}
