@@ -1,7 +1,7 @@
 """add excel ready asset history preventive
 
 Revision ID: 8f4d7b2c9a10
-Revises: e7b209e15091
+Revises: a5e1c9d4b7f2
 Create Date: 2026-08-01 00:00:00.000000
 
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 revision = '8f4d7b2c9a10'
-down_revision = 'e7b209e15091'
+down_revision = 'a5e1c9d4b7f2'
 branch_labels = None
 depends_on = None
 
