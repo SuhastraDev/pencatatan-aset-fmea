@@ -524,6 +524,9 @@ def _asset_match_key(value):
         'electrokardiograph': 'ecg',
         'x ray': 'xray',
         'x-ray': 'xray',
+        'panoramik': 'panoramic',
+        'scatter': 'scaller',
+        'scaler': 'scaller',
     }
     for old, new in replacements.items():
         text = text.replace(old, new)
