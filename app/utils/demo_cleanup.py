@@ -41,10 +41,16 @@ def clear_demo_data():
     deleted_rooms = 0
     deleted_notifications = 0
 
-    assets = Asset.query.filter(Asset.asset_code.in_(DEMO_ASSET_CODES)).all()
-    asset_ids = [asset.id for asset in assets]
     users = User.query.filter(User.email.in_(DEMO_USER_EMAILS)).all()
     user_ids = [user.id for user in users]
+    asset_query = Asset.query.filter(Asset.asset_code.in_(DEMO_ASSET_CODES))
+    if user_ids:
+        asset_query = Asset.query.filter(db.or_(
+            Asset.asset_code.in_(DEMO_ASSET_CODES),
+            Asset.created_by.in_(user_ids),
+        ))
+    assets = asset_query.all()
+    asset_ids = [asset.id for asset in assets]
 
     if asset_ids:
         deleted_approvals += ApprovalRequest.query.filter(
