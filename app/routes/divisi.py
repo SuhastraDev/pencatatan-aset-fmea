@@ -202,11 +202,21 @@ def assets_detail(id):
 
     fmea_records = asset.fmea_records.order_by(FmeaRecord.created_at.desc()).all()
     logs = asset.maintenance_logs.order_by(MaintenanceLog.created_at.desc()).all()
+    maintenance_terakhir = logs[0] if logs else None
     preventive_records = (
         asset.preventive_records
         .order_by(PreventiveMaintenance.check_date.desc(), PreventiveMaintenance.created_at.desc())
         .all()
     )
+    preventive_terakhir = preventive_records[0] if preventive_records else None
+    ai_rekomendasi = None
+    if maintenance_terakhir and maintenance_terakhir.ai_recommendation:
+        ai_rekomendasi = maintenance_terakhir.ai_recommendation
+    if preventive_terakhir and preventive_terakhir.ai_recommendation:
+        ai_rekomendasi = preventive_terakhir.ai_recommendation
+    if fmea_records and fmea_records[0].recommendation and 'AI rekomendasi awal:' in fmea_records[0].recommendation:
+        ai_rekomendasi = fmea_records[0].recommendation.split('AI rekomendasi awal:', 1)[1].strip()
+        ai_rekomendasi = f'AI rekomendasi awal: {ai_rekomendasi}'
 
     log_user_ids = {l.logged_by for l in logs}
     users_map = {u.id: u for u in User.query.filter(User.id.in_(log_user_ids)).all()} if log_user_ids else {}
@@ -219,7 +229,9 @@ def assets_detail(id):
         fmea_records=fmea_records,
         fmea_terakhir=fmea_records[0] if fmea_records else None,
         preventive_records=preventive_records,
-        preventive_terakhir=preventive_records[0] if preventive_records else None,
+        preventive_terakhir=preventive_terakhir,
+        maintenance_terakhir=maintenance_terakhir,
+        ai_rekomendasi=ai_rekomendasi,
         logs=logs, users_map=users_map,
         chart_dates=chart_dates, chart_rpn=chart_rpn,
         today=date.today(),

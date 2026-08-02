@@ -175,13 +175,25 @@ def assets_detail(id):
     fmea_terbaru = (asset.fmea_records
         .order_by(FmeaRecord.created_at.desc()).limit(5).all())
     fmea_terakhir = asset.fmea_records.order_by(FmeaRecord.created_at.desc()).first()
+    maintenance_terakhir = (asset.maintenance_logs
+        .order_by(MaintenanceLog.action_date.desc(), MaintenanceLog.created_at.desc())
+        .first())
     preventive_terbaru = (asset.preventive_records
         .order_by(PreventiveMaintenance.check_date.desc(), PreventiveMaintenance.created_at.desc())
         .limit(5).all())
     preventive_terakhir = preventive_terbaru[0] if preventive_terbaru else None
+    ai_rekomendasi = None
+    if maintenance_terakhir and maintenance_terakhir.ai_recommendation:
+        ai_rekomendasi = maintenance_terakhir.ai_recommendation
+    if preventive_terakhir and preventive_terakhir.ai_recommendation:
+        ai_rekomendasi = preventive_terakhir.ai_recommendation
+    if fmea_terakhir and fmea_terakhir.recommendation and 'AI rekomendasi awal:' in fmea_terakhir.recommendation:
+        ai_rekomendasi = fmea_terakhir.recommendation.split('AI rekomendasi awal:', 1)[1].strip()
+        ai_rekomendasi = f'AI rekomendasi awal: {ai_rekomendasi}'
     return render_template('ruangan/assets/detail.html',
         asset=asset, fmea_terbaru=fmea_terbaru, fmea_terakhir=fmea_terakhir,
-        preventive_terbaru=preventive_terbaru, preventive_terakhir=preventive_terakhir)
+        preventive_terbaru=preventive_terbaru, preventive_terakhir=preventive_terakhir,
+        maintenance_terakhir=maintenance_terakhir, ai_rekomendasi=ai_rekomendasi)
 
 
 @ruangan_bp.route('/assets/<int:id>/edit', methods=['GET', 'POST'])

@@ -112,11 +112,21 @@
         <div class="small">
           <div class="text-muted">{{ preventive_terakhir.check_date.strftime('%d %b %Y') }}</div>
           <div>{{ preventive_terakhir.result|truncate(120) }}</div>
-          {% if preventive_terakhir.ai_recommendation %}
-          <div class="alert alert-info py-2 px-3 mt-2 mb-0 small">{{ preventive_terakhir.ai_recommendation }}</div>
-          {% endif %}
         </div>
         {% endif %}
+
+        <hr>
+        <div class="rounded-3 p-3" style="background:#F0F9FF;border:1px solid #BAE6FD;">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width:28px;height:28px;background:#E0F2FE;color:#0369A1;">
+              <i class="bi bi-stars"></i>
+            </span>
+            <div class="fw-semibold small">Rekomendasi AI</div>
+          </div>
+          <div class="small text-muted">
+            {{ ai_rekomendasi or 'Belum ada rekomendasi AI. Isi FMEA, catat perbaikan, atau catat preventive agar sistem membuat saran awal.' }}
+          </div>
+        </div>
       </div>
     </div>
   </div>

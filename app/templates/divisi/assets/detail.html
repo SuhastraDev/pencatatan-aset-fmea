@@ -91,12 +91,17 @@
       <div class="card-body small">
         <div class="text-muted">{{ preventive_terakhir.check_date.strftime('%d %b %Y') }}</div>
         <div class="fw-medium">{{ preventive_terakhir.result }}</div>
-        {% if preventive_terakhir.ai_recommendation %}
-        <div class="alert alert-info py-2 px-3 mt-2 mb-0 small">{{ preventive_terakhir.ai_recommendation }}</div>
-        {% endif %}
       </div>
     </div>
     {% endif %}
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white fw-semibold border-0 pt-3">
+        <i class="bi bi-stars me-2 text-info"></i>Rekomendasi AI
+      </div>
+      <div class="card-body small text-muted">
+        {{ ai_rekomendasi or 'Belum ada rekomendasi AI. Isi FMEA, catat perbaikan, atau catat preventive agar sistem membuat saran awal.' }}
+      </div>
+    </div>
   </div>
 </div>
 
