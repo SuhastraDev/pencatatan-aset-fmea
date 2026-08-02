@@ -20,8 +20,10 @@ def generate_excel(asset_data, room_name, room_code):
 
     # Header
     headers = [
-        'No', 'Kode Aset', 'Kode Barang', 'Nama Aset', 'Merk / Model', 'No Seri',
-        'Kondisi', 'Status', 'RPN Terakhir', 'Kategori RPN', 'Tanggal Evaluasi'
+        'No', 'Kode Aset', 'Kode Barang', 'Nama Aset', 'Spesifikasi',
+        'Merk / Model', 'No Seri', 'Jumlah', 'Satuan', 'Dokumen/BAST',
+        'Sumber Dana', 'Kondisi', 'Status', 'RPN Terakhir', 'Kategori RPN',
+        'Tanggal Evaluasi'
     ]
     ws.append(headers)
     header_fill = PatternFill('solid', fgColor='1F4E79')
@@ -40,8 +42,13 @@ def generate_excel(asset_data, room_name, room_code):
             a.asset_code,
             a.item_code or '-',
             a.asset_name,
+            a.specification or '-',
             a.brand_model,
             a.serial_number,
+            a.quantity,
+            a.unit or 'unit',
+            a.acquisition_document_number or '-',
+            a.funding_source or '-',
             a.condition.replace('_', ' ').title(),
             a.status.replace('_', ' ').title(),
             f.rpn_score if f else '-',
@@ -74,8 +81,10 @@ def generate_excel_divisi(asset_data, room_stats):
     ws1 = wb.active
     ws1.title = 'Data Aset'
 
-    headers = ['No', 'Kode Aset', 'Kode Barang', 'Nama Aset', 'Ruangan', 'Merk / Model', 'No Seri',
-               'Kondisi', 'Status', 'RPN Terakhir', 'Kategori RPN', 'Tgl Evaluasi']
+    headers = ['No', 'Kode Aset', 'Kode Barang', 'Nama Aset', 'Ruangan', 'Spesifikasi',
+               'Merk / Model', 'No Seri', 'Jumlah', 'Satuan', 'Dokumen/BAST',
+               'Sumber Dana', 'Kondisi', 'Status', 'RPN Terakhir', 'Kategori RPN',
+               'Tgl Evaluasi']
     ws1.append(headers)
     hdr_fill = PatternFill('solid', fgColor='1F4E79')
     hdr_font = Font(bold=True, color='FFFFFF')
@@ -98,8 +107,12 @@ def generate_excel_divisi(asset_data, room_stats):
         ws1.append([
             i, a.asset_code, a.item_code or '-',
             a.asset_name,
-            a.room.room_name, a.brand_model,
+            a.room.room_name, a.specification or '-', a.brand_model,
             a.serial_number,
+            a.quantity,
+            a.unit or 'unit',
+            a.acquisition_document_number or '-',
+            a.funding_source or '-',
             a.condition.replace('_', ' ').title(),
             a.status.replace('_', ' ').title(),
             f.rpn_score if f else '-',

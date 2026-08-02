@@ -18,6 +18,7 @@ class MaintenanceLog(db.Model):
             'approval_ditolak',
             'pengajuan_status',   # admin_ruangan ajukan perubahan status
             'cetak_kir',          # log cetak KIR — tidak mengubah kondisi aset
+            'preventive_check',
             name='maintenance_action_type',
             native_enum=False,
             length=50,
@@ -25,6 +26,17 @@ class MaintenanceLog(db.Model):
         nullable=False
     )
     description = db.Column(db.Text, nullable=False)
+    reporter_unit = db.Column(db.String(100), nullable=True)
+    reporter_name = db.Column(db.String(100), nullable=True)
+    reporter_position = db.Column(db.String(100), nullable=True)
+    complaint = db.Column(db.Text, nullable=True)
+    inspection_unit = db.Column(db.String(100), nullable=True)
+    technician_name = db.Column(db.String(100), nullable=True)
+    technician_position = db.Column(db.String(100), nullable=True)
+    result = db.Column(db.Text, nullable=True)
+    recommendation = db.Column(db.Text, nullable=True)
+    condition_after = db.Column(db.String(50), nullable=True)
+    ai_recommendation = db.Column(db.Text, nullable=True)
     action_date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

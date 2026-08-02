@@ -42,6 +42,8 @@
                 <span class="badge" style="background:#6f42c1;color:#fff;">Penggantian</span>
               {% elif log.action_type == 'pemeriksaan_rutin' %}
                 <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Pemeriksaan Rutin</span>
+              {% elif log.action_type == 'preventive_check' %}
+                <span class="badge bg-info-subtle text-info border border-info-subtle">Preventive</span>
               {% elif log.action_type == 'approval_disetujui' %}
                 <span class="badge" style="background:#0d9488;color:#fff;">Approval Disetujui</span>
               {% elif log.action_type == 'approval_ditolak' %}
@@ -54,11 +56,18 @@
               {# Ekstrak nama teknisi dari deskripsi jika ada #}
               {% if '(Teknisi:' in log.description %}
                 {{ log.description.split('(Teknisi:')[1].split(')')[0].strip() }}
+              {% elif log.technician_name %}
+                {{ log.technician_name }}
               {% else %}
                 —
               {% endif %}
             </td>
-            <td>{{ log.description|truncate(60) }}</td>
+            <td>
+              {{ log.description|truncate(60) }}
+              {% if log.ai_recommendation %}
+              <div class="text-info" style="font-size:11px;">{{ log.ai_recommendation|truncate(90) }}</div>
+              {% endif %}
+            </td>
             <td>{{ log.logger.name }}</td>
           </tr>
           {% endfor %}

@@ -33,8 +33,12 @@
           <tr><td class="text-muted">Ruangan</td><td>{{ asset.room.room_name }} <span class="text-muted small">({{ asset.room.room_code }})</span></td></tr>
           <tr><td class="text-muted">Merk / Model</td><td>{{ asset.brand_model }}</td></tr>
           <tr><td class="text-muted">No. Seri</td><td>{{ asset.serial_number or '—' }}</td></tr>
+          <tr><td class="text-muted">Jumlah</td><td>{{ asset.quantity }} {{ asset.unit or 'unit' }}</td></tr>
+          <tr><td class="text-muted">Spesifikasi</td><td>{{ asset.specification or '—' }}</td></tr>
           <tr><td class="text-muted">Tgl Pembelian</td><td>{{ asset.purchase_date.strftime('%d %b %Y') if asset.purchase_date else '—' }}</td></tr>
           <tr><td class="text-muted">Harga Beli</td><td>{{ 'Rp {:,.0f}'.format(asset.purchase_price) if asset.purchase_price else '—' }}</td></tr>
+          <tr><td class="text-muted">Dokumen/BAST</td><td>{{ asset.acquisition_document_number or '—' }}</td></tr>
+          <tr><td class="text-muted">Sumber Dana</td><td>{{ asset.funding_source or '—' }}</td></tr>
           <tr><td class="text-muted">Catatan</td><td>{{ asset.notes or '—' }}</td></tr>
         </table>
       </div>
@@ -78,6 +82,18 @@
           <tr><td class="text-muted">Mode Kegagalan</td><td>{{ fmea_terakhir.failure_mode }}</td></tr>
           <tr><td class="text-muted">Rekomendasi</td><td class="small">{{ fmea_terakhir.recommendation or '—' }}</td></tr>
         </table>
+      </div>
+    </div>
+    {% endif %}
+    {% if preventive_terakhir %}
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white fw-semibold border-0 pt-3">Preventive Terakhir</div>
+      <div class="card-body small">
+        <div class="text-muted">{{ preventive_terakhir.check_date.strftime('%d %b %Y') }}</div>
+        <div class="fw-medium">{{ preventive_terakhir.result }}</div>
+        {% if preventive_terakhir.ai_recommendation %}
+        <div class="alert alert-info py-2 px-3 mt-2 mb-0 small">{{ preventive_terakhir.ai_recommendation }}</div>
+        {% endif %}
       </div>
     </div>
     {% endif %}
@@ -185,13 +201,37 @@
   </div>
 </div>
 
+{# ── Riwayat Preventive ── #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold border-0 pt-3">Riwayat Preventive Maintenance</div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr><th>Tanggal</th><th>Hasil</th><th>Keterangan</th><th>Rekomendasi AI</th></tr>
+      </thead>
+      <tbody>
+        {% for p in preventive_records %}
+        <tr>
+          <td class="small text-muted">{{ p.check_date.strftime('%d %b %Y') }}</td>
+          <td class="small">{{ p.result }}</td>
+          <td class="small">{{ p.notes or p.recommendation or '—' }}</td>
+          <td class="small text-muted">{{ p.ai_recommendation or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center text-muted py-3">Belum ada preventive maintenance.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 {# ── Riwayat Maintenance ── #}
 <div class="card border-0 shadow-sm">
   <div class="card-header bg-white fw-semibold border-0 pt-3">Riwayat Maintenance</div>
   <div class="table-responsive">
     <table class="table table-hover mb-0">
       <thead class="table-light">
-        <tr><th>Tanggal</th><th>Tipe Aksi</th><th>Deskripsi</th><th>Oleh</th></tr>
+        <tr><th>Tanggal</th><th>Tipe Aksi</th><th>Deskripsi</th><th>Keluhan/Hasil</th><th>Oleh</th></tr>
       </thead>
       <tbody>
         {% for log in logs %}
@@ -199,10 +239,16 @@
           <td class="small text-muted">{{ log.action_date.strftime('%d %b %Y') }}</td>
           <td><span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small">{{ log.action_type.replace('_', ' ').title() }}</span></td>
           <td class="small">{{ log.description }}</td>
+          <td class="small text-muted">
+            {% if log.complaint %}<div><strong>Keluhan:</strong> {{ log.complaint }}</div>{% endif %}
+            {% if log.result %}<div><strong>Hasil:</strong> {{ log.result }}</div>{% endif %}
+            {% if log.recommendation %}<div><strong>Saran:</strong> {{ log.recommendation }}</div>{% endif %}
+            {% if not log.complaint and not log.result and not log.recommendation %}—{% endif %}
+          </td>
           <td class="small text-muted">{{ users_map[log.logged_by].name if log.logged_by in users_map else '—' }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="4" class="text-center text-muted py-3">Belum ada riwayat maintenance.</td></tr>
+        <tr><td colspan="5" class="text-center text-muted py-3">Belum ada riwayat maintenance.</td></tr>
         {% endfor %}
       </tbody>
     </table>

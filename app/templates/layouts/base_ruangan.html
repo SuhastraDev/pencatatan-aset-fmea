@@ -46,6 +46,13 @@
           <span>Riwayat Maintenance</span>
         </a>
       </li>
+      <li>
+        <a href="{{ url_for('ruangan.preventive_index') }}"
+           class="sidebar-link {% if 'preventive' in request.endpoint %}active{% endif %}">
+          <i class="bi bi-calendar2-check"></i>
+          <span>Preventive</span>
+        </a>
+      </li>
     </ul>
 
     <div class="sidebar-section-label" style="margin-top:8px;">Akun</div>

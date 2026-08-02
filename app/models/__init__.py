@@ -5,5 +5,6 @@ from app.models.asset_category import AssetCategory
 from app.models.asset import Asset
 from app.models.fmea import FmeaRecord
 from app.models.maintenance_log import MaintenanceLog
+from app.models.preventive_maintenance import PreventiveMaintenance
 from app.models.approval_request import ApprovalRequest
 from app.models.notification import Notification

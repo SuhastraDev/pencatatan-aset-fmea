@@ -38,7 +38,7 @@ def create_app():
     # Import model agar Flask-Migrate mendeteksi semua tabel
     with app.app_context():
         from app.models import Division, User, Room, AssetCategory, Asset
-        from app.models import FmeaRecord, MaintenanceLog, ApprovalRequest, Notification
+        from app.models import FmeaRecord, MaintenanceLog, PreventiveMaintenance, ApprovalRequest, Notification
 
     # Daftarkan csrf_token dan time_ago sebagai fungsi global di semua template
     app.jinja_env.globals['csrf_token'] = generate_csrf

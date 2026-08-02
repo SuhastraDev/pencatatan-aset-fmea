@@ -106,24 +106,5 @@ def sync_asset_condition_from_latest_fmea(asset):
     Sinkronkan kondisi aset berdasarkan evaluasi FMEA terbaru yang masih ada.
     Dipakai setelah FMEA diedit/dihapus agar status risiko di detail aset tidak tertinggal.
     """
-    if asset.condition == 'tidak_layak':
-        return asset
-
-    from app.models.fmea import FmeaRecord
-
-    latest_fmea = (FmeaRecord.query
-        .filter_by(asset_id=asset.id)
-        .order_by(FmeaRecord.created_at.desc())
-        .first())
-
-    if not latest_fmea:
-        asset.condition = 'baik'
-        return asset
-
-    condition_map = {
-        'tinggi': 'kritis',
-        'sedang': 'perlu_perhatian',
-        'rendah': 'baik',
-    }
-    asset.condition = condition_map.get(latest_fmea.risk_category, 'baik')
-    return asset
+    from app.services.asset_health_service import recalculate_asset_condition_from_history
+    return recalculate_asset_condition_from_history(asset)

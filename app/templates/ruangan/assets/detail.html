@@ -21,6 +21,9 @@
     <a href="{{ url_for('ruangan.assets_repair', id=asset.id) }}" class="btn btn-outline-success btn-sm">
       <i class="bi bi-tools me-1"></i>Catat Perbaikan
     </a>
+    <a href="{{ url_for('ruangan.assets_preventive', id=asset.id) }}" class="btn btn-outline-info btn-sm">
+      <i class="bi bi-calendar2-check me-1"></i>Catat Preventive
+    </a>
     {% if asset.status != 'menunggu_approval' %}
     <a href="{{ url_for('ruangan.assets_edit', id=asset.id) }}" class="btn btn-outline-primary btn-sm">
       <i class="bi bi-pencil me-1"></i>Edit
@@ -48,8 +51,12 @@
           <dt class="col-5 text-muted">Nama Ruangan</dt><dd class="col-7">{{ asset.room.room_name }}</dd>
           <dt class="col-5 text-muted">Merk / Model</dt><dd class="col-7">{{ asset.brand_model }}</dd>
           <dt class="col-5 text-muted">No Seri</dt><dd class="col-7">{{ asset.serial_number or '—' }}</dd>
+          <dt class="col-5 text-muted">Jumlah</dt><dd class="col-7">{{ asset.quantity }} {{ asset.unit or 'unit' }}</dd>
+          <dt class="col-5 text-muted">Spesifikasi</dt><dd class="col-7">{{ asset.specification or '—' }}</dd>
           <dt class="col-5 text-muted">Tgl Pembelian</dt><dd class="col-7">{{ asset.purchase_date.strftime('%d %b %Y') if asset.purchase_date else '—' }}</dd>
           <dt class="col-5 text-muted">Harga</dt><dd class="col-7">{% if asset.purchase_price %}Rp {{ '{:,.0f}'.format(asset.purchase_price) }}{% else %}—{% endif %}</dd>
+          <dt class="col-5 text-muted">Dokumen/BAST</dt><dd class="col-7">{{ asset.acquisition_document_number or '—' }}</dd>
+          <dt class="col-5 text-muted">Sumber Dana</dt><dd class="col-7">{{ asset.funding_source or '—' }}</dd>
           <dt class="col-5 text-muted">Catatan</dt><dd class="col-7">{{ asset.notes or '—' }}</dd>
         </dl>
       </div>
@@ -97,6 +104,17 @@
             {% else %}<span class="badge bg-success">RENDAH</span>{% endif %}
             <div class="small text-muted mt-1">{{ fmea_terakhir.evaluation_date.strftime('%d %b %Y') }}</div>
           </div>
+        </div>
+        {% endif %}
+        {% if preventive_terakhir %}
+        <hr>
+        <p class="fw-semibold mb-2 small">Preventive Terakhir</p>
+        <div class="small">
+          <div class="text-muted">{{ preventive_terakhir.check_date.strftime('%d %b %Y') }}</div>
+          <div>{{ preventive_terakhir.result|truncate(120) }}</div>
+          {% if preventive_terakhir.ai_recommendation %}
+          <div class="alert alert-info py-2 px-3 mt-2 mb-0 small">{{ preventive_terakhir.ai_recommendation }}</div>
+          {% endif %}
         </div>
         {% endif %}
       </div>
@@ -169,6 +187,35 @@
             </tr>
             {% else %}
             <tr><td colspan="8" class="text-center text-muted py-3">Belum ada evaluasi FMEA.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {# ── Riwayat Preventive ── #}
+  <div class="col-lg-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-calendar2-check me-2 text-primary"></i>5 Preventive Terbaru</span>
+        <a href="{{ url_for('ruangan.preventive_index') }}" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+          <thead class="table-light">
+            <tr><th>Tanggal</th><th>Hasil</th><th>Keterangan</th><th>Rekomendasi AI</th></tr>
+          </thead>
+          <tbody>
+            {% for p in preventive_terbaru %}
+            <tr>
+              <td class="text-nowrap">{{ p.check_date.strftime('%d %b %Y') }}</td>
+              <td>{{ p.result|truncate(80) }}</td>
+              <td>{{ p.notes or p.recommendation or '—' }}</td>
+              <td class="small text-muted">{{ p.ai_recommendation or '—' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted py-3">Belum ada preventive maintenance.</td></tr>
             {% endfor %}
           </tbody>
         </table>

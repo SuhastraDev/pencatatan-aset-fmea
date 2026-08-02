@@ -28,7 +28,7 @@
           <option value="perbaikan" {{ 'selected' if action_filter == 'perbaikan' }}>Perbaikan</option>
           <option value="penggantian" {{ 'selected' if action_filter == 'penggantian' }}>Penggantian</option>
           <option value="pemeriksaan_rutin" {{ 'selected' if action_filter == 'pemeriksaan_rutin' }}>Pemeriksaan Rutin</option>
-          <option value="pemeriksaan_rutin" {{ 'selected' if action_filter == 'pemeriksaan_rutin' }}>Pemeriksaan Rutin</option>
+          <option value="preventive_check" {{ 'selected' if action_filter == 'preventive_check' }}>Preventive</option>
           <option value="approval_disetujui" {{ 'selected' if action_filter == 'approval_disetujui' }}>Approval Disetujui</option>
           <option value="approval_ditolak" {{ 'selected' if action_filter == 'approval_ditolak' }}>Approval Ditolak</option>
         </select>
@@ -75,6 +75,8 @@
               <span class="badge small" style="background:#6f42c1;color:#fff;">Penggantian</span>
             {% elif log.action_type == 'pemeriksaan_rutin' %}
               <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small">Pemeriksaan Rutin</span>
+            {% elif log.action_type == 'preventive_check' %}
+              <span class="badge bg-info-subtle text-info border border-info-subtle small">Preventive</span>
             {% elif log.action_type == 'approval_disetujui' %}
               <span class="badge small" style="background:#0d9488;color:#fff;">Approval Disetujui</span>
             {% elif log.action_type == 'approval_ditolak' %}
@@ -86,9 +88,16 @@
           <td class="small text-muted">
             {% if '(Teknisi:' in log.description %}
               {{ log.description.split('(Teknisi:')[1].split(')')[0].strip() }}
+            {% elif log.technician_name %}
+              {{ log.technician_name }}
             {% else %}—{% endif %}
           </td>
-          <td class="small">{{ log.description|truncate(60) }}</td>
+          <td class="small">
+            {{ log.description|truncate(60) }}
+            {% if log.ai_recommendation %}
+            <div class="text-info" style="font-size:11px;">{{ log.ai_recommendation|truncate(90) }}</div>
+            {% endif %}
+          </td>
           <td class="small text-muted">
             {{ users_map[log.logged_by].name if log.logged_by in users_map else '—' }}
           </td>

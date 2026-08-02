@@ -6,11 +6,12 @@ from app.models.asset import Asset
 from app.models.asset_category import AssetCategory
 from app.models.fmea import FmeaRecord
 from app.models.maintenance_log import MaintenanceLog
+from app.models.preventive_maintenance import PreventiveMaintenance
 from app.models.approval_request import ApprovalRequest
 from app.models.user import User
 from app.utils.decorators import role_required, check_room_ownership
 from app.utils.helpers import generate_asset_code, generate_qr_code
-from app.forms.asset_forms import CreateAssetForm, EditAssetForm, RequestChangeForm, RepairLogForm
+from app.forms.asset_forms import CreateAssetForm, EditAssetForm, RequestChangeForm, RepairLogForm, PreventiveMaintenanceForm
 from app.forms.fmea_forms import FmeaEvaluationForm
 from app.services.fmea_service import (
     calculate_rpn,
@@ -18,6 +19,11 @@ from app.services.fmea_service import (
     sync_asset_condition_from_latest_fmea,
     should_notify,
     generate_recommendation,
+)
+from app.services.asset_health_service import (
+    generate_ai_recommendation,
+    infer_condition_from_text,
+    recalculate_asset_condition_from_history,
 )
 from app.services.notif_service import notify_high_rpn, notify_medium_rpn, notify_new_approval_request
 from app.services.export_service import generate_excel, generate_pdf, generate_kir_pdf, build_filename
@@ -125,13 +131,18 @@ def assets_create():
             asset_code=kode,
             item_code=form.item_code.data,
             asset_name=form.asset_name.data,
+            specification=form.specification.data,
             category=category,
             room_id=current_user.room_id,
             brand=form.brand_model.data,
             model='',
             serial_number=form.serial_number.data,
+            quantity=form.quantity.data,
+            unit=form.unit.data,
             purchase_date=form.purchase_date.data,
             purchase_price=form.purchase_price.data,
+            acquisition_document_number=form.acquisition_document_number.data,
+            funding_source=form.funding_source.data,
             condition=form.condition.data,
             status='aktif',
             notes=form.notes.data,
@@ -164,8 +175,13 @@ def assets_detail(id):
     fmea_terbaru = (asset.fmea_records
         .order_by(FmeaRecord.created_at.desc()).limit(5).all())
     fmea_terakhir = asset.fmea_records.order_by(FmeaRecord.created_at.desc()).first()
+    preventive_terbaru = (asset.preventive_records
+        .order_by(PreventiveMaintenance.check_date.desc(), PreventiveMaintenance.created_at.desc())
+        .limit(5).all())
+    preventive_terakhir = preventive_terbaru[0] if preventive_terbaru else None
     return render_template('ruangan/assets/detail.html',
-        asset=asset, fmea_terbaru=fmea_terbaru, fmea_terakhir=fmea_terakhir)
+        asset=asset, fmea_terbaru=fmea_terbaru, fmea_terakhir=fmea_terakhir,
+        preventive_terbaru=preventive_terbaru, preventive_terakhir=preventive_terakhir)
 
 
 @ruangan_bp.route('/assets/<int:id>/edit', methods=['GET', 'POST'])
@@ -184,10 +200,15 @@ def assets_edit(id):
     if form.validate_on_submit():
         asset.asset_name = form.asset_name.data
         asset.item_code = form.item_code.data
+        asset.specification = form.specification.data
         asset.brand_model = form.brand_model.data
         asset.serial_number = form.serial_number.data
+        asset.quantity = form.quantity.data
+        asset.unit = form.unit.data
         asset.purchase_date = form.purchase_date.data
         asset.purchase_price = form.purchase_price.data
+        asset.acquisition_document_number = form.acquisition_document_number.data
+        asset.funding_source = form.funding_source.data
         asset.condition = form.condition.data
         asset.notes = form.notes.data
 
@@ -342,25 +363,47 @@ def assets_repair(id):
             form.next_maintenance_date.data = asset.next_maintenance_date
 
     if form.validate_on_submit():
-        # Deskripsi gabungkan teknisi jika ada
+        # Deskripsi tetap ringkas untuk daftar, detail lengkap disimpan di kolom terstruktur.
         deskripsi = form.description.data
+        detail_parts = []
+        if form.complaint.data:
+            detail_parts.append(f'Keluhan: {form.complaint.data}')
+        if form.result.data:
+            detail_parts.append(f'Hasil: {form.result.data}')
+        if form.recommendation.data:
+            detail_parts.append(f'Saran: {form.recommendation.data}')
+        if detail_parts:
+            deskripsi += ' — ' + ' | '.join(detail_parts)
         if form.technician_name.data:
             deskripsi += f' (Teknisi: {form.technician_name.data})'
         if form.notes.data:
             deskripsi += f' — Catatan: {form.notes.data}'
+
+        condition_after = form.new_condition.data or infer_condition_from_text(
+            form.complaint.data,
+            form.result.data,
+            form.recommendation.data,
+            deskripsi,
+        )
 
         log = MaintenanceLog(
             asset_id=asset.id,
             logged_by=current_user.id,
             action_type=form.action_type.data,
             description=deskripsi,
+            reporter_unit=form.reporter_unit.data,
+            reporter_name=form.reporter_name.data,
+            reporter_position=form.reporter_position.data,
+            complaint=form.complaint.data,
+            inspection_unit='IPSRS',
+            technician_name=form.technician_name.data,
+            technician_position=form.technician_position.data,
+            result=form.result.data,
+            recommendation=form.recommendation.data,
+            condition_after=condition_after,
             action_date=form.action_date.data,
         )
         db.session.add(log)
-
-        # Update kondisi aset jika diisi
-        if form.new_condition.data:
-            asset.condition = form.new_condition.data
 
         # Selalu catat tanggal maintenance terakhir saat ada tindakan
         action_types_maintenance = {'perbaikan', 'penggantian', 'pemeriksaan_rutin'}
@@ -371,12 +414,90 @@ def assets_repair(id):
         if form.next_maintenance_date.data:
             asset.next_maintenance_date = form.next_maintenance_date.data
 
+        recalculate_asset_condition_from_history(asset)
+        log.ai_recommendation = generate_ai_recommendation(asset, maintenance_log=log)
         db.session.commit()
         flash('Catatan perbaikan berhasil disimpan.', 'success')
         return redirect(url_for('ruangan.assets_detail', id=id))
 
     return render_template('ruangan/assets/repair.html',
         form=form, asset=asset, fmea_terakhir=fmea_terakhir)
+
+
+@ruangan_bp.route('/assets/<int:id>/preventive', methods=['GET', 'POST'])
+@login_required
+@role_required('admin_ruangan')
+@check_room_ownership
+def assets_preventive(id):
+    """Form dan simpan hasil preventive maintenance per aset."""
+    asset = Asset.query.get_or_404(id)
+    form = PreventiveMaintenanceForm()
+
+    if request.method == 'GET':
+        form.check_date.data = date.today()
+        form.condition_after.data = ''
+        if asset.next_maintenance_date:
+            form.next_maintenance_date.data = asset.next_maintenance_date
+
+    if form.validate_on_submit():
+        condition_after = form.condition_after.data or infer_condition_from_text(
+            form.result.data,
+            form.notes.data,
+            form.recommendation.data,
+        )
+
+        preventive = PreventiveMaintenance(
+            asset_id=asset.id,
+            checked_by=current_user.id,
+            check_date=form.check_date.data,
+            room_name_snapshot=asset.room.room_name,
+            result=form.result.data,
+            notes=form.notes.data,
+            recommendation=form.recommendation.data,
+            condition_after=condition_after,
+        )
+        db.session.add(preventive)
+
+        log = MaintenanceLog(
+            asset_id=asset.id,
+            logged_by=current_user.id,
+            action_type='preventive_check',
+            description=f'Preventive maintenance: {form.result.data}',
+            result=form.result.data,
+            recommendation=form.recommendation.data,
+            condition_after=condition_after,
+            action_date=form.check_date.data,
+        )
+        db.session.add(log)
+
+        asset.last_maintenance_date = form.check_date.data
+        if form.next_maintenance_date.data:
+            asset.next_maintenance_date = form.next_maintenance_date.data
+        recalculate_asset_condition_from_history(asset)
+        preventive.ai_recommendation = generate_ai_recommendation(asset, preventive=preventive)
+        log.ai_recommendation = preventive.ai_recommendation
+
+        db.session.commit()
+        flash('Hasil preventive maintenance berhasil disimpan.', 'success')
+        return redirect(url_for('ruangan.assets_detail', id=asset.id))
+
+    return render_template('ruangan/assets/preventive.html', form=form, asset=asset)
+
+
+@ruangan_bp.route('/preventive')
+@login_required
+@role_required('admin_ruangan')
+def preventive_index():
+    asset_ids = [a.id for a in Asset.query.filter_by(room_id=current_user.room_id).all()]
+    page = request.args.get('page', 1, type=int)
+    if asset_ids:
+        records = (PreventiveMaintenance.query
+            .filter(PreventiveMaintenance.asset_id.in_(asset_ids))
+            .order_by(PreventiveMaintenance.check_date.desc(), PreventiveMaintenance.created_at.desc())
+            .paginate(page=page, per_page=15))
+    else:
+        records = PreventiveMaintenance.query.filter(db.false()).paginate(page=1, per_page=15)
+    return render_template('ruangan/preventive/index.html', records=records)
 
 
 # ── FMEA ───────────────────────────────────────────────────────────────────────
@@ -411,6 +532,11 @@ def fmea_form(id):
 
         # Update kondisi aset
         update_asset_condition(asset, hasil['rpn_score'])
+        recalculate_asset_condition_from_history(asset)
+        record.recommendation = (
+            f'{record.recommendation}\n\n'
+            f'{generate_ai_recommendation(asset, fmea=record)}'
+        )
 
         # Catat ke maintenance log
         log = MaintenanceLog(
@@ -418,6 +544,7 @@ def fmea_form(id):
             logged_by=current_user.id,
             action_type='evaluasi_fmea',
             description=f'Evaluasi FMEA: RPN={hasil["rpn_score"]} ({hasil["risk_category"].upper()}). Mode: {form.failure_mode.data}',
+            ai_recommendation=generate_ai_recommendation(asset, fmea=record),
             action_date=date.today(),
         )
         db.session.add(log)
@@ -471,6 +598,10 @@ def fmea_edit(id, fmea_id):
         record.notes = form.notes.data
 
         sync_asset_condition_from_latest_fmea(asset)
+        record.recommendation = (
+            f'{record.recommendation}\n\n'
+            f'{generate_ai_recommendation(asset, fmea=record)}'
+        )
 
         db.session.add(MaintenanceLog(
             asset_id=asset.id,

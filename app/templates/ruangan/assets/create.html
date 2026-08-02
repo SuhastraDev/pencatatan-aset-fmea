@@ -14,8 +14,18 @@
   <div class="col-lg-8">
     <div class="card border-0 shadow-sm">
       <div class="card-body p-4">
+        <div class="d-flex align-items-start gap-3 rounded-3 p-3 mb-4" style="background:#F0F9FF;border:1px solid #BAE6FD;">
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:36px;height:36px;background:#E0F2FE;color:#0369A1;">
+            <i class="bi bi-clipboard2-pulse"></i>
+          </div>
+          <div class="small">
+            <div class="fw-semibold text-dark">Data identitas aset</div>
+            <div class="text-muted">Gunakan nama alat sesuai label/KIB. Kode barang boleh kosong jika belum tersedia, tetapi No Seri wajib diisi agar aset mudah dicocokkan dengan history.</div>
+          </div>
+        </div>
         <form method="POST" action="{{ url_for('ruangan.assets_create') }}" novalidate>
           {{ form.hidden_tag() }}
+          <div class="text-uppercase text-muted fw-semibold mb-2" style="font-size:11px;letter-spacing:.08em;">Identitas alat</div>
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label fw-semibold">Nama Aset</label>
@@ -38,8 +48,23 @@
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">No Seri</label>
-              {{ form.serial_number(class="form-control" + (" is-invalid" if form.serial_number.errors else ""), required=true) }}
+              {{ form.serial_number(class="form-control" + (" is-invalid" if form.serial_number.errors else ""), required=true, placeholder="Contoh: FB12H0030") }}
               {% for e in form.serial_number.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+
+          <hr class="my-4">
+          <div class="text-uppercase text-muted fw-semibold mb-2" style="font-size:11px;letter-spacing:.08em;">Data KIB / perolehan</div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Jumlah Barang</label>
+              {{ form.quantity(class="form-control" + (" is-invalid" if form.quantity.errors else ""), min="1") }}
+              {% for e in form.quantity.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Satuan Barang</label>
+              {{ form.unit(class="form-control" + (" is-invalid" if form.unit.errors else ""), placeholder="Contoh: unit, set, pcs") }}
+              {% for e in form.unit.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Tanggal Pembelian <span class="text-muted fw-normal">(opsional)</span></label>
@@ -54,6 +79,27 @@
               </div>
               {% for e in form.purchase_price.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
             </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nomor Dokumen/BAST</label>
+              {{ form.acquisition_document_number(class="form-control" + (" is-invalid" if form.acquisition_document_number.errors else ""), placeholder="Contoh: 027/2171.1/rskgm/x/2025") }}
+              {% for e in form.acquisition_document_number.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Sumber Dana</label>
+              {{ form.funding_source(class="form-control" + (" is-invalid" if form.funding_source.errors else ""), placeholder="Contoh: Dana BLUD") }}
+              {% for e in form.funding_source.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Spesifikasi Nama Barang <span class="text-muted fw-normal">(opsional)</span></label>
+              {{ form.specification(class="form-control" + (" is-invalid" if form.specification.errors else ""), rows=2,
+                  placeholder="Contoh dari KIB: infusion pump, dental chair, atau spesifikasi lengkap barang") }}
+              {% for e in form.specification.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+
+          <hr class="my-4">
+          <div class="text-uppercase text-muted fw-semibold mb-2" style="font-size:11px;letter-spacing:.08em;">Kondisi awal</div>
+          <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label fw-semibold">Kondisi Awal</label>
               {{ form.condition(class="form-select" + (" is-invalid" if form.condition.errors else "")) }}

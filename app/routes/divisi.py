@@ -9,6 +9,7 @@ from app.models.asset import Asset
 from app.models.asset_category import AssetCategory
 from app.models.fmea import FmeaRecord
 from app.models.maintenance_log import MaintenanceLog
+from app.models.preventive_maintenance import PreventiveMaintenance
 from app.models.approval_request import ApprovalRequest
 from app.models.room import Room
 from app.models.user import User
@@ -201,6 +202,11 @@ def assets_detail(id):
 
     fmea_records = asset.fmea_records.order_by(FmeaRecord.created_at.desc()).all()
     logs = asset.maintenance_logs.order_by(MaintenanceLog.created_at.desc()).all()
+    preventive_records = (
+        asset.preventive_records
+        .order_by(PreventiveMaintenance.check_date.desc(), PreventiveMaintenance.created_at.desc())
+        .all()
+    )
 
     log_user_ids = {l.logged_by for l in logs}
     users_map = {u.id: u for u in User.query.filter(User.id.in_(log_user_ids)).all()} if log_user_ids else {}
@@ -212,6 +218,8 @@ def assets_detail(id):
         asset=asset,
         fmea_records=fmea_records,
         fmea_terakhir=fmea_records[0] if fmea_records else None,
+        preventive_records=preventive_records,
+        preventive_terakhir=preventive_records[0] if preventive_records else None,
         logs=logs, users_map=users_map,
         chart_dates=chart_dates, chart_rpn=chart_rpn,
         today=date.today(),

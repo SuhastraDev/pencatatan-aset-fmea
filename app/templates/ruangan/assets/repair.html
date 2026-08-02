@@ -73,7 +73,7 @@
 
     <div class="alert alert-info border-0 shadow-sm small">
       <i class="bi bi-info-circle me-2"></i>
-      Catatan perbaikan <strong>tidak memerlukan approval</strong> dan langsung tersimpan ke riwayat maintenance.
+      Catatan perbaikan langsung masuk ke riwayat maintenance dan ikut memengaruhi kondisi aset.
     </div>
   </div>
 
@@ -88,6 +88,9 @@
           {{ form.hidden_tag() }}
 
           <div class="row g-3">
+            <div class="col-12">
+              <div class="text-uppercase text-muted fw-semibold" style="font-size:11px;letter-spacing:.08em;">Tindakan</div>
+            </div>
 
             {# Jenis Tindakan #}
             <div class="col-sm-6">
@@ -111,10 +114,52 @@
             <div class="col-12">
               <label class="form-label fw-semibold">{{ form.description.label.text }} <span class="text-danger">*</span></label>
               {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows=3,
-                  placeholder="Jelaskan tindakan yang dilakukan (minimal 20 karakter)…") }}
+                  placeholder="Contoh: pengecekan adaptor, penggantian selang, troubleshooting suction") }}
               {% for e in form.description.errors %}
                 <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
+            </div>
+
+            <div class="col-12">
+              <div class="border rounded p-3 bg-light">
+                <div class="fw-semibold mb-1">Detail Laporan Kerusakan</div>
+                <div class="text-muted small mb-3">Bagian ini mengikuti format laporan kerusakan alat kesehatan medik.</div>
+                <div class="row g-3">
+                  <div class="col-sm-4">
+                    <label class="form-label">{{ form.reporter_unit.label.text }}</label>
+                    {{ form.reporter_unit(class="form-control" + (" is-invalid" if form.reporter_unit.errors else ""), placeholder="Contoh: IGD") }}
+                    {% for e in form.reporter_unit.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                  </div>
+                  <div class="col-sm-4">
+                    <label class="form-label">{{ form.reporter_name.label.text }}</label>
+                    {{ form.reporter_name(class="form-control" + (" is-invalid" if form.reporter_name.errors else "")) }}
+                    {% for e in form.reporter_name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                  </div>
+                  <div class="col-sm-4">
+                    <label class="form-label">{{ form.reporter_position.label.text }}</label>
+                    {{ form.reporter_position(class="form-control" + (" is-invalid" if form.reporter_position.errors else ""), placeholder="Contoh: Kepala Ruangan") }}
+                    {% for e in form.reporter_position.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">{{ form.complaint.label.text }}</label>
+                    {{ form.complaint(class="form-control" + (" is-invalid" if form.complaint.errors else ""), rows=2,
+                        placeholder="Contoh: alat mati total, suction tidak berfungsi, lampu tidak menyala") }}
+                    {% for e in form.complaint.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">{{ form.result.label.text }}</label>
+                    {{ form.result(class="form-control" + (" is-invalid" if form.result.errors else ""), rows=2,
+                        placeholder="Hasil peninjauan teknisi/IPSRS") }}
+                    {% for e in form.result.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">{{ form.recommendation.label.text }}</label>
+                    {{ form.recommendation(class="form-control" + (" is-invalid" if form.recommendation.errors else ""), rows=2,
+                        placeholder="Kesimpulan atau saran tindak lanjut") }}
+                    {% for e in form.recommendation.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {# Nama Teknisi #}
@@ -123,8 +168,18 @@
                 <span class="text-muted fw-normal small">(opsional)</span>
               </label>
               {{ form.technician_name(class="form-control" + (" is-invalid" if form.technician_name.errors else ""),
-                  placeholder="Nama teknisi yang mengerjakan") }}
+                  placeholder="Contoh: Muhammad Gio Novanzah") }}
               {% for e in form.technician_name.errors %}
+                <div class="invalid-feedback">{{ e }}</div>
+              {% endfor %}
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">{{ form.technician_position.label.text }}
+                <span class="text-muted fw-normal small">(opsional)</span>
+              </label>
+              {{ form.technician_position(class="form-control" + (" is-invalid" if form.technician_position.errors else ""),
+                  placeholder="Contoh: Elektromedik") }}
+              {% for e in form.technician_position.errors %}
                 <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
             </div>
@@ -135,7 +190,7 @@
                 <span class="text-muted fw-normal small">(opsional)</span>
               </label>
               {{ form.new_condition(class="form-select" + (" is-invalid" if form.new_condition.errors else "")) }}
-              <div class="form-text">Kondisi saat ini: <strong>{{ asset.condition.replace('_',' ').title() }}</strong></div>
+              <div class="form-text">Jika dikosongkan, sistem membaca kondisi dari keluhan, hasil, dan saran.</div>
               {% for e in form.new_condition.errors %}
                 <div class="invalid-feedback">{{ e }}</div>
               {% endfor %}
