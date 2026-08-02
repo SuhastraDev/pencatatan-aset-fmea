@@ -101,4 +101,34 @@ def create_app():
                 print(f'[ERROR] Seeder "{label}" gagal: {exc}')
                 db.session.rollback()
 
+    @app.cli.command('import-client-excel')
+    @click.option('--history-file', type=click.Path(exists=True), default=None, help='Path Data History Maintenance Aset.xlsx')
+    @click.option('--kib-file', type=click.Path(exists=True), default=None, help='Path INTRA EKSTRA KIB B.xlsx')
+    @click.option('--preventive-file', type=click.Path(exists=True), default=None, help='Path PREVENTIVE ASET.xlsx')
+    @click.option('--default-division', default='Divisi Rawat Jalan', show_default=True)
+    @click.option('--default-room-code', default=None, help='Opsional: room_code untuk aset KIB yang tidak punya ruangan.')
+    @click.option('--dry-run/--commit', default=True, show_default=True, help='Dry-run hanya hitung, commit menyimpan ke database.')
+    def import_client_excel(history_file, kib_file, preventive_file, default_division, default_room_code, dry_run):
+        """Import file Excel klien dengan pencocokan data aset yang sudah ada."""
+        from app.services.excel_import_service import ClientExcelImporter
+
+        if not any([history_file, kib_file, preventive_file]):
+            raise click.UsageError('Isi minimal salah satu: --history-file, --kib-file, atau --preventive-file.')
+
+        importer = ClientExcelImporter(
+            dry_run=dry_run,
+            default_division_name=default_division,
+            default_room_code=default_room_code,
+        )
+        stats = importer.run(
+            history_file=history_file,
+            kib_file=kib_file,
+            preventive_file=preventive_file,
+        )
+        click.echo('Import mode: DRY-RUN' if dry_run else 'Import mode: COMMIT')
+        for line in stats.lines():
+            click.echo(line)
+        for warning in stats.warnings[:20]:
+            click.echo(f'warning: {warning}')
+
     return app
