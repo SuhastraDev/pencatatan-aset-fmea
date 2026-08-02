@@ -1,5 +1,5 @@
 {% extends "layouts/base_ruangan.html" %}
-{% block title %}Rekap Laporan — Admin Ruangan{% endblock %}
+{% block title %}Rekap Laporan - Admin Ruangan{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -17,7 +17,6 @@
   </div>
 </div>
 
-<!-- Filter -->
 <div class="card border-0 shadow-sm mb-3">
   <div class="card-body py-2">
     <form method="GET" class="row g-2 align-items-end">
@@ -32,12 +31,12 @@
         </select>
       </div>
       <div class="col-sm-4">
-        <label class="form-label small fw-semibold mb-1">Kategori RPN</label>
+        <label class="form-label small fw-semibold mb-1">Kategori FMEA</label>
         <select name="rpn" class="form-select form-select-sm">
-          <option value="">Semua RPN</option>
-          <option value="tinggi" {{ 'selected' if rpn_filter=='tinggi' }}>Tinggi (≥200)</option>
-          <option value="sedang" {{ 'selected' if rpn_filter=='sedang' }}>Sedang (80-199)</option>
-          <option value="rendah" {{ 'selected' if rpn_filter=='rendah' }}>Rendah (&lt;80)</option>
+          <option value="">Semua FMEA</option>
+          <option value="tinggi" {{ 'selected' if rpn_filter=='tinggi' }}>Tinggi</option>
+          <option value="sedang" {{ 'selected' if rpn_filter=='sedang' }}>Sedang</option>
+          <option value="rendah" {{ 'selected' if rpn_filter=='rendah' }}>Rendah</option>
         </select>
       </div>
       <div class="col-sm-4 d-flex gap-2">
@@ -48,7 +47,6 @@
   </div>
 </div>
 
-<!-- Statistik -->
 <div class="row g-3 mb-3">
   <div class="col-6 col-md-3">
     <div class="card border-0 shadow-sm text-center py-3">
@@ -76,14 +74,24 @@
   </div>
 </div>
 
-<!-- Tabel -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2 small text-muted">
+    Kode aset dibuat otomatis oleh sistem. Kode barang berasal dari KIB; jika tertulis "Belum ada di KIB", aset tersebut berasal dari history/preventive dan belum punya pasangan KIB yang aman.
+    FMEA hanya terisi setelah user melakukan evaluasi FMEA.
+  </div>
+</div>
+
 <div class="card border-0 shadow-sm">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0 small">
       <thead class="table-light">
         <tr>
-          <th>Kode Aset</th><th>Kode Barang</th><th>Nama Aset</th><th>Kondisi</th>
-          <th class="text-center">RPN</th><th>Kategori RPN</th><th>Tgl Evaluasi</th>
+          <th>Kode Aset</th>
+          <th>Kode Barang</th>
+          <th>Nama Aset</th>
+          <th>Kondisi</th>
+          <th>Maintenance Terakhir</th>
+          <th>FMEA Terakhir</th>
         </tr>
       </thead>
       <tbody>
@@ -92,7 +100,7 @@
         {% set f = item.last_fmea %}
         <tr>
           <td><span class="badge bg-secondary">{{ a.asset_code }}</span></td>
-          <td>{{ a.item_code or '—' }}</td>
+          <td>{% if a.item_code %}{{ a.item_code }}{% else %}<span class="text-muted small">Belum ada di KIB</span>{% endif %}</td>
           <td class="fw-semibold">{{ a.asset_name }}</td>
           <td>
             {% if a.condition == 'baik' %}<span class="badge bg-success">Baik</span>
@@ -100,20 +108,23 @@
             {% elif a.condition == 'kritis' %}<span class="badge" style="background:#fd7e14">Kritis</span>
             {% else %}<span class="badge bg-danger">Tidak Layak</span>{% endif %}
           </td>
-          <td class="text-center fw-bold {% if f and f.risk_category == 'tinggi' %}text-danger{% elif f and f.risk_category == 'sedang' %}text-warning{% else %}text-success{% endif %}">
-            {{ f.rpn_score if f else '—' }}
+          <td class="text-muted">
+            {{ a.last_maintenance_date.strftime('%d %b %Y') if a.last_maintenance_date else 'Belum ada' }}
           </td>
           <td>
             {% if f %}
               {% if f.risk_category == 'tinggi' %}<span class="badge bg-danger">Tinggi</span>
               {% elif f.risk_category == 'sedang' %}<span class="badge bg-warning text-dark">Sedang</span>
               {% else %}<span class="badge bg-success">Rendah</span>{% endif %}
-            {% else %}<span class="text-muted">—</span>{% endif %}
+              <span class="fw-bold ms-1">{{ f.rpn_score }}</span>
+              <span class="text-muted small ms-1">{{ f.evaluation_date.strftime('%d %b %Y') }}</span>
+            {% else %}
+              <span class="text-muted small">Belum FMEA</span>
+            {% endif %}
           </td>
-          <td class="text-muted">{{ f.evaluation_date.strftime('%d %b %Y') if f else '—' }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="7" class="text-center text-muted py-4">Tidak ada data yang sesuai filter.</td></tr>
+        <tr><td colspan="6" class="text-center text-muted py-4">Tidak ada data yang sesuai filter.</td></tr>
         {% endfor %}
       </tbody>
     </table>

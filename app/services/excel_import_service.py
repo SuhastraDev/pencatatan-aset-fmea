@@ -93,6 +93,7 @@ class ClientExcelImporter:
     def import_kib(self, path):
         workbook = load_workbook(_require_file(path), data_only=True, read_only=False)
         fallback_room = self._get_default_room()
+        seen_keys = set()
 
         for sheet_name in ['Lembar1', 'Table 1']:
             if sheet_name not in workbook.sheetnames:
@@ -106,9 +107,24 @@ class ClientExcelImporter:
                     continue
 
                 item_code = _build_item_code(ws, row)
+                row_key = (item_code, _norm(item_name), _norm(specification))
+                if row_key in seen_keys:
+                    continue
+                seen_keys.add(row_key)
+
                 asset = self._find_asset(item_code=item_code, asset_name=item_name, room=fallback_room)
                 if not asset and not fallback_room:
-                    self.stats.assets_skipped += 1
+                    matched_assets = self._find_assets_by_kib_name(item_name, specification)
+                    if not matched_assets:
+                        self.stats.assets_skipped += 1
+                        continue
+                else:
+                    matched_assets = [asset] if asset else []
+
+                if not matched_assets and fallback_room:
+                    matched_assets = [None]
+
+                if not matched_assets:
                     continue
 
                 payload = {
@@ -125,7 +141,8 @@ class ClientExcelImporter:
                     'funding_source': _text(ws.cell(row, 44).value),
                     'notes': f'Diimpor dari KIB sheet {sheet_name}.',
                 }
-                self._upsert_asset(asset, fallback_room, payload, source='kib')
+                for matched_asset in matched_assets:
+                    self._upsert_asset(matched_asset, fallback_room or matched_asset.room, payload, source='kib')
 
     def import_history(self, path):
         workbook = load_workbook(_require_file(path), data_only=True, read_only=False)
@@ -332,6 +349,24 @@ class ClientExcelImporter:
             ).first()
         return None
 
+    def _find_assets_by_kib_name(self, item_name, specification):
+        candidates = [_asset_match_key(item_name), _asset_match_key(specification)]
+        candidates = [candidate for candidate in candidates if candidate]
+        if not candidates:
+            return []
+
+        matches = []
+        for asset in Asset.query.all():
+            asset_keys = [
+                _asset_match_key(asset.asset_name),
+                _asset_match_key(asset.specification),
+                _asset_match_key(asset.brand_model),
+            ]
+            asset_keys = [key for key in asset_keys if key]
+            if any(_asset_key_matches(candidate, asset_key) for candidate in candidates for asset_key in asset_keys):
+                matches.append(asset)
+        return matches
+
     def _upsert_asset(self, asset, room, payload, source):
         if asset:
             changed = False
@@ -472,6 +507,39 @@ def _text(value):
 
 def _norm(value):
     return re.sub(r'[^a-z0-9]+', '', _text(value).lower())
+
+
+def _asset_match_key(value):
+    text = _text(value).lower()
+    if not text:
+        return ''
+    replacements = {
+        'lockater': 'locator',
+        'locater': 'locator',
+        'lucator': 'locator',
+        'sfigmomanometer': 'sphygmomanometer',
+        'sfignomanometer': 'sphygmomanometer',
+        'tensimeter': 'sphygmomanometer',
+        'electrocardiograph': 'ecg',
+        'electrokardiograph': 'ecg',
+        'x ray': 'xray',
+        'x-ray': 'xray',
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return re.sub(r'[^a-z0-9]+', '', text)
+
+
+def _asset_key_matches(kib_key, asset_key):
+    if not kib_key or not asset_key:
+        return False
+    if kib_key == asset_key:
+        return True
+    if len(kib_key) >= 8 and kib_key in asset_key:
+        return True
+    if len(asset_key) >= 8 and asset_key in kib_key:
+        return True
+    return False
 
 
 def _looks_like_number(value):
