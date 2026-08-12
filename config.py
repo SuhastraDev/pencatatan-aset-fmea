@@ -20,4 +20,5 @@ class Config:
     RPN_HIGH_THRESHOLD = 200
     RPN_MEDIUM_THRESHOLD = 80
     EXPORTS_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'exports')
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)

@@ -66,7 +66,7 @@ class ImportStats:
 
 
 class ClientExcelImporter:
-    def __init__(self, dry_run=True, default_division_name='Divisi Rawat Jalan', default_room_code=None):
+    def __init__(self, dry_run=True, default_division_name='Pelayanan Medik dan Keperawatan', default_room_code=None):
         self.dry_run = dry_run
         self.default_division_name = default_division_name
         self.default_room_code = default_room_code
@@ -678,9 +678,9 @@ def _clean_room_name(raw_name):
         'igd': 'IGD',
         'icu': 'ICU',
         'bedah': 'BEDAH',
-        'poli vip': 'POLI VIP',
+        'poli vip': 'VIP',
         'poli umum': 'Poli Umum',
-        'rawat jalan': 'Rawat Jalan',
+        'rawat jalan': 'Poli Umum',
         'rawat jalan poli umum': 'Poli Umum',
         'radiologi': 'Radiologi',
     }

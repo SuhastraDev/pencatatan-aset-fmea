@@ -141,7 +141,7 @@ def create_app():
     @click.option('--history-file', type=click.Path(exists=True), default=None, help='Path Data History Maintenance Aset.xlsx')
     @click.option('--kib-file', type=click.Path(exists=True), default=None, help='Path INTRA EKSTRA KIB B.xlsx')
     @click.option('--preventive-file', type=click.Path(exists=True), default=None, help='Path PREVENTIVE ASET.xlsx')
-    @click.option('--default-division', default='Divisi Rawat Jalan', show_default=True)
+    @click.option('--default-division', default='Pelayanan Medik dan Keperawatan', show_default=True)
     @click.option('--default-room-code', default=None, help='Opsional: room_code untuk aset KIB yang tidak punya ruangan.')
     @click.option('--dry-run/--commit', default=True, show_default=True, help='Dry-run hanya hitung, commit menyimpan ke database.')
     def import_client_excel(history_file, kib_file, preventive_file, default_division, default_room_code, dry_run):

@@ -11,3 +11,5 @@ exports/*.xlsx
 venv/
 .venv/
 app/static/qrcodes/*.png
+app/static/uploads/profile/*
+!app/static/uploads/profile/.gitkeep

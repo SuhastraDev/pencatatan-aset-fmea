@@ -6,129 +6,264 @@
   {% extends "layouts/base_ruangan.html" %}
 {% endif %}
 
-{% block title %}Profil Saya — SIMASET RSKGM{% endblock %}
+{% block title %}Profil Saya - SIMASET RSKGM{% endblock %}
 
 {% block breadcrumb %}<i class="bi bi-person-circle"></i><span>Profil Saya</span>{% endblock %}
-{% block content %}
 
+{% block styles %}
+<style>
+  .profile-avatar-lg {
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex: 0 0 92px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0891B2, #155E75);
+    color: #fff;
+    font-size: 30px;
+    font-weight: 800;
+    box-shadow: 0 5px 16px rgba(8, 145, 178, .25);
+  }
+  .profile-avatar-lg img,
+  .profile-avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .profile-avatar-preview {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #E0F7FA;
+    color: #0E7490;
+    font-weight: 800;
+    font-size: 19px;
+    flex: 0 0 56px;
+  }
+  .profile-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 24px;
+    margin-top: 26px;
+    padding-top: 22px;
+    border-top: 1px solid #E0F2FE;
+  }
+  .profile-detail-label {
+    color: #94A3B8;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 3px;
+  }
+  .profile-detail-value {
+    color: #1E293B;
+    font-size: 13px;
+    min-height: 20px;
+    overflow-wrap: anywhere;
+  }
+  .profile-edit-card[hidden] { display: none !important; }
+  .profile-edit-note {
+    color: #64748B;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  @media (max-width: 575px) {
+    .profile-detail-grid { grid-template-columns: 1fr; }
+    .profile-avatar-lg { width: 72px; height: 72px; flex-basis: 72px; font-size: 24px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
 <div class="d-flex align-items-center gap-3 mb-4">
   <div>
     <h4 class="fw-bold mb-0" style="color:#0F172A;">Profil Saya</h4>
-    <p class="text-muted mb-0" style="font-size:13px;">Kelola informasi akun dan keamanan</p>
+    <p class="text-muted mb-0" style="font-size:13px;">Informasi identitas dan keamanan akun</p>
   </div>
 </div>
 
 <div class="row justify-content-center">
-  <div class="col-lg-7 col-md-9">
+  <div class="col-xl-8 col-lg-9">
 
-    {# ── Info card ── #}
-    <div class="card mb-4">
-      <div class="card-body d-flex align-items-center gap-4 p-4">
-        <div style="width:56px; height:56px; border-radius:50%;
-                    background:linear-gradient(135deg,#2563EB,#7C3AED);
-                    display:flex; align-items:center; justify-content:center;
-                    color:#fff; font-weight:800; font-size:22px; flex-shrink:0;
-                    box-shadow:0 4px 14px rgba(37,99,235,.35);">
-          {{ current_user.name[0].upper() if current_user.name else '?' }}
+    <section class="card mb-4">
+      <div class="card-header d-flex align-items-center justify-content-between gap-3">
+        <div>
+          <div class="fw-semibold" style="font-size:14px;">Informasi Profil</div>
+          <div class="profile-edit-note mt-1">Data profil ditampilkan sebagai informasi akun.</div>
         </div>
-        <div style="flex:1; min-width:0;">
-          <div class="fw-bold" style="font-size:16px; color:#0F172A;">{{ current_user.name }}</div>
-          <div style="font-size:12px; color:#64748B; margin-top:2px;">{{ current_user.email }}</div>
-          <div style="font-size:12px; color:#64748B; margin-top:2px;">
-            {{ current_user.jabatan or 'Jabatan belum diisi' }}
-            {% if current_user.nip %} · NIP {{ current_user.nip }}{% endif %}
-          </div>
-          <div style="margin-top:8px;">
-            {% if current_user.is_super_admin() %}
-              <span class="badge" style="background:#F5F3FF; color:#7C3AED; font-weight:600; font-size:11px;">
-                <i class="bi bi-shield-lock me-1"></i>Super Admin
-              </span>
-            {% elif current_user.is_admin_divisi() %}
-              <span class="badge" style="background:#EFF6FF; color:#2563EB; font-weight:600; font-size:11px;">
-                <i class="bi bi-person-badge me-1"></i>Admin Divisi
-                {% if current_user.division %}· {{ current_user.division.division_name }}{% endif %}
-              </span>
+        <button type="button" class="btn btn-outline-primary btn-sm flex-shrink-0" id="editProfileBtn"
+                aria-controls="profileEditCard" aria-expanded="{{ 'true' if edit_mode else 'false' }}">
+          <i class="bi {{ 'bi-x-lg' if edit_mode else 'bi-pencil-square' }} me-1"></i>
+          <span>{{ 'Tutup Edit' if edit_mode else 'Edit Profil' }}</span>
+        </button>
+      </div>
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-4">
+          <div class="profile-avatar-lg">
+            {% if current_user.profile_photo %}
+              <img src="{{ url_for('static', filename='uploads/profile/' ~ current_user.profile_photo) }}"
+                   alt="Foto profil {{ current_user.name }}">
             {% else %}
-              <span class="badge" style="background:#F0FDF4; color:#16A34A; font-weight:600; font-size:11px;">
-                <i class="bi bi-person-gear me-1"></i>Admin Ruangan
-                {% if current_user.room %}· {{ current_user.room.room_name }}{% endif %}
-              </span>
+              {{ current_user.name[0].upper() if current_user.name else '?' }}
             {% endif %}
           </div>
+          <div style="min-width:0; flex:1;">
+            <div class="fw-bold" style="font-size:19px; color:#0F172A; overflow-wrap:anywhere;">{{ current_user.name }}</div>
+            <div style="font-size:13px; color:#64748B; margin-top:4px; overflow-wrap:anywhere;">{{ current_user.email }}</div>
+            <div style="margin-top:10px;">
+              {% if current_user.is_super_admin() %}
+                <span class="badge" style="background:#F5F3FF; color:#7C3AED; font-weight:600; font-size:11px;">
+                  <i class="bi bi-shield-lock me-1"></i>Super Admin
+                </span>
+              {% elif current_user.is_admin_divisi() %}
+                <span class="badge" style="background:#EFF6FF; color:#2563EB; font-weight:600; font-size:11px;">
+                  <i class="bi bi-person-badge me-1"></i>Admin Divisi
+                </span>
+              {% else %}
+                <span class="badge" style="background:#F0FDF4; color:#16A34A; font-weight:600; font-size:11px;">
+                  <i class="bi bi-person-gear me-1"></i>Admin Ruangan
+                </span>
+              {% endif %}
+            </div>
+          </div>
         </div>
-        <div style="text-align:right; flex-shrink:0;">
-          <div style="font-size:10.5px; color:#94A3B8; text-transform:uppercase; letter-spacing:.06em; font-weight:700;">Login Terakhir</div>
-          <div style="font-size:12px; color:#374151; margin-top:2px;">
+
+        <div class="profile-detail-grid">
+          <div>
+            <div class="profile-detail-label">Nama Lengkap</div>
+            <div class="profile-detail-value">{{ current_user.name or '-' }}</div>
+          </div>
+          <div>
+            <div class="profile-detail-label">Email</div>
+            <div class="profile-detail-value">{{ current_user.email or '-' }}</div>
+          </div>
+          <div>
+            <div class="profile-detail-label">NIP</div>
+            <div class="profile-detail-value">{{ current_user.nip or 'Belum diisi' }}</div>
+          </div>
+          <div>
+            <div class="profile-detail-label">Jabatan</div>
+            <div class="profile-detail-value">{{ current_user.jabatan or 'Belum diisi' }}</div>
+          </div>
+          <div>
+            <div class="profile-detail-label">Tanggal Lahir</div>
+            <div class="profile-detail-value">
+              {{ current_user.tanggal_lahir.strftime('%d-%m-%Y') if current_user.tanggal_lahir else 'Belum diisi' }}
+            </div>
+          </div>
+          <div>
+            <div class="profile-detail-label">Unit Kerja</div>
+            <div class="profile-detail-value">
+              {% if current_user.division %}
+                {{ current_user.division.division_name }}
+              {% elif current_user.room %}
+                {{ current_user.room.room_name }}
+              {% else %}
+                Sistem SIMASET
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 mt-4 pt-3" style="border-top:1px solid #F1F5F9; color:#94A3B8; font-size:11px;">
+          <i class="bi bi-clock-history"></i>
+          <span>Login terakhir:
             {% if current_user.last_login %}
-              {{ current_user.last_login.strftime('%d %b %Y') }}<br>
-              <span style="color:#64748B;">{{ current_user.last_login.strftime('%H:%M') }}</span>
+              {{ current_user.last_login.strftime('%d-%m-%Y %H:%M') }}
             {% else %}
-              <span class="text-muted">—</span>
+              Belum ada catatan
             {% endif %}
-          </div>
+          </span>
         </div>
       </div>
-    </div>
+    </section>
 
-    {# ── Form ── #}
-    <div class="card">
+    <section class="card profile-edit-card" id="profileEditCard" {% if not edit_mode %}hidden{% endif %}>
       <div class="card-header">
-        <span class="fw-semibold" style="font-size:14px;">Edit Profil</span>
+        <span class="fw-semibold" style="font-size:14px;"><i class="bi bi-pencil-square me-2"></i>Edit Profil</span>
       </div>
       <div class="card-body" style="padding:28px;">
-        <form method="POST" action="{{ url_for('auth.profile') }}" novalidate id="profileForm">
+        <p class="profile-edit-note mb-4">Perubahan baru diterapkan setelah tombol Simpan Perubahan ditekan.</p>
+
+        <form method="POST" action="{{ url_for('auth.profile') }}" enctype="multipart/form-data" novalidate id="profileForm">
           {{ form.hidden_tag() }}
 
-          {# Informasi Dasar #}
+          <div class="form-section"><i class="bi bi-image me-1"></i> Foto Profil</div>
+          <div class="d-flex align-items-center gap-3 mb-4">
+            <div class="profile-avatar-preview" id="photoPreview">
+              {% if current_user.profile_photo %}
+                <img src="{{ url_for('static', filename='uploads/profile/' ~ current_user.profile_photo) }}"
+                     alt="Pratinjau foto profil">
+              {% else %}
+                {{ current_user.name[0].upper() if current_user.name else '?' }}
+              {% endif %}
+            </div>
+            <div>
+              <label for="photoInput" class="btn btn-outline-primary btn-sm mb-1">
+                <i class="bi bi-camera me-1"></i>Pilih Foto
+              </label>
+              {{ form.photo(id="photoInput", class="visually-hidden", accept="image/jpeg,image/png,image/webp") }}
+              <div class="profile-edit-note">JPG, PNG, atau WEBP. Maksimal 5 MB.</div>
+              {% for e in form.photo.errors %}
+                <div class="invalid-feedback d-block">{{ e }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
           <div class="form-section"><i class="bi bi-person-circle me-1"></i> Informasi Dasar</div>
 
           <div class="mb-4">
-            <label class="form-label">
-              Nama Lengkap <span style="color:#DC2626;">*</span>
-            </label>
+            <label class="form-label">Nama Lengkap <span style="color:#DC2626;">*</span></label>
             <div class="input-icon-wrap">
               <i class="bi bi-person field-icon"></i>
-              {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""),
-                 placeholder="Nama lengkap Anda", maxlength=100, id="nameInput") }}
+              {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="Nama lengkap Anda", maxlength=100, id="nameInput") }}
             </div>
-            {% for e in form.name.errors %}
-              <div class="invalid-feedback d-block">{{ e }}</div>
-            {% endfor %}
+            {% for e in form.name.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
             <span class="char-counter" id="nameCounter"></span>
           </div>
 
-          <div class="mb-2">
+          <div class="mb-4">
             <label class="form-label">Email</label>
-            <div class="input-icon-wrap">
-              <i class="bi bi-envelope field-icon"></i>
-              <input type="email" class="form-control" value="{{ current_user.email }}" disabled
-                     style="padding-left:38px; background:#F8FAFC;">
-            </div>
-            <div class="field-hint"><i class="bi bi-info-circle"></i> Email tidak dapat diubah langsung. Hubungi Super Admin.</div>
+            {% if current_user.is_super_admin() %}
+              <div class="input-icon-wrap">
+                <i class="bi bi-envelope field-icon"></i>
+                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="Alamat email aktif") }}
+              </div>
+              {% for e in form.email.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+            {% else %}
+              <div class="input-icon-wrap">
+                <i class="bi bi-envelope field-icon"></i>
+                <input type="email" class="form-control" value="{{ current_user.email }}" disabled style="padding-left:38px; background:#F8FAFC;">
+              </div>
+              <input type="hidden" name="email" value="{{ current_user.email }}">
+              <div class="field-hint"><i class="bi bi-info-circle"></i>Email hanya dapat diubah oleh Super Admin.</div>
+            {% endif %}
           </div>
 
-          <div class="row g-3 mb-4 mt-2">
+          <div class="row g-3 mb-4">
             <div class="col-sm-6">
               <label class="form-label">NIP</label>
               <div class="input-icon-wrap">
                 <i class="bi bi-person-vcard field-icon"></i>
-                {{ form.nip(class="form-control" + (" is-invalid" if form.nip.errors else ""),
-                   placeholder="Nomor induk pegawai", maxlength=50) }}
+                {{ form.nip(class="form-control" + (" is-invalid" if form.nip.errors else ""), placeholder="Nomor induk pegawai", maxlength=50) }}
               </div>
-              {% for e in form.nip.errors %}
-                <div class="invalid-feedback d-block">{{ e }}</div>
-              {% endfor %}
+              {% for e in form.nip.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
             </div>
             <div class="col-sm-6">
               <label class="form-label">Tanggal Lahir</label>
               <div class="input-icon-wrap">
                 <i class="bi bi-calendar-date field-icon"></i>
-                {{ form.tanggal_lahir(class="form-control" + (" is-invalid" if form.tanggal_lahir.errors else ""),
-                   style="padding-left:38px;") }}
+                {{ form.tanggal_lahir(class="form-control" + (" is-invalid" if form.tanggal_lahir.errors else ""), style="padding-left:38px;") }}
               </div>
-              {% for e in form.tanggal_lahir.errors %}
-                <div class="invalid-feedback d-block">{{ e }}</div>
-              {% endfor %}
+              {% for e in form.tanggal_lahir.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
             </div>
           </div>
 
@@ -136,37 +271,25 @@
             <label class="form-label">Jabatan</label>
             <div class="input-icon-wrap">
               <i class="bi bi-briefcase field-icon"></i>
-              {{ form.jabatan(class="form-control" + (" is-invalid" if form.jabatan.errors else ""),
-                 placeholder="Jabatan atau tanggung jawab", maxlength=100) }}
+              {{ form.jabatan(class="form-control" + (" is-invalid" if form.jabatan.errors else ""), placeholder="Jabatan atau tanggung jawab", maxlength=100) }}
             </div>
-            {% for e in form.jabatan.errors %}
-              <div class="invalid-feedback d-block">{{ e }}</div>
-            {% endfor %}
+            {% for e in form.jabatan.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
           </div>
 
           <div class="divider my-4"></div>
-
-          {# Ganti Password #}
           <div class="form-section"><i class="bi bi-shield-lock me-1"></i> Ganti Password</div>
-          <p style="font-size:12.5px; color:#94A3B8; margin-bottom:20px; margin-top:-8px;">
-            Biarkan kosong jika tidak ingin mengubah password.
-          </p>
+          <p class="profile-edit-note" style="margin-top:-8px; margin-bottom:20px;">Biarkan kosong jika tidak ingin mengubah password.</p>
 
           <div class="mb-4">
             <label class="form-label">Password Saat Ini</label>
             <div class="input-group input-icon-wrap">
               <i class="bi bi-lock field-icon"></i>
-              {{ form.current_password(class="form-control" + (" is-invalid" if form.current_password.errors else ""),
-                 placeholder="Masukkan password saat ini", id="curPassInput",
-                 style="padding-left:38px;") }}
-              <button type="button" class="input-group-text" style="cursor:pointer;"
-                      onclick="togglePass('curPassInput','iconCur')">
+              {{ form.current_password(class="form-control" + (" is-invalid" if form.current_password.errors else ""), placeholder="Masukkan password saat ini", id="curPassInput", style="padding-left:38px;") }}
+              <button type="button" class="input-group-text" onclick="togglePass('curPassInput','iconCur')" aria-label="Tampilkan password saat ini">
                 <i class="bi bi-eye" id="iconCur" style="font-size:14px; color:#64748B;"></i>
               </button>
             </div>
-            {% for e in form.current_password.errors %}
-              <div class="invalid-feedback d-block" style="margin-top:4px;">{{ e }}</div>
-            {% endfor %}
+            {% for e in form.current_password.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
           </div>
 
           <div class="row g-3 mb-4">
@@ -174,131 +297,104 @@
               <label class="form-label">Password Baru</label>
               <div class="input-group input-icon-wrap">
                 <i class="bi bi-key field-icon"></i>
-                {{ form.new_password(class="form-control" + (" is-invalid" if form.new_password.errors else ""),
-                   placeholder="Min. 8 karakter", id="newPassInput",
-                   style="padding-left:38px;") }}
-                <button type="button" class="input-group-text" style="cursor:pointer;"
-                        onclick="togglePass('newPassInput','iconNew')">
+                {{ form.new_password(class="form-control" + (" is-invalid" if form.new_password.errors else ""), placeholder="Min. 8 karakter", id="newPassInput", style="padding-left:38px;") }}
+                <button type="button" class="input-group-text" onclick="togglePass('newPassInput','iconNew')" aria-label="Tampilkan password baru">
                   <i class="bi bi-eye" id="iconNew" style="font-size:14px; color:#64748B;"></i>
                 </button>
               </div>
-              {% for e in form.new_password.errors %}
-                <div class="invalid-feedback d-block" style="margin-top:4px;">{{ e }}</div>
-              {% endfor %}
-              {# Password strength bar #}
-              <div id="passStrengthWrap" style="display:none; margin-top:8px;">
-                <div style="height:4px; border-radius:4px; background:#F1F5F9; overflow:hidden;">
-                  <div id="passStrengthBar" style="height:100%; width:0%; transition:all .3s; border-radius:4px;"></div>
-                </div>
-                <div id="passStrengthLabel" style="font-size:11px; margin-top:3px; color:#94A3B8;"></div>
-              </div>
+              {% for e in form.new_password.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
             </div>
             <div class="col-sm-6">
               <label class="form-label">Konfirmasi Password Baru</label>
               <div class="input-group input-icon-wrap">
                 <i class="bi bi-key field-icon"></i>
-                {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""),
-                   placeholder="Ulangi password baru", id="confirmPassInput",
-                   style="padding-left:38px;") }}
-                <button type="button" class="input-group-text" style="cursor:pointer;"
-                        onclick="togglePass('confirmPassInput','iconConfirm')">
+                {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="Ulangi password baru", id="confirmPassInput", style="padding-left:38px;") }}
+                <button type="button" class="input-group-text" onclick="togglePass('confirmPassInput','iconConfirm')" aria-label="Tampilkan konfirmasi password baru">
                   <i class="bi bi-eye" id="iconConfirm" style="font-size:14px; color:#64748B;"></i>
                 </button>
               </div>
-              {% for e in form.confirm_password.errors %}
-                <div class="invalid-feedback d-block" style="margin-top:4px;">{{ e }}</div>
-              {% endfor %}
-              <div id="passMatchHint" style="font-size:11px; margin-top:5px; display:none;"></div>
+              {% for e in form.confirm_password.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
             </div>
           </div>
 
           <div class="divider mb-4"></div>
-
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary px-5" id="submitBtn">
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="submit" class="btn btn-primary px-4" id="submitBtn">
               <i class="bi bi-save me-2"></i>Simpan Perubahan
             </button>
+            <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary px-4">
+              <i class="bi bi-x-lg me-2"></i>Batal
+            </a>
           </div>
         </form>
       </div>
-    </div>
-
+    </section>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+const editProfileBtn = document.getElementById('editProfileBtn');
+const profileEditCard = document.getElementById('profileEditCard');
+if (editProfileBtn && profileEditCard) {
+  editProfileBtn.addEventListener('click', function() {
+    const shouldOpen = profileEditCard.hidden;
+    profileEditCard.hidden = !shouldOpen;
+    this.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+    this.innerHTML = shouldOpen
+      ? '<i class="bi bi-x-lg me-1"></i><span>Tutup Edit</span>'
+      : '<i class="bi bi-pencil-square me-1"></i><span>Edit Profil</span>';
+    if (shouldOpen) profileEditCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
 function togglePass(inputId, iconId) {
-  const inp  = document.getElementById(inputId);
+  const inp = document.getElementById(inputId);
   const icon = document.getElementById(iconId);
-  inp.type   = inp.type === 'password' ? 'text' : 'password';
+  inp.type = inp.type === 'password' ? 'text' : 'password';
   icon.className = inp.type === 'text' ? 'bi bi-eye-slash' : 'bi bi-eye';
 }
 
-/* Char counter for name */
-const nameInput   = document.getElementById('nameInput');
+const photoInput = document.getElementById('photoInput');
+const photoPreview = document.getElementById('photoPreview');
+if (photoInput && photoPreview) {
+  photoInput.addEventListener('change', function() {
+    const file = this.files && this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = event => { photoPreview.innerHTML = '<img src="' + event.target.result + '" alt="Pratinjau foto profil">'; };
+    reader.readAsDataURL(file);
+  });
+}
+
+const nameInput = document.getElementById('nameInput');
 const nameCounter = document.getElementById('nameCounter');
-if (nameInput) {
+if (nameInput && nameCounter) {
   function updateNameCounter() {
-    const len = nameInput.value.length;
     const max = parseInt(nameInput.getAttribute('maxlength')) || 100;
-    nameCounter.textContent = len + ' / ' + max;
-    nameCounter.classList.toggle('warn', len > max * 0.85);
+    nameCounter.textContent = nameInput.value.length + ' / ' + max;
+    nameCounter.classList.toggle('warn', nameInput.value.length > max * .85);
   }
   nameInput.addEventListener('input', updateNameCounter);
   updateNameCounter();
 }
 
-/* Password strength */
-const newPassInput = document.getElementById('newPassInput');
-if (newPassInput) {
-  newPassInput.addEventListener('input', function() {
-    const val  = this.value;
-    const wrap = document.getElementById('passStrengthWrap');
-    const bar  = document.getElementById('passStrengthBar');
-    const lbl  = document.getElementById('passStrengthLabel');
-    if (!val) { wrap.style.display = 'none'; return; }
-    wrap.style.display = 'block';
-    let score = 0;
-    if (val.length >= 8) score++;
-    if (/[A-Z]/.test(val)) score++;
-    if (/[0-9]/.test(val)) score++;
-    if (/[^A-Za-z0-9]/.test(val)) score++;
-    const levels = [
-      { w:'25%', color:'#DC2626', label:'Lemah' },
-      { w:'50%', color:'#D97706', label:'Cukup' },
-      { w:'75%', color:'#2563EB', label:'Baik' },
-      { w:'100%', color:'#16A34A', label:'Kuat' },
-    ];
-    const lvl = levels[score - 1] || levels[0];
-    bar.style.width = lvl.w;
-    bar.style.background = lvl.color;
-    lbl.textContent = lvl.label;
-    lbl.style.color = lvl.color;
-  });
-}
-
-/* Password match hint */
 const confirmPassInput = document.getElementById('confirmPassInput');
+const newPassInput = document.getElementById('newPassInput');
 if (confirmPassInput && newPassInput) {
   confirmPassInput.addEventListener('input', function() {
-    const hint = document.getElementById('passMatchHint');
-    if (!this.value) { hint.style.display = 'none'; return; }
-    hint.style.display = 'block';
-    if (this.value === newPassInput.value) {
-      hint.innerHTML = '<i class="bi bi-check-circle" style="color:#16A34A;"></i> <span style="color:#16A34A;">Password cocok</span>';
-    } else {
-      hint.innerHTML = '<i class="bi bi-x-circle" style="color:#DC2626;"></i> <span style="color:#DC2626;">Password tidak cocok</span>';
-    }
+    this.classList.toggle('is-invalid', Boolean(this.value) && this.value !== newPassInput.value);
   });
 }
 
-/* Submit loading state */
-document.getElementById('profileForm').addEventListener('submit', function() {
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Menyimpan...';
-});
+const profileForm = document.getElementById('profileForm');
+if (profileForm) {
+  profileForm.addEventListener('submit', function() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Menyimpan...';
+  });
+}
 </script>
 {% endblock %}

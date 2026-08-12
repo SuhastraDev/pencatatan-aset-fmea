@@ -1,6 +1,11 @@
 from datetime import datetime
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from pathlib import Path
+from uuid import uuid4
+
+from flask import Blueprint, current_app, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
+from PIL import Image, UnidentifiedImageError
+from werkzeug.utils import secure_filename
 from app import db
 from app.models.user import User
 from app.models.notification import Notification
@@ -66,30 +71,94 @@ def logout():
 @login_required
 def profile():
     form = ProfileForm(obj=current_user)
+    edit_mode = request.args.get('edit') == '1'
 
     if form.validate_on_submit():
+        password_to_update = form.new_password.data or None
+        if password_to_update:
+            if not form.current_password.data:
+                flash('Masukkan password saat ini untuk mengganti password.', 'warning')
+                return render_template('auth/profile.html', form=form, edit_mode=True)
+
+            if not current_user.check_password(form.current_password.data):
+                flash('Password saat ini tidak sesuai.', 'danger')
+                return render_template('auth/profile.html', form=form, edit_mode=True)
+
+        new_email = None
+        if current_user.is_super_admin():
+            new_email = form.email.data.strip().lower()
+            email_owner = User.query.filter(
+                User.email == new_email,
+                User.id != current_user.id,
+            ).first()
+            if email_owner:
+                form.email.errors.append('Email tersebut sudah digunakan akun lain.')
+                return render_template('auth/profile.html', form=form, edit_mode=True)
+
+        previous_photo = current_user.profile_photo
+        try:
+            new_photo = _save_profile_photo(form.photo.data, current_user.id)
+        except ValueError as exc:
+            form.photo.errors.append(str(exc))
+            return render_template('auth/profile.html', form=form, edit_mode=True)
+
         current_user.name = form.name.data
         current_user.nip = form.nip.data or None
         current_user.jabatan = form.jabatan.data or None
         current_user.tanggal_lahir = form.tanggal_lahir.data
-
-        if form.new_password.data:
-            if not form.current_password.data:
-                flash('Masukkan password saat ini untuk mengganti password.', 'warning')
-                return render_template('auth/profile.html', form=form)
-
-            if not current_user.check_password(form.current_password.data):
-                flash('Password saat ini tidak sesuai.', 'danger')
-                return render_template('auth/profile.html', form=form)
-
-            current_user.set_password(form.new_password.data)
-            flash('Password berhasil diperbarui.', 'success')
+        if new_email is not None:
+            current_user.email = new_email
+        if new_photo:
+            current_user.profile_photo = new_photo
+        if password_to_update:
+            current_user.set_password(password_to_update)
 
         db.session.commit()
+        if new_photo and previous_photo:
+            _delete_profile_photo(previous_photo)
+        if password_to_update:
+            flash('Password berhasil diperbarui.', 'success')
         flash('Profil berhasil disimpan.', 'success')
         return redirect(url_for('auth.profile'))
 
-    return render_template('auth/profile.html', form=form)
+    return render_template('auth/profile.html', form=form, edit_mode=edit_mode or bool(form.errors))
+
+
+def _save_profile_photo(upload, user_id):
+    """Validasi dan simpan foto profil, lalu kembalikan nama file aman."""
+    if not upload or not upload.filename:
+        return None
+
+    try:
+        image = Image.open(upload.stream)
+        image.verify()
+        upload.stream.seek(0)
+        image_format = (image.format or '').upper()
+    except (UnidentifiedImageError, OSError, ValueError):
+        raise ValueError('File yang dipilih bukan gambar yang valid.')
+
+    extension_by_format = {'JPEG': 'jpg', 'PNG': 'png', 'WEBP': 'webp'}
+    extension = extension_by_format.get(image_format)
+    if not extension:
+        raise ValueError('Foto harus berformat JPG, PNG, atau WEBP.')
+
+    if not secure_filename(upload.filename):
+        raise ValueError('Nama file foto tidak valid.')
+
+    upload_dir = Path(current_app.static_folder) / 'uploads' / 'profile'
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    filename = f'user_{user_id}_{uuid4().hex}.{extension}'
+    upload.save(upload_dir / filename)
+    return filename
+
+
+def _delete_profile_photo(filename):
+    """Hapus foto lama hanya dari folder upload profil."""
+    photo_path = Path(current_app.static_folder) / 'uploads' / 'profile' / Path(filename).name
+    try:
+        photo_path.unlink(missing_ok=True)
+    except OSError:
+        current_app.logger.warning('Foto profil lama tidak dapat dihapus: %s', photo_path)
 
 
 # ── Notifikasi (shared semua role) ────────────────────────────────────────────

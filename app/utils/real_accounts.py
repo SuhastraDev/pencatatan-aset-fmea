@@ -10,123 +10,75 @@ DEFAULT_PASSWORD = 'Admin@12345'
 
 DIVISIONS = [
     {
-        'name': 'Divisi Rawat Jalan',
-        'description': 'Mengelola aset ruangan pelayanan rawat jalan, IGD, dan poli.',
+        'name': 'Tata Usaha',
+        'description': 'Master divisi tata usaha untuk pengembangan berikutnya.',
     },
     {
-        'name': 'Divisi Operasi & Tindakan',
-        'description': 'Mengelola aset ruangan operasi, tindakan, ICU, dan bedah.',
+        'name': 'Pelayanan Medik dan Keperawatan',
+        'description': 'Mengelola seluruh aset dan ruangan pelayanan medik dan keperawatan.',
     },
     {
-        'name': 'Divisi Penunjang Medis',
-        'description': 'Mengelola aset ruangan penunjang medis seperti radiologi.',
+        'name': 'Penunjang Medik',
+        'description': 'Master divisi penunjang medik untuk pengembangan berikutnya.',
     },
 ]
 
 ROOMS = [
     {
-        'code': 'POLI-VIP',
-        'name': 'POLI VIP',
-        'division': 'Divisi Rawat Jalan',
-        'floor': 'Lantai 1',
-    },
-    {
-        'code': 'RAWAT-JALAN',
-        'name': 'Rawat Jalan',
-        'division': 'Divisi Rawat Jalan',
-        'floor': 'Lantai 1',
-    },
-    {
-        'code': 'POLI-UMUM',
-        'name': 'Poli Umum',
-        'division': 'Divisi Rawat Jalan',
-        'floor': 'Lantai 1',
-    },
-    {
-        'code': 'IGD',
-        'name': 'IGD',
-        'division': 'Divisi Rawat Jalan',
+        'code': 'VIP',
+        'name': 'VIP',
+        'division': 'Pelayanan Medik dan Keperawatan',
         'floor': 'Lantai 1',
     },
     {
         'code': 'BEDAH',
         'name': 'BEDAH',
-        'division': 'Divisi Operasi & Tindakan',
+        'division': 'Pelayanan Medik dan Keperawatan',
         'floor': 'Lantai 2',
     },
     {
         'code': 'ICU',
         'name': 'ICU',
-        'division': 'Divisi Operasi & Tindakan',
+        'division': 'Pelayanan Medik dan Keperawatan',
         'floor': 'Lantai 2',
-    },
-    {
-        'code': 'RADIOLOGI',
-        'name': 'Radiologi',
-        'division': 'Divisi Penunjang Medis',
-        'floor': 'Lantai 1',
     },
 ]
 
 DIVISION_ADMINS = [
     {
-        'name': 'Admin Divisi Rawat Jalan',
+        'name': 'Admin Divisi Pelayanan Medik dan Keperawatan',
         'email': 'admin.divisi.rawatjalan@rskgm.id',
         'nip': '198501012010011001',
-        'jabatan': 'Admin Divisi Rawat Jalan',
+        'jabatan': 'Admin Divisi Pelayanan Medik dan Keperawatan',
         'tanggal_lahir': date(1985, 1, 1),
-        'division': 'Divisi Rawat Jalan',
+        'division': 'Pelayanan Medik dan Keperawatan',
     },
     {
-        'name': 'Admin Divisi Operasi dan Tindakan',
+        'name': 'Admin Divisi Tata Usaha',
         'email': 'admin.divisi.operasi@rskgm.id',
         'nip': '198602022011012001',
-        'jabatan': 'Admin Divisi Operasi dan Tindakan',
+        'jabatan': 'Admin Divisi Tata Usaha',
         'tanggal_lahir': date(1986, 2, 2),
-        'division': 'Divisi Operasi & Tindakan',
+        'division': 'Tata Usaha',
     },
     {
-        'name': 'Admin Divisi Penunjang Medis',
+        'name': 'Admin Divisi Penunjang Medik',
         'email': 'admin.divisi.penunjang@rskgm.id',
         'nip': '198703032012012001',
-        'jabatan': 'Admin Divisi Penunjang Medis',
+        'jabatan': 'Admin Divisi Penunjang Medik',
         'tanggal_lahir': date(1987, 3, 3),
-        'division': 'Divisi Penunjang Medis',
+        'division': 'Penunjang Medik',
     },
 ]
 
 ROOM_ADMINS = [
     {
-        'name': 'Admin Ruangan POLI VIP',
+        'name': 'Admin Ruangan VIP',
         'email': 'admin.ruangan.polivip@rskgm.id',
         'nip': '199001012014032001',
-        'jabatan': 'Admin Ruangan POLI VIP',
+        'jabatan': 'Admin Ruangan VIP',
         'tanggal_lahir': date(1990, 1, 1),
-        'room': 'POLI-VIP',
-    },
-    {
-        'name': 'Admin Ruangan Rawat Jalan',
-        'email': 'admin.ruangan.rawatjalan@rskgm.id',
-        'nip': '199102022015032001',
-        'jabatan': 'Admin Ruangan Rawat Jalan',
-        'tanggal_lahir': date(1991, 2, 2),
-        'room': 'RAWAT-JALAN',
-    },
-    {
-        'name': 'Admin Ruangan Poli Umum',
-        'email': 'admin.ruangan.poliumum@rskgm.id',
-        'nip': '199203032016032001',
-        'jabatan': 'Admin Ruangan Poli Umum',
-        'tanggal_lahir': date(1992, 3, 3),
-        'room': 'POLI-UMUM',
-    },
-    {
-        'name': 'Admin Ruangan IGD',
-        'email': 'admin.ruangan.igd@rskgm.id',
-        'nip': '199304042017032001',
-        'jabatan': 'Admin Ruangan IGD',
-        'tanggal_lahir': date(1993, 4, 4),
-        'room': 'IGD',
+        'room': 'VIP',
     },
     {
         'name': 'Admin Ruangan BEDAH',
@@ -143,14 +95,6 @@ ROOM_ADMINS = [
         'jabatan': 'Admin Ruangan ICU',
         'tanggal_lahir': date(1995, 6, 6),
         'room': 'ICU',
-    },
-    {
-        'name': 'Admin Ruangan Radiologi',
-        'email': 'admin.ruangan.radiologi@rskgm.id',
-        'nip': '199607072020032001',
-        'jabatan': 'Admin Ruangan Radiologi',
-        'tanggal_lahir': date(1996, 7, 7),
-        'room': 'RADIOLOGI',
     },
 ]
 
