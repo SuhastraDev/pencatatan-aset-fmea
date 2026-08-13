@@ -160,6 +160,9 @@ def build_preventive_preview(path, allowed_room_ids=None):
             values = _read_preventive_row(worksheet, row_number, columns, sheet_date)
             if not values['asset_name'] and not values['result']:
                 continue
+            if values['asset_name'].strip().upper().startswith('CONTOH'):
+                preview.ignored_rows += 1
+                continue
 
             row = PreventiveImportRow(
                 sheet_name=worksheet.title,

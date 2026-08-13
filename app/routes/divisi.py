@@ -26,6 +26,7 @@ from app.services.preventive_import_service import (
     remove_upload,
     store_upload,
 )
+from app.services.preventive_template_service import generate_preventive_template
 
 divisi_bp = Blueprint('divisi', __name__, url_prefix='/divisi')
 
@@ -703,6 +704,7 @@ def preventive_import():
                 preview=preview,
                 import_endpoint='divisi.preventive_import',
                 index_endpoint='divisi.preventive_index',
+                template_endpoint='divisi.preventive_template',
             )
 
     preview = None
@@ -718,6 +720,20 @@ def preventive_import():
         preview=preview,
         import_endpoint='divisi.preventive_import',
         index_endpoint='divisi.preventive_index',
+        template_endpoint='divisi.preventive_template',
+    )
+
+
+@divisi_bp.route('/preventive/template')
+@login_required
+@role_required('admin_divisi')
+def preventive_template():
+    rooms = get_division_rooms(current_user)
+    return send_file(
+        generate_preventive_template(rooms),
+        as_attachment=True,
+        download_name=f'template_preventive_{date.today():%Y%m%d}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
 
 

@@ -35,6 +35,7 @@ from app.services.preventive_import_service import (
     remove_upload,
     store_upload,
 )
+from app.services.preventive_template_service import generate_preventive_template
 
 ruangan_bp = Blueprint('ruangan', __name__, url_prefix='/ruangan')
 
@@ -577,6 +578,7 @@ def preventive_import():
                 preview=preview,
                 import_endpoint='ruangan.preventive_import',
                 index_endpoint='ruangan.preventive_index',
+                template_endpoint='ruangan.preventive_template',
             )
 
     preview = None
@@ -592,6 +594,20 @@ def preventive_import():
         preview=preview,
         import_endpoint='ruangan.preventive_import',
         index_endpoint='ruangan.preventive_index',
+        template_endpoint='ruangan.preventive_template',
+    )
+
+
+@ruangan_bp.route('/preventive/template')
+@login_required
+@role_required('admin_ruangan')
+def preventive_template():
+    rooms = [current_user.room] if current_user.room else []
+    return send_file(
+        generate_preventive_template(rooms),
+        as_attachment=True,
+        download_name=f'template_preventive_{date.today():%Y%m%d}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
 
 
