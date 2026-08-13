@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file, abort
+from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file, abort, session
 from flask_login import login_required, current_user
 from sqlalchemy import and_, func
 import io, json
@@ -16,8 +16,16 @@ from app.models.user import User
 from app.utils.decorators import role_required
 from app.utils.helpers import generate_qr_code
 from app.forms.approval_forms import ApproveForm, RejectForm
+from app.forms.import_forms import PreventiveImportForm
 from app.services.notif_service import notify_approval_result
 from app.services.export_service import generate_excel_divisi, generate_pdf, generate_kir_pdf, build_filename
+from app.services.preventive_import_service import (
+    build_preventive_preview,
+    commit_preventive_import,
+    pending_upload_path,
+    remove_upload,
+    store_upload,
+)
 
 divisi_bp = Blueprint('divisi', __name__, url_prefix='/divisi')
 
@@ -615,6 +623,101 @@ def maintenance_logs():
     return render_template('divisi/maintenance_logs/index.html',
         logs=logs, rooms=rooms, users_map=users_map,
         room_filter=room_filter, action_filter=action_filter,
+    )
+
+
+# ── Preventive Maintenance ────────────────────────────────────────────────────
+
+@divisi_bp.route('/preventive')
+@login_required
+@role_required('admin_divisi')
+def preventive_index():
+    room_ids = get_division_room_ids(current_user)
+    page = request.args.get('page', 1, type=int)
+    query = (
+        PreventiveMaintenance.query
+        .join(Asset, PreventiveMaintenance.asset_id == Asset.id)
+        .filter(Asset.room_id.in_(room_ids))
+        if room_ids else PreventiveMaintenance.query.filter_by(id=None)
+    )
+    records = (query
+        .order_by(PreventiveMaintenance.check_date.desc(), PreventiveMaintenance.created_at.desc())
+        .paginate(page=page, per_page=15))
+    return render_template(
+        'shared/preventive/index.html',
+        base_template='layouts/base_divisi.html',
+        records=records,
+        scope_label=current_user.division.division_name if current_user.division else 'Divisi',
+        detail_endpoint='divisi.assets_detail',
+        import_endpoint='divisi.preventive_import',
+    )
+
+
+@divisi_bp.route('/preventive/import', methods=['GET', 'POST'])
+@login_required
+@role_required('admin_divisi')
+def preventive_import():
+    room_ids = get_division_room_ids(current_user)
+    form = PreventiveImportForm()
+    token = session.get('preventive_import_token')
+
+    if request.method == 'POST' and request.form.get('action') == 'commit':
+        if not form.validate_on_submit():
+            flash('Permintaan konfirmasi import tidak valid. Silakan ulangi preview.', 'danger')
+            return redirect(url_for('divisi.preventive_import'))
+        path = pending_upload_path(token)
+        if not path:
+            session.pop('preventive_import_token', None)
+            flash('Preview import sudah kedaluwarsa. Silakan upload ulang.', 'warning')
+            return redirect(url_for('divisi.preventive_import'))
+        try:
+            result = commit_preventive_import(path, current_user, allowed_room_ids=room_ids)
+            remove_upload(token)
+            session.pop('preventive_import_token', None)
+            flash(
+                f'Import preventive berhasil: {result.preventive_created} pemeriksaan, '
+                f'{result.assets_created} aset baru, {result.assets_updated} aset dilengkapi.',
+                'success',
+            )
+            return redirect(url_for('divisi.preventive_index'))
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+            return redirect(url_for('divisi.preventive_import'))
+
+    if form.validate_on_submit():
+        if not form.file.data or not form.file.data.filename:
+            form.file.errors.append('File Excel wajib dipilih.')
+        else:
+            if token:
+                remove_upload(token)
+            token = store_upload(form.file.data)
+            session['preventive_import_token'] = token
+            preview = build_preventive_preview(
+                pending_upload_path(token),
+                allowed_room_ids=room_ids,
+            )
+            return render_template(
+                'shared/preventive/import.html',
+                base_template='layouts/base_divisi.html',
+                form=form,
+                preview=preview,
+                import_endpoint='divisi.preventive_import',
+                index_endpoint='divisi.preventive_index',
+            )
+
+    preview = None
+    if token and pending_upload_path(token):
+        preview = build_preventive_preview(
+            pending_upload_path(token),
+            allowed_room_ids=room_ids,
+        )
+    return render_template(
+        'shared/preventive/import.html',
+        base_template='layouts/base_divisi.html',
+        form=form,
+        preview=preview,
+        import_endpoint='divisi.preventive_import',
+        index_endpoint='divisi.preventive_index',
     )
 
 

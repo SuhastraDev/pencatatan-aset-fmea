@@ -1,0 +1,115 @@
+{% extends base_template %}
+{% block title %}Import Preventive — SIMASET{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-start gap-3 mb-4">
+  <a href="{{ url_for(index_endpoint) }}" class="btn btn-sm btn-outline-secondary" title="Kembali">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div>
+    <h4 class="fw-bold mb-0">Import Excel Preventive</h4>
+    <p class="text-muted mb-0">Upload checklist, periksa pencocokan aset, lalu konfirmasi penyimpanan.</p>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-upload me-2 text-primary"></i>Upload File</div>
+      <div class="card-body">
+        <form method="POST" enctype="multipart/form-data" action="{{ url_for(import_endpoint) }}">
+          {{ form.hidden_tag() }}
+          <label class="form-label fw-semibold">{{ form.file.label.text }} <span class="text-danger">*</span></label>
+          {{ form.file(class="form-control" + (" is-invalid" if form.file.errors else ""), accept=".xlsx") }}
+          {% for error in form.file.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+          <div class="form-text"><i class="bi bi-info-circle"></i> Hanya file .xlsx dengan struktur checklist preventive.</div>
+          <button type="submit" class="btn btn-primary mt-3">
+            <i class="bi bi-search"></i> Tampilkan Preview
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-shield-check me-2 text-success"></i>Alur Aman</div>
+      <div class="card-body small text-muted">
+        <div class="d-flex gap-2 mb-2"><span class="badge bg-primary">1</span><span>Upload file Excel.</span></div>
+        <div class="d-flex gap-2 mb-2"><span class="badge bg-primary">2</span><span>Sistem mencocokkan ruangan dan aset.</span></div>
+        <div class="d-flex gap-2"><span class="badge bg-primary">3</span><span>Periksa preview lalu simpan.</span></div>
+        <hr>
+        <div><strong>Aset baru</strong> akan dibuat hanya setelah tombol konfirmasi ditekan.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if preview %}
+<div class="card border-0 shadow-sm">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <div class="fw-semibold"><i class="bi bi-table me-2 text-info"></i>Preview Import</div>
+      <div class="text-muted small">Belum disimpan ke database.</div>
+    </div>
+    {% if not preview.has_blocking_rows and preview.importable_count > 0 %}
+    <form method="POST" action="{{ url_for(import_endpoint) }}" onsubmit="return confirm('Simpan data preventive dari preview ini?');">
+      {{ form.hidden_tag() }}
+      <input type="hidden" name="action" value="commit">
+      <button type="submit" class="btn btn-success"><i class="bi bi-check2-circle"></i> Konfirmasi & Simpan</button>
+    </form>
+    {% else %}
+    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Perlu diperiksa</span>
+    {% endif %}
+  </div>
+
+  <div class="card-body border-bottom">
+    <div class="row g-2 small">
+      <div class="col-6 col-md-3"><span class="text-muted d-block">Total baris</span><strong>{{ preview.total_rows }}</strong></div>
+      <div class="col-6 col-md-3"><span class="text-muted d-block">Aset cocok</span><strong class="text-success">{{ preview.matched_count }}</strong></div>
+      <div class="col-6 col-md-3"><span class="text-muted d-block">Aset baru</span><strong class="text-primary">{{ preview.new_asset_count }}</strong></div>
+      <div class="col-6 col-md-3"><span class="text-muted d-block">Duplikat</span><strong class="text-warning">{{ preview.duplicate_count }}</strong></div>
+    </div>
+  </div>
+
+  {% if preview.warnings %}
+  <div class="alert alert-warning rounded-0 mb-0 small">
+    {% for warning in preview.warnings %}<div><i class="bi bi-exclamation-triangle me-1"></i>{{ warning }}</div>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small" style="min-width:1250px;">
+      <thead class="table-light">
+        <tr>
+          <th>No</th><th>Sheet / Baris</th><th>Tanggal</th><th>Nama Alat</th><th>Merk</th><th>SN</th><th>Type</th><th>Hasil</th><th>Ket.</th><th>Status Pencocokan</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in preview.rows %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td class="text-nowrap">{{ row.sheet_name }} / {{ row.row_number }}</td>
+          <td class="text-nowrap">{{ row.check_date.strftime('%d %b %Y') if row.check_date else '—' }}</td>
+          <td><div class="fw-semibold">{{ row.asset_name or '—' }}</div><div class="text-muted" style="font-size:11px;">{{ row.room_name }}</div></td>
+          <td>{{ row.brand or '—' }}</td>
+          <td>{{ row.serial_number or '—' }}</td>
+          <td>{{ row.model or '—' }}</td>
+          <td title="{{ row.result }}">{{ row.result|truncate(80) if row.result else '—' }}</td>
+          <td title="{{ row.notes }}">{{ row.notes|truncate(70) if row.notes else '—' }}</td>
+          <td>
+            {% if row.status == 'matched' %}<span class="badge bg-success">{{ row.status_label }}</span>
+            {% elif row.status == 'new_asset' %}<span class="badge bg-primary">{{ row.status_label }}</span>
+            {% elif row.status == 'duplicate' %}<span class="badge bg-warning text-dark">{{ row.status_label }}</span>
+            {% else %}<span class="badge bg-danger">{{ row.status_label }}</span>{% endif %}
+            <div class="text-muted mt-1" style="font-size:11px;">{{ row.match_note }}</div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="text-center text-muted py-4">Tidak ada baris preventive yang dapat dibaca.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

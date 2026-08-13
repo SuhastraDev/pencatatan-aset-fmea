@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file
+from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file, session
 from flask_login import login_required, current_user
 from app import db
 from app.models.asset import Asset
@@ -13,6 +13,7 @@ from app.utils.decorators import role_required, check_room_ownership
 from app.utils.helpers import generate_asset_code, generate_qr_code
 from app.forms.asset_forms import CreateAssetForm, EditAssetForm, RequestChangeForm, RepairLogForm, PreventiveMaintenanceForm
 from app.forms.fmea_forms import FmeaEvaluationForm
+from app.forms.import_forms import PreventiveImportForm
 from app.services.fmea_service import (
     calculate_rpn,
     update_asset_condition,
@@ -27,6 +28,13 @@ from app.services.asset_health_service import (
 )
 from app.services.notif_service import notify_high_rpn, notify_medium_rpn, notify_new_approval_request
 from app.services.export_service import generate_excel, generate_pdf, generate_kir_pdf, build_filename
+from app.services.preventive_import_service import (
+    build_preventive_preview,
+    commit_preventive_import,
+    pending_upload_path,
+    remove_upload,
+    store_upload,
+)
 
 ruangan_bp = Blueprint('ruangan', __name__, url_prefix='/ruangan')
 
@@ -509,7 +517,82 @@ def preventive_index():
             .paginate(page=page, per_page=15))
     else:
         records = PreventiveMaintenance.query.filter(db.false()).paginate(page=1, per_page=15)
-    return render_template('ruangan/preventive/index.html', records=records)
+    return render_template(
+        'shared/preventive/index.html',
+        base_template='layouts/base_ruangan.html',
+        records=records,
+        scope_label=current_user.room.room_name if current_user.room else 'Ruangan',
+        detail_endpoint='ruangan.assets_detail',
+        import_endpoint='ruangan.preventive_import',
+    )
+
+
+@ruangan_bp.route('/preventive/import', methods=['GET', 'POST'])
+@login_required
+@role_required('admin_ruangan')
+def preventive_import():
+    form = PreventiveImportForm()
+    room_ids = [current_user.room_id] if current_user.room_id else []
+    token = session.get('preventive_import_token')
+
+    if request.method == 'POST' and request.form.get('action') == 'commit':
+        if not form.validate_on_submit():
+            flash('Permintaan konfirmasi import tidak valid. Silakan ulangi preview.', 'danger')
+            return redirect(url_for('ruangan.preventive_import'))
+        path = pending_upload_path(token)
+        if not path:
+            session.pop('preventive_import_token', None)
+            flash('Preview import sudah kedaluwarsa. Silakan upload ulang.', 'warning')
+            return redirect(url_for('ruangan.preventive_import'))
+        try:
+            result = commit_preventive_import(path, current_user, allowed_room_ids=room_ids)
+            remove_upload(token)
+            session.pop('preventive_import_token', None)
+            flash(
+                f'Import preventive berhasil: {result.preventive_created} pemeriksaan, '
+                f'{result.assets_created} aset baru, {result.assets_updated} aset dilengkapi.',
+                'success',
+            )
+            return redirect(url_for('ruangan.preventive_index'))
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+            return redirect(url_for('ruangan.preventive_import'))
+
+    if form.validate_on_submit():
+        if not form.file.data or not form.file.data.filename:
+            form.file.errors.append('File Excel wajib dipilih.')
+        else:
+            if token:
+                remove_upload(token)
+            token = store_upload(form.file.data)
+            session['preventive_import_token'] = token
+            preview = build_preventive_preview(
+                pending_upload_path(token),
+                allowed_room_ids=room_ids,
+            )
+            return render_template(
+                'shared/preventive/import.html',
+                base_template='layouts/base_ruangan.html',
+                form=form,
+                preview=preview,
+                import_endpoint='ruangan.preventive_import',
+                index_endpoint='ruangan.preventive_index',
+            )
+
+    preview = None
+    if token and pending_upload_path(token):
+        preview = build_preventive_preview(
+            pending_upload_path(token),
+            allowed_room_ids=room_ids,
+        )
+    return render_template(
+        'shared/preventive/import.html',
+        base_template='layouts/base_ruangan.html',
+        form=form,
+        preview=preview,
+        import_endpoint='ruangan.preventive_import',
+        index_endpoint='ruangan.preventive_index',
+    )
 
 
 # ── FMEA ───────────────────────────────────────────────────────────────────────
