@@ -150,13 +150,15 @@ def build_preventive_preview(path, allowed_room_ids=None):
                 f'Sheet "{worksheet.title}" dilewati karena ruangan "{room_name}" '
                 'tidak tersedia dalam cakupan akun ini.'
             )
-            preview.ignored_rows += max(worksheet.max_row - 8, 0)
+            preview.ignored_rows += max(worksheet.max_row - 7, 0)
             continue
 
         columns = _preventive_columns(worksheet)
         sheet_date = _sheet_date(worksheet)
 
-        for row_number in range(9, worksheet.max_row + 1):
+        # Baris 8 adalah area input pertama; baris kosong tetap dilewati.
+        # Format Excel lama yang mulai mengisi dari baris 9 tetap terbaca.
+        for row_number in range(8, worksheet.max_row + 1):
             values = _read_preventive_row(worksheet, row_number, columns, sheet_date)
             if not values['asset_name'] and not values['result']:
                 continue
