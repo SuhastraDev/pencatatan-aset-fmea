@@ -17,6 +17,7 @@ from app.utils.decorators import role_required
 from app.utils.helpers import generate_qr_code
 from app.forms.approval_forms import ApproveForm, RejectForm
 from app.forms.import_forms import PreventiveImportForm
+from app.forms.maintenance_import_forms import MaintenanceImportForm
 from app.services.notif_service import notify_approval_result
 from app.services.export_service import generate_excel_divisi, generate_pdf, generate_kir_pdf, build_filename
 from app.services.preventive_import_service import (
@@ -27,6 +28,14 @@ from app.services.preventive_import_service import (
     store_upload,
 )
 from app.services.preventive_template_service import generate_preventive_template
+from app.services.maintenance_import_service import (
+    build_maintenance_preview,
+    commit_maintenance_import,
+    pending_upload_path as pending_maintenance_upload_path,
+    remove_upload as remove_maintenance_upload,
+    store_upload as store_maintenance_upload,
+)
+from app.services.maintenance_template_service import generate_maintenance_template
 
 divisi_bp = Blueprint('divisi', __name__, url_prefix='/divisi')
 
@@ -624,6 +633,95 @@ def maintenance_logs():
     return render_template('divisi/maintenance_logs/index.html',
         logs=logs, rooms=rooms, users_map=users_map,
         room_filter=room_filter, action_filter=action_filter,
+        import_endpoint='divisi.maintenance_import',
+        template_endpoint='divisi.maintenance_template',
+    )
+
+
+@divisi_bp.route('/maintenance-logs/import', methods=['GET', 'POST'])
+@login_required
+@role_required('admin_divisi')
+def maintenance_import():
+    room_ids = get_division_room_ids(current_user)
+    form = MaintenanceImportForm()
+    token = session.get('maintenance_import_token')
+
+    if request.method == 'POST' and request.form.get('action') == 'commit':
+        if not form.validate_on_submit():
+            flash('Permintaan konfirmasi import tidak valid. Silakan ulangi preview.', 'danger')
+            return redirect(url_for('divisi.maintenance_import'))
+        path = pending_maintenance_upload_path(token)
+        if not path:
+            session.pop('maintenance_import_token', None)
+            flash('Preview import sudah kedaluwarsa. Silakan upload ulang.', 'warning')
+            return redirect(url_for('divisi.maintenance_import'))
+        try:
+            result = commit_maintenance_import(
+                path,
+                current_user,
+                allowed_room_ids=room_ids,
+            )
+            remove_maintenance_upload(token)
+            session.pop('maintenance_import_token', None)
+            flash(
+                f'Import riwayat berhasil: {result.logs_created} riwayat, '
+                f'{result.assets_created} aset baru, {result.assets_updated} aset dilengkapi.',
+                'success',
+            )
+            return redirect(url_for('divisi.maintenance_logs'))
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+            return redirect(url_for('divisi.maintenance_import'))
+
+    if form.validate_on_submit():
+        if not form.file.data or not form.file.data.filename:
+            form.file.errors.append('File Excel wajib dipilih.')
+        else:
+            if token:
+                remove_maintenance_upload(token)
+            token = store_maintenance_upload(form.file.data)
+            session['maintenance_import_token'] = token
+            preview = build_maintenance_preview(
+                pending_maintenance_upload_path(token),
+                allowed_room_ids=room_ids,
+            )
+            return render_template(
+                'shared/maintenance_import.html',
+                base_template='layouts/base_divisi.html',
+                form=form,
+                preview=preview,
+                import_endpoint='divisi.maintenance_import',
+                template_endpoint='divisi.maintenance_template',
+                index_endpoint='divisi.maintenance_logs',
+            )
+
+    preview = None
+    if token and pending_maintenance_upload_path(token):
+        preview = build_maintenance_preview(
+            pending_maintenance_upload_path(token),
+            allowed_room_ids=room_ids,
+        )
+    return render_template(
+        'shared/maintenance_import.html',
+        base_template='layouts/base_divisi.html',
+        form=form,
+        preview=preview,
+        import_endpoint='divisi.maintenance_import',
+        template_endpoint='divisi.maintenance_template',
+        index_endpoint='divisi.maintenance_logs',
+    )
+
+
+@divisi_bp.route('/maintenance-logs/template')
+@login_required
+@role_required('admin_divisi')
+def maintenance_template():
+    rooms = get_division_rooms(current_user)
+    return send_file(
+        generate_maintenance_template(rooms),
+        as_attachment=True,
+        download_name=f'template_riwayat_maintenance_{date.today():%Y%m%d}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
 
 

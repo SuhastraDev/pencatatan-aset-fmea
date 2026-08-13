@@ -2,10 +2,18 @@
 {% block title %}Riwayat Maintenance — Admin Ruangan{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center mb-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
   <div>
     <h4 class="fw-bold mb-0">Riwayat Maintenance</h4>
     <p class="text-muted mb-0">{{ current_user.room.room_name }}</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for(template_endpoint) }}" class="btn btn-outline-success">
+      <i class="bi bi-download"></i> Download Template
+    </a>
+    <a href="{{ url_for(import_endpoint) }}" class="btn btn-primary">
+      <i class="bi bi-file-earmark-arrow-up"></i> Import Excel
+    </a>
   </div>
 </div>
 

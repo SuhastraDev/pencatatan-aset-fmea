@@ -14,6 +14,7 @@ from app.utils.helpers import generate_asset_code, generate_qr_code
 from app.forms.asset_forms import CreateAssetForm, EditAssetForm, RequestChangeForm, RepairLogForm, PreventiveMaintenanceForm
 from app.forms.fmea_forms import FmeaEvaluationForm
 from app.forms.import_forms import PreventiveImportForm
+from app.forms.maintenance_import_forms import MaintenanceImportForm
 from app.services.fmea_service import (
     calculate_rpn,
     update_asset_condition,
@@ -36,6 +37,14 @@ from app.services.preventive_import_service import (
     store_upload,
 )
 from app.services.preventive_template_service import generate_preventive_template
+from app.services.maintenance_import_service import (
+    build_maintenance_preview,
+    commit_maintenance_import,
+    pending_upload_path as pending_maintenance_upload_path,
+    remove_upload as remove_maintenance_upload,
+    store_upload as store_maintenance_upload,
+)
+from app.services.maintenance_template_service import generate_maintenance_template
 
 ruangan_bp = Blueprint('ruangan', __name__, url_prefix='/ruangan')
 
@@ -892,4 +901,96 @@ def maintenance_logs():
     else:
         # Kembalikan objek paginate kosong agar template tidak crash
         logs = MaintenanceLog.query.filter(db.false()).paginate(page=1, per_page=15)
-    return render_template('ruangan/maintenance_logs.html', logs=logs)
+    return render_template(
+        'ruangan/maintenance_logs.html',
+        logs=logs,
+        import_endpoint='ruangan.maintenance_import',
+        template_endpoint='ruangan.maintenance_template',
+    )
+
+
+@ruangan_bp.route('/maintenance-logs/import', methods=['GET', 'POST'])
+@login_required
+@role_required('admin_ruangan')
+def maintenance_import():
+    room_ids = [current_user.room_id] if current_user.room_id else []
+    form = MaintenanceImportForm()
+    token = session.get('maintenance_import_token')
+
+    if request.method == 'POST' and request.form.get('action') == 'commit':
+        if not form.validate_on_submit():
+            flash('Permintaan konfirmasi import tidak valid. Silakan ulangi preview.', 'danger')
+            return redirect(url_for('ruangan.maintenance_import'))
+        path = pending_maintenance_upload_path(token)
+        if not path:
+            session.pop('maintenance_import_token', None)
+            flash('Preview import sudah kedaluwarsa. Silakan upload ulang.', 'warning')
+            return redirect(url_for('ruangan.maintenance_import'))
+        try:
+            result = commit_maintenance_import(
+                path,
+                current_user,
+                allowed_room_ids=room_ids,
+            )
+            remove_maintenance_upload(token)
+            session.pop('maintenance_import_token', None)
+            flash(
+                f'Import riwayat berhasil: {result.logs_created} riwayat, '
+                f'{result.assets_created} aset baru, {result.assets_updated} aset dilengkapi.',
+                'success',
+            )
+            return redirect(url_for('ruangan.maintenance_logs'))
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+            return redirect(url_for('ruangan.maintenance_import'))
+
+    if form.validate_on_submit():
+        if not form.file.data or not form.file.data.filename:
+            form.file.errors.append('File Excel wajib dipilih.')
+        else:
+            if token:
+                remove_maintenance_upload(token)
+            token = store_maintenance_upload(form.file.data)
+            session['maintenance_import_token'] = token
+            preview = build_maintenance_preview(
+                pending_maintenance_upload_path(token),
+                allowed_room_ids=room_ids,
+            )
+            return render_template(
+                'shared/maintenance_import.html',
+                base_template='layouts/base_ruangan.html',
+                form=form,
+                preview=preview,
+                import_endpoint='ruangan.maintenance_import',
+                template_endpoint='ruangan.maintenance_template',
+                index_endpoint='ruangan.maintenance_logs',
+            )
+
+    preview = None
+    if token and pending_maintenance_upload_path(token):
+        preview = build_maintenance_preview(
+            pending_maintenance_upload_path(token),
+            allowed_room_ids=room_ids,
+        )
+    return render_template(
+        'shared/maintenance_import.html',
+        base_template='layouts/base_ruangan.html',
+        form=form,
+        preview=preview,
+        import_endpoint='ruangan.maintenance_import',
+        template_endpoint='ruangan.maintenance_template',
+        index_endpoint='ruangan.maintenance_logs',
+    )
+
+
+@ruangan_bp.route('/maintenance-logs/template')
+@login_required
+@role_required('admin_ruangan')
+def maintenance_template():
+    rooms = [current_user.room] if current_user.room else []
+    return send_file(
+        generate_maintenance_template(rooms),
+        as_attachment=True,
+        download_name=f'template_riwayat_maintenance_{date.today():%Y%m%d}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
