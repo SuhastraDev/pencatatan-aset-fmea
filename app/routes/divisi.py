@@ -16,10 +16,17 @@ from app.models.user import User
 from app.utils.decorators import role_required
 from app.utils.helpers import generate_qr_code
 from app.forms.approval_forms import ApproveForm, RejectForm
-from app.forms.import_forms import PreventiveImportForm
+from app.forms.import_forms import PreventiveImportForm, AssetKibImportForm
 from app.forms.maintenance_import_forms import MaintenanceImportForm
 from app.services.notif_service import notify_approval_result
-from app.services.export_service import generate_excel_divisi, generate_pdf, generate_kir_pdf, build_filename
+from app.services.export_service import (
+    generate_excel_divisi,
+    generate_pdf,
+    generate_kir_pdf,
+    generate_maintenance_excel,
+    generate_preventive_excel,
+    build_filename,
+)
 from app.services.preventive_import_service import (
     build_preventive_preview,
     commit_preventive_import,
@@ -36,6 +43,14 @@ from app.services.maintenance_import_service import (
     store_upload as store_maintenance_upload,
 )
 from app.services.maintenance_template_service import generate_maintenance_template
+from app.services.asset_health_service import build_asset_report_context
+from app.services.asset_import_service import (
+    build_asset_preview,
+    commit_asset_import,
+    pending_upload_path as pending_asset_upload_path,
+    remove_upload as remove_asset_upload,
+    store_upload as store_asset_upload,
+)
 
 divisi_bp = Blueprint('divisi', __name__, url_prefix='/divisi')
 
@@ -479,10 +494,10 @@ def _build_report_data(room_ids, room_filter, kondisi_filter, rpn_filter):
     assets = query.order_by(Asset.room_id, Asset.asset_name).all()
     asset_data = []
     for a in assets:
-        last_f = a.fmea_records.order_by(FmeaRecord.created_at.desc()).first()
-        if rpn_filter and (not last_f or last_f.risk_category != rpn_filter):
+        context = build_asset_report_context(a)
+        if rpn_filter and (not context['last_fmea'] or context['last_fmea'].risk_category != rpn_filter):
             continue
-        asset_data.append({'asset': a, 'last_fmea': last_f})
+        asset_data.append({'asset': a, **context})
 
     stats = {
         'total': len(asset_data),
@@ -528,6 +543,74 @@ def reports_index():
         asset_data=asset_data, stats=stats, rooms=rooms,
         room_summary=room_summary,
         room_filter=room_filter, kondisi_filter=kondisi_filter, rpn_filter=rpn_filter,
+    )
+
+
+@divisi_bp.route('/reports/import', methods=['GET', 'POST'])
+@login_required
+@role_required('admin_divisi')
+def reports_import():
+    form = AssetKibImportForm()
+    allowed_room_ids = get_division_room_ids(current_user)
+    token = session.get('asset_report_import_token')
+
+    if request.method == 'POST' and request.form.get('action') == 'commit':
+        if not form.validate_on_submit():
+            flash('Permintaan konfirmasi import tidak valid. Silakan ulangi preview.', 'danger')
+            return redirect(url_for('divisi.reports_import'))
+        path = pending_asset_upload_path(token)
+        if not path:
+            session.pop('asset_report_import_token', None)
+            flash('Preview import sudah kedaluwarsa. Silakan upload ulang.', 'warning')
+            return redirect(url_for('divisi.reports_import'))
+        try:
+            result = commit_asset_import(path, allowed_room_ids=allowed_room_ids)
+            remove_asset_upload(token)
+            session.pop('asset_report_import_token', None)
+            flash(
+                f'Import KIB selesai: {result.assets_updated} aset diperbarui, '
+                f'{result.rows_skipped} baris tidak diubah karena belum cocok.',
+                'success',
+            )
+            return redirect(url_for('divisi.reports_index'))
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+            return redirect(url_for('divisi.reports_import'))
+
+    if form.validate_on_submit():
+        if not form.file.data or not form.file.data.filename:
+            form.file.errors.append('File Excel wajib dipilih.')
+        else:
+            if token:
+                remove_asset_upload(token)
+            token = store_asset_upload(form.file.data)
+            session['asset_report_import_token'] = token
+            preview = build_asset_preview(
+                pending_asset_upload_path(token),
+                allowed_room_ids=allowed_room_ids,
+            )
+            return render_template(
+                'shared/asset_import.html',
+                base_template='layouts/base_divisi.html',
+                form=form,
+                preview=preview,
+                import_endpoint='divisi.reports_import',
+                index_endpoint='divisi.reports_index',
+            )
+
+    preview = None
+    if token and pending_asset_upload_path(token):
+        preview = build_asset_preview(
+            pending_asset_upload_path(token),
+            allowed_room_ids=allowed_room_ids,
+        )
+    return render_template(
+        'shared/asset_import.html',
+        base_template='layouts/base_divisi.html',
+        form=form,
+        preview=preview,
+        import_endpoint='divisi.reports_import',
+        index_endpoint='divisi.reports_index',
     )
 
 
@@ -617,6 +700,9 @@ def maintenance_logs():
         MaintenanceLog.query
         .join(Asset, MaintenanceLog.asset_id == Asset.id)
         .filter(Asset.room_id.in_(room_ids))
+        .filter(MaintenanceLog.action_type.in_([
+            'perbaikan', 'penggantian', 'pemeriksaan_rutin', 'preventive_check'
+        ]))
     ) if room_ids else MaintenanceLog.query.filter_by(id=None)
 
     if room_filter:
@@ -635,6 +721,38 @@ def maintenance_logs():
         room_filter=room_filter, action_filter=action_filter,
         import_endpoint='divisi.maintenance_import',
         template_endpoint='divisi.maintenance_template',
+        export_endpoint='divisi.maintenance_export',
+    )
+
+
+@divisi_bp.route('/maintenance-logs/export')
+@login_required
+@role_required('admin_divisi')
+def maintenance_export():
+    room_ids = get_division_room_ids(current_user)
+    room_filter = request.args.get('room', 0, type=int)
+    action_filter = request.args.get('action', '')
+    if room_filter and room_filter not in room_ids:
+        abort(403)
+    query = (
+        MaintenanceLog.query
+        .join(Asset, MaintenanceLog.asset_id == Asset.id)
+        .filter(Asset.room_id.in_(room_ids))
+        .filter(MaintenanceLog.action_type.in_([
+            'perbaikan', 'penggantian', 'pemeriksaan_rutin', 'preventive_check'
+        ]))
+    ) if room_ids else MaintenanceLog.query.filter_by(id=None)
+    if room_filter:
+        query = query.filter(Asset.room_id == room_filter)
+    if action_filter:
+        query = query.filter(MaintenanceLog.action_type == action_filter)
+    logs = query.order_by(MaintenanceLog.action_date.asc(), MaintenanceLog.created_at.asc()).all()
+    buf = generate_maintenance_excel(logs)
+    return send_file(
+        buf,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=f'riwayat_maintenance_divisi_{date.today():%Y%m%d}.xlsx',
     )
 
 
@@ -750,6 +868,8 @@ def preventive_index():
         detail_endpoint='divisi.assets_detail',
         import_endpoint='divisi.preventive_import',
         template_endpoint='divisi.preventive_template',
+        export_endpoint='divisi.preventive_export',
+        asset_filter=None,
     )
 
 
@@ -833,6 +953,24 @@ def preventive_template():
         as_attachment=True,
         download_name=f'template_preventive_{date.today():%Y%m%d}.xlsx',
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
+@divisi_bp.route('/preventive/export')
+@login_required
+@role_required('admin_divisi')
+def preventive_export():
+    room_ids = get_division_room_ids(current_user)
+    query = (PreventiveMaintenance.query
+        .join(Asset, PreventiveMaintenance.asset_id == Asset.id)
+        .filter(Asset.room_id.in_(room_ids))) if room_ids else PreventiveMaintenance.query.filter(db.false())
+    records = query.order_by(PreventiveMaintenance.check_date.asc(), PreventiveMaintenance.created_at.asc()).all()
+    buf = generate_preventive_excel(records)
+    return send_file(
+        buf,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=f'preventive_divisi_{date.today():%Y%m%d}.xlsx',
     )
 
 

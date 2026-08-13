@@ -1,0 +1,93 @@
+{% extends base_template %}
+{% block title %}Import KIB B — SIMASET{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-start gap-3 mb-4">
+  <a href="{{ url_for(index_endpoint) }}" class="btn btn-sm btn-outline-secondary" title="Kembali">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div>
+    <h4 class="fw-bold mb-0">Import Identitas Aset KIB B</h4>
+    <p class="text-muted mb-0">Upload KIB B, periksa pasangan aset, lalu simpan perubahan identitas.</p>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header fw-semibold"><i class="bi bi-upload me-2 text-primary"></i>Upload File KIB B</div>
+      <div class="card-body">
+        <form method="POST" enctype="multipart/form-data" action="{{ url_for(import_endpoint) }}">
+          {{ form.hidden_tag() }}
+          <label class="form-label fw-semibold">{{ form.file.label.text }} <span class="text-danger">*</span></label>
+          {{ form.file(class="form-control" + (" is-invalid" if form.file.errors else ""), accept=".xlsx") }}
+          {% for error in form.file.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+          <div class="form-text"><i class="bi bi-info-circle"></i> Sistem membaca sheet Lembar1. Kode barang, nama, spesifikasi, merek/tipe, jumlah, harga, tanggal, dokumen, dan sumber dana akan dicocokkan ke aset yang sudah ada.</div>
+          <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-search me-1"></i>Tampilkan Preview</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-shield-check me-2 text-success"></i>Aturan Pencocokan</div>
+      <div class="card-body small text-muted">
+        <div class="mb-2">1. Kode barang dicari lebih dulu.</div>
+        <div class="mb-2">2. Jika belum ada, nama dan spesifikasi dibandingkan.</div>
+        <div>3. Aset yang belum cocok tidak dibuat otomatis agar tidak salah ruangan.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if preview %}
+<div class="card border-0 shadow-sm">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <div class="fw-semibold"><i class="bi bi-table me-2 text-info"></i>Preview Perubahan Identitas</div>
+      <div class="text-muted small">Belum disimpan ke database.</div>
+    </div>
+    {% if not preview.has_blocking_rows and preview.matched_count > 0 %}
+    <form method="POST" action="{{ url_for(import_endpoint) }}" onsubmit="return confirm('Simpan pembaruan identitas aset yang cocok?');">
+      {{ form.hidden_tag() }}
+      <input type="hidden" name="action" value="commit">
+      <button type="submit" class="btn btn-success"><i class="bi bi-check2-circle me-1"></i>Konfirmasi &amp; Simpan</button>
+    </form>
+    {% elif preview.has_blocking_rows %}
+    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Perlu diperiksa</span>
+    {% else %}
+    <span class="badge bg-secondary">Tidak ada aset cocok</span>
+    {% endif %}
+  </div>
+  <div class="card-body border-bottom">
+    <div class="row g-2 small">
+      <div class="col-6 col-md"><span class="text-muted d-block">Total baris</span><strong>{{ preview.total_rows }}</strong></div>
+      <div class="col-6 col-md"><span class="text-muted d-block">Aset cocok</span><strong class="text-success">{{ preview.matched_count }}</strong></div>
+      <div class="col-6 col-md"><span class="text-muted d-block">Belum cocok</span><strong class="text-warning">{{ preview.unmatched_count }}</strong></div>
+      <div class="col-6 col-md"><span class="text-muted d-block">Ambigu</span><strong class="text-danger">{{ preview.ambiguous_count }}</strong></div>
+      <div class="col-6 col-md"><span class="text-muted d-block">Dilewati</span><strong class="text-muted">{{ preview.ignored_rows + preview.duplicate_count }}</strong></div>
+    </div>
+  </div>
+  {% if preview.warnings %}
+  <div class="alert alert-warning rounded-0 mb-0 small">
+    {% for warning in preview.warnings %}<div><i class="bi bi-exclamation-triangle me-1"></i>{{ warning }}</div>{% endfor %}
+  </div>
+  {% endif %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small" style="min-width:1900px;">
+      <thead class="table-light"><tr>
+        <th>No</th><th>Sheet/Baris</th><th>Kode Barang</th><th>Nama Aset</th><th>Spesifikasi</th><th>Merek/Tipe</th><th>Jumlah</th><th>Satuan</th><th>Tgl Perolehan</th><th>Dokumen</th><th>Sumber Dana</th><th>Status Pencocokan</th>
+      </tr></thead>
+      <tbody>
+        {% for row in preview.rows %}
+        <tr>
+          <td>{{ loop.index }}</td><td class="text-nowrap">{{ row.sheet_name }} / {{ row.row_number }}</td><td>{{ row.item_code or '—' }}</td><td class="fw-semibold">{{ row.asset_name }}</td><td title="{{ row.specification }}">{{ row.specification|truncate(60) }}</td><td>{{ row.brand_type or '—' }}</td><td>{{ row.quantity }}</td><td>{{ row.unit or '—' }}</td><td>{{ row.purchase_date.strftime('%d %b %Y') if row.purchase_date else '—' }}</td><td>{{ row.acquisition_document_number or '—' }}</td><td>{{ row.funding_source or '—' }}</td>
+          <td>{% if row.status == 'matched' %}<span class="badge bg-success">{{ row.status_label }}</span>{% elif row.status == 'ambiguous' %}<span class="badge bg-danger">{{ row.status_label }}</span>{% elif row.status == 'duplicate' %}<span class="badge bg-warning text-dark">{{ row.status_label }}</span>{% else %}<span class="badge bg-secondary">{{ row.status_label }}</span>{% endif %}<div class="text-muted mt-1" style="font-size:11px;">{{ row.match_note }}</div></td>
+        </tr>
+        {% else %}<tr><td colspan="12" class="text-center text-muted py-4">Tidak ada baris KIB yang dapat dibaca.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

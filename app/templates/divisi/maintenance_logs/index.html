@@ -11,6 +11,9 @@
     <a href="{{ url_for(template_endpoint) }}" class="btn btn-outline-success">
       <i class="bi bi-download"></i> Download Template
     </a>
+    <a href="{{ url_for(export_endpoint, room=room_filter, action=action_filter) }}" class="btn btn-outline-primary">
+      <i class="bi bi-file-earmark-excel"></i> Ekspor Excel
+    </a>
     <a href="{{ url_for(import_endpoint) }}" class="btn btn-primary">
       <i class="bi bi-file-earmark-arrow-up"></i> Import Excel
     </a>
@@ -37,8 +40,6 @@
           <option value="penggantian" {{ 'selected' if action_filter == 'penggantian' }}>Penggantian</option>
           <option value="pemeriksaan_rutin" {{ 'selected' if action_filter == 'pemeriksaan_rutin' }}>Pemeriksaan Rutin</option>
           <option value="preventive_check" {{ 'selected' if action_filter == 'preventive_check' }}>Preventive</option>
-          <option value="approval_disetujui" {{ 'selected' if action_filter == 'approval_disetujui' }}>Approval Disetujui</option>
-          <option value="approval_ditolak" {{ 'selected' if action_filter == 'approval_ditolak' }}>Approval Ditolak</option>
         </select>
       </div>
       <div class="col-auto">
@@ -52,66 +53,34 @@
 {# ── Tabel ── #}
 <div class="card border-0 shadow-sm">
   <div class="table-responsive">
-    <table class="table table-hover mb-0">
+    <table class="table table-hover align-middle mb-0 small" style="min-width:2600px;">
       <thead class="table-light">
         <tr>
-          <th>Tanggal</th>
-          <th>Nama Aset</th>
-          <th>Ruangan</th>
-          <th>Tipe Aksi</th>
-          <th>Teknisi</th>
-          <th>Deskripsi</th>
-          <th>Dilakukan Oleh</th>
+          <th>Tanggal</th><th>Instalasi/Unit Pelapor</th><th>Nama/Jabatan Pelapor</th>
+          <th>Nama Alat</th><th>Ruangan</th><th>Jumlah</th><th>Merk/Type</th><th>SN</th><th>Kode Barang</th>
+          <th>Lokasi Detail</th><th>Keluhan</th><th>Instalasi Pemeriksa</th><th>Teknisi</th>
+          <th>Hasil</th><th>Kesimpulan/Saran</th><th>Aksi</th>
         </tr>
       </thead>
       <tbody>
         {% for log in logs.items %}
         <tr>
-          <td class="small text-muted text-nowrap">{{ log.action_date.strftime('%d %b %Y') }}</td>
-          <td>
-            <a href="{{ url_for('divisi.assets_detail', id=log.asset.id) }}"
-               class="text-decoration-none fw-medium">{{ log.asset.asset_name }}</a>
-            <div class="font-monospace text-muted small">{{ log.asset.asset_code }}</div>
-          </td>
-          <td class="small text-muted">{{ log.asset.room.room_name }}</td>
-          <td>
-            {% if log.action_type == 'evaluasi_fmea' %}
-              <span class="badge bg-success-subtle text-success border border-success-subtle small">Evaluasi FMEA</span>
-            {% elif log.action_type == 'perbaikan' %}
-              <span class="badge bg-primary-subtle text-primary border border-primary-subtle small">Perbaikan</span>
-            {% elif log.action_type == 'penggantian' %}
-              <span class="badge small" style="background:#6f42c1;color:#fff;">Penggantian</span>
-            {% elif log.action_type == 'pemeriksaan_rutin' %}
-              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small">Pemeriksaan Rutin</span>
-            {% elif log.action_type == 'preventive_check' %}
-              <span class="badge bg-info-subtle text-info border border-info-subtle small">Preventive</span>
-            {% elif log.action_type == 'approval_disetujui' %}
-              <span class="badge small" style="background:#0d9488;color:#fff;">Approval Disetujui</span>
-            {% elif log.action_type == 'approval_ditolak' %}
-              <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">Approval Ditolak</span>
-            {% else %}
-              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small">{{ log.action_type.replace('_',' ').title() }}</span>
-            {% endif %}
-          </td>
-          <td class="small text-muted">
-            {% if '(Teknisi:' in log.description %}
-              {{ log.description.split('(Teknisi:')[1].split(')')[0].strip() }}
-            {% elif log.technician_name %}
-              {{ log.technician_name }}
-            {% else %}—{% endif %}
-          </td>
-          <td class="small">
-            {{ log.description|truncate(60) }}
-            {% if log.ai_recommendation %}
-            <div class="text-info" style="font-size:11px;">{{ log.ai_recommendation|truncate(90) }}</div>
-            {% endif %}
-          </td>
-          <td class="small text-muted">
-            {{ users_map[log.logged_by].name if log.logged_by in users_map else '—' }}
-          </td>
+          <td class="text-nowrap">{{ log.action_date.strftime('%d %b %Y') }}</td>
+          <td>{{ log.reporter_unit or '—' }}</td>
+          <td><div>{{ log.reporter_name or '—' }}</div><div class="text-muted">{{ log.reporter_position or '—' }}</div></td>
+          <td><a href="{{ url_for('divisi.assets_detail', id=log.asset.id) }}" class="text-decoration-none fw-medium">{{ log.asset.asset_name }}</a></td>
+          <td>{{ log.asset.room.room_name }}</td>
+          <td>{{ log.asset.quantity }} {{ log.asset.unit or 'unit' }}</td>
+          <td>{{ log.asset.brand_model or '—' }}</td><td>{{ log.asset.serial_number or '—' }}</td><td>{{ log.asset.item_code or '—' }}</td>
+          <td>{{ log.location_detail or log.asset.room.room_name }}</td><td title="{{ log.complaint or '' }}">{{ log.complaint|truncate(85) if log.complaint else '—' }}</td>
+          <td>{{ log.inspection_unit or '—' }}</td>
+          <td><div>{{ log.technician_name or '—' }}</div><div class="text-muted">{{ log.technician_position or '' }}</div></td>
+          <td title="{{ log.result or '' }}">{{ log.result|truncate(100) if log.result else log.description|truncate(100) }}</td>
+          <td title="{{ log.recommendation or '' }}">{{ log.recommendation|truncate(100) if log.recommendation else '—' }}</td>
+          <td><a href="{{ url_for('divisi.assets_detail', id=log.asset.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
         </tr>
         {% else %}
-        <tr><td colspan="7" class="text-center text-muted py-4">Tidak ada riwayat maintenance yang sesuai filter.</td></tr>
+        <tr><td colspan="16" class="text-center text-muted py-4">Tidak ada riwayat maintenance yang sesuai filter.</td></tr>
         {% endfor %}
       </tbody>
     </table>

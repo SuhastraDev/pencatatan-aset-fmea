@@ -50,8 +50,8 @@
   <table>
     <thead>
       <tr>
-        <th>#</th><th>Kode Aset</th><th>Kode Barang</th><th>Nama Aset</th>
-        <th>Merk/Model</th><th>Kondisi</th><th>RPN</th><th>Kat. RPN</th><th>Tgl Evaluasi</th>
+        <th>#</th><th>Kode Barang</th><th>Nama Aset</th>
+        <th>Kondisi</th><th>RPN</th><th>Kat. RPN</th><th>Tgl Evaluasi</th><th>Hasil Tindakan</th><th>AI</th>
       </tr>
     </thead>
     <tbody>
@@ -60,10 +60,8 @@
       {% set f = item.last_fmea %}
       <tr>
         <td>{{ loop.index }}</td>
-        <td>{{ a.asset_code }}</td>
         <td>{{ a.item_code or '—' }}</td>
         <td>{{ a.asset_name }}</td>
-        <td>{{ a.brand_model }}</td>
         <td class="
           {% if a.condition == 'baik' %}badge-baik
           {% elif a.condition == 'perlu_perhatian' %}badge-perlu
@@ -76,6 +74,8 @@
         </td>
         <td>{{ f.risk_category.title() if f else '—' }}</td>
         <td>{{ f.evaluation_date.strftime('%d/%m/%Y') if f else '—' }}</td>
+        <td>{{ item.action_note[:90] if item.action_note else '—' }}</td>
+        <td>{{ item.ai_recommendation[:90] if item.ai_recommendation else '—' }}</td>
       </tr>
       {% endfor %}
     </tbody>

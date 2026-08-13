@@ -77,9 +77,9 @@
               {% for e in form.recommendation.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
             <div class="col-sm-6">
-              <label class="form-label fw-semibold">{{ form.next_maintenance_date.label.text }}</label>
-              {{ form.next_maintenance_date(class="form-control" + (" is-invalid" if form.next_maintenance_date.errors else "")) }}
-              {% for e in form.next_maintenance_date.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+              <label class="form-label fw-semibold">Jadwal Maintenance Berikutnya</label>
+              <div class="form-control bg-light">Dihitung otomatis setelah data disimpan</div>
+              <div class="form-text">Sistem memakai RPN terbaru dan catatan history aset sebelumnya.</div>
             </div>
           </div>
 

@@ -106,7 +106,6 @@
     <thead>
       <tr>
         <th style="width:24px">No</th>
-        <th style="width:90px">Kode Aset</th>
         <th style="width:80px">Kode Barang</th>
         <th>Nama Aset</th>
         <th style="width:100px">Ruangan</th>
@@ -114,7 +113,8 @@
         <th style="width:40px">RPN</th>
         <th style="width:55px">Kat. RPN</th>
         <th style="width:65px">Tgl Evaluasi</th>
-        <th>Rekomendasi</th>
+        <th>Catatan Tindakan</th>
+        <th>Rekomendasi AI</th>
       </tr>
     </thead>
     <tbody>
@@ -123,7 +123,6 @@
       {% set f = d.last_fmea %}
       <tr>
         <td>{{ loop.index }}</td>
-        <td>{{ a.asset_code }}</td>
         <td>{{ a.item_code or '—' }}</td>
         <td><strong>{{ a.asset_name }}</strong></td>
         <td>{{ a.room.room_name }}</td>
@@ -142,9 +141,8 @@
           {% else %}—{% endif %}
         </td>
         <td>{{ f.evaluation_date.strftime('%d/%m/%Y') if f else '—' }}</td>
-        <td style="max-width:120px; word-wrap:break-word">
-          {{ f.recommendation[:100] if f and f.recommendation else '—' }}
-        </td>
+        <td style="max-width:120px; word-wrap:break-word">{{ d.action_note[:100] if d.action_note else '—' }}</td>
+        <td style="max-width:120px; word-wrap:break-word">{{ d.ai_recommendation[:100] if d.ai_recommendation else '—' }}</td>
       </tr>
       {% endfor %}
     </tbody>

@@ -212,7 +212,7 @@
   <div class="table-responsive">
     <table class="table table-hover mb-0">
       <thead class="table-light">
-        <tr><th>Tanggal</th><th>Hasil</th><th>Keterangan</th><th>Rekomendasi AI</th></tr>
+        <tr><th>Tanggal</th><th>Hasil</th><th>Keterangan</th></tr>
       </thead>
       <tbody>
         {% for p in preventive_records %}
@@ -220,10 +220,9 @@
           <td class="small text-muted">{{ p.check_date.strftime('%d %b %Y') }}</td>
           <td class="small">{{ p.result }}</td>
           <td class="small">{{ p.notes or p.recommendation or '—' }}</td>
-          <td class="small text-muted">{{ p.ai_recommendation or '—' }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="4" class="text-center text-muted py-3">Belum ada preventive maintenance.</td></tr>
+        <tr><td colspan="3" class="text-center text-muted py-3">Belum ada preventive maintenance.</td></tr>
         {% endfor %}
       </tbody>
     </table>

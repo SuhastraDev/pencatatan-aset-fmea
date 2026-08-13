@@ -11,6 +11,9 @@
     <a href="{{ url_for(template_endpoint) }}" class="btn btn-outline-success">
       <i class="bi bi-download"></i> Download Template
     </a>
+    <a href="{{ url_for(export_endpoint, asset_id=asset_filter) }}" class="btn btn-outline-primary">
+      <i class="bi bi-file-earmark-excel"></i> Ekspor Excel
+    </a>
     <a href="{{ url_for(import_endpoint) }}" class="btn btn-primary">
       <i class="bi bi-file-earmark-arrow-up"></i> Import Excel
     </a>
@@ -23,7 +26,7 @@
     <span class="text-muted small">{{ records.total }} pemeriksaan</span>
   </div>
   <div class="table-responsive">
-    <table class="table table-hover align-middle mb-0 small" style="min-width:1250px;">
+    <table class="table table-hover align-middle mb-0 small" style="min-width:1100px;">
       <thead class="table-light">
         <tr>
           <th style="width:52px;">No</th>
@@ -35,7 +38,6 @@
           <th style="min-width:250px;">Hasil</th>
           <th style="min-width:190px;">Ket.</th>
           <th>Kondisi Sistem</th>
-          <th style="min-width:250px;">AI</th>
           <th>Detail</th>
         </tr>
       </thead>
@@ -46,7 +48,6 @@
           <td class="text-nowrap">{{ p.check_date.strftime('%d %b %Y') if p.check_date else '—' }}</td>
           <td>
             <div class="fw-semibold">{{ p.asset.asset_name }}</div>
-            <div class="text-muted" style="font-size:11px;">{{ p.asset.asset_code }}</div>
           </td>
           <td>{{ p.asset.brand or '—' }}</td>
           <td class="text-nowrap">{{ p.asset.serial_number or '—' }}</td>
@@ -60,9 +61,6 @@
             {% elif p.condition_after == 'tidak_layak' %}<span class="badge bg-secondary">Tidak Layak</span>
             {% else %}<span class="text-muted">—</span>{% endif %}
           </td>
-          <td title="{{ p.ai_recommendation or '' }}" class="text-muted">
-            {{ p.ai_recommendation|truncate(100) if p.ai_recommendation else '—' }}
-          </td>
           <td>
             <a href="{{ url_for(detail_endpoint, id=p.asset_id) }}" class="btn btn-sm btn-outline-primary text-nowrap" title="Lihat detail aset">
               <i class="bi bi-eye"></i> Lihat
@@ -71,7 +69,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="11" class="text-center text-muted py-5">
+          <td colspan="10" class="text-center text-muted py-5">
             <i class="bi bi-calendar2-check d-block fs-3 mb-2" style="opacity:.35;"></i>
             Belum ada data preventive maintenance.
           </td>
@@ -85,16 +83,16 @@
   <div class="card-footer d-flex justify-content-center">
     <nav aria-label="Halaman preventive"><ul class="pagination pagination-sm mb-0">
       <li class="page-item {{ 'disabled' if not records.has_prev }}">
-        <a class="page-link" href="{{ url_for(request.endpoint, page=records.prev_num) }}">‹</a>
+        <a class="page-link" href="{{ url_for(request.endpoint, page=records.prev_num, asset_id=asset_filter) }}">‹</a>
       </li>
       {% for p in records.iter_pages() %}
         {% if p %}<li class="page-item {{ 'active' if p == records.page }}">
-          <a class="page-link" href="{{ url_for(request.endpoint, page=p) }}">{{ p }}</a>
+          <a class="page-link" href="{{ url_for(request.endpoint, page=p, asset_id=asset_filter) }}">{{ p }}</a>
         </li>
         {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
       {% endfor %}
       <li class="page-item {{ 'disabled' if not records.has_next }}">
-        <a class="page-link" href="{{ url_for(request.endpoint, page=records.next_num) }}">›</a>
+        <a class="page-link" href="{{ url_for(request.endpoint, page=records.next_num, asset_id=asset_filter) }}">›</a>
       </li>
     </ul></nav>
   </div>

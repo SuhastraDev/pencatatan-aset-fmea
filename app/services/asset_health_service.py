@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from app.models.fmea import FmeaRecord
 from app.models.maintenance_log import MaintenanceLog
 from app.models.preventive_maintenance import PreventiveMaintenance
@@ -140,3 +142,101 @@ def generate_ai_recommendation(asset, fmea=None, maintenance_log=None, preventiv
 
     detail = '; '.join(context) if context else 'belum ada riwayat risiko khusus.'
     return f'AI rekomendasi awal: kondisi {condition}; {detail}; {action}'
+
+
+def latest_asset_records(asset):
+    """Return the latest records used by the report and maintenance schedule."""
+    return {
+        'last_fmea': asset.fmea_records.order_by(
+            FmeaRecord.evaluation_date.desc(), FmeaRecord.created_at.desc()
+        ).first(),
+        'last_maintenance': asset.maintenance_logs.filter(
+            MaintenanceLog.action_type.in_([
+                'perbaikan', 'penggantian', 'pemeriksaan_rutin', 'preventive_check'
+            ])
+        ).order_by(
+            MaintenanceLog.action_date.desc(), MaintenanceLog.created_at.desc()
+        ).first(),
+        'last_preventive': asset.preventive_records.order_by(
+            PreventiveMaintenance.check_date.desc(), PreventiveMaintenance.created_at.desc()
+        ).first(),
+    }
+
+
+def build_asset_report_context(asset):
+    """Build the values shown in Rekap Laporan for one asset."""
+    records = latest_asset_records(asset)
+    maintenance = records['last_maintenance']
+    preventive = records['last_preventive']
+    fmea = records['last_fmea']
+
+    action_parts = []
+    if maintenance:
+        action_parts.extend([maintenance.result, maintenance.recommendation, maintenance.description])
+    elif preventive:
+        action_parts.extend([preventive.result, preventive.notes, preventive.recommendation])
+    action_note = ' | '.join(dict.fromkeys(str(part).strip() for part in action_parts if part))
+
+    ai_recommendation = None
+    for record in (maintenance, preventive):
+        if record and record.ai_recommendation:
+            ai_recommendation = record.ai_recommendation
+            break
+    if not ai_recommendation and fmea and fmea.recommendation:
+        ai_recommendation = fmea.recommendation
+
+    return {
+        **records,
+        'action_note': action_note,
+        'ai_recommendation': ai_recommendation,
+    }
+
+
+def calculate_next_maintenance_date(asset, reference_date=None):
+    """Calculate the next schedule from RPN and the latest asset history."""
+    records = latest_asset_records(asset)
+    fmea = records['last_fmea']
+    maintenance = records['last_maintenance']
+    preventive = records['last_preventive']
+
+    interval_days = {
+        'tinggi': 7,
+        'sedang': 14,
+        'rendah': 30,
+    }.get(fmea.risk_category if fmea else None, 30)
+
+    history_condition = None
+    if maintenance:
+        history_condition = maintenance.condition_after or infer_condition_from_text(
+            maintenance.complaint,
+            maintenance.result,
+            maintenance.recommendation,
+            maintenance.description,
+        )
+    if not history_condition and preventive:
+        history_condition = preventive.condition_after or infer_condition_from_text(
+            preventive.result,
+            preventive.notes,
+            preventive.recommendation,
+        )
+
+    if history_condition in ('kritis', 'tidak_layak'):
+        interval_days = min(interval_days, 7)
+    elif history_condition == 'perlu_perhatian':
+        interval_days = min(interval_days, 14)
+    elif asset.condition in ('kritis', 'tidak_layak'):
+        interval_days = min(interval_days, 7)
+    elif asset.condition == 'perlu_perhatian':
+        interval_days = min(interval_days, 14)
+
+    latest_dates = [reference_date] if reference_date else []
+    for record, field in (
+        (fmea, 'evaluation_date'),
+        (maintenance, 'action_date'),
+        (preventive, 'check_date'),
+    ):
+        value = getattr(record, field, None) if record else None
+        if value:
+            latest_dates.append(value)
+    base_date = max(latest_dates) if latest_dates else date.today()
+    return base_date + timedelta(days=interval_days)

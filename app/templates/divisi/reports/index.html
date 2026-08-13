@@ -8,6 +8,9 @@
     <p class="text-muted mb-0">Laporan aset lintas ruangan</p>
   </div>
   <div class="d-flex gap-2">
+    <a href="{{ url_for('divisi.reports_import') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-file-earmark-arrow-up me-1"></i>Import KIB Excel
+    </a>
     <a href="{{ url_for('divisi.reports_export_excel', room=room_filter, kondisi=kondisi_filter, rpn=rpn_filter) }}"
        class="btn btn-success btn-sm">
       <i class="bi bi-file-earmark-excel me-1"></i>Ekspor Excel
@@ -130,14 +133,15 @@
       <thead class="table-light">
         <tr>
           <th>No</th>
-          <th>Kode Aset</th>
           <th>Kode Barang</th>
           <th>Nama Aset</th>
           <th>Ruangan</th>
           <th>Kondisi</th>
-          <th>RPN Terakhir</th>
+          <th>Hasil RPN</th>
           <th>Tgl Evaluasi</th>
-          <th>Rekomendasi</th>
+          <th>Catatan Hasil Tindakan</th>
+          <th>Rekomendasi AI</th>
+          <th>Detail</th>
         </tr>
       </thead>
       <tbody>
@@ -146,7 +150,6 @@
         {% set f = d.last_fmea %}
         <tr>
           <td class="text-muted small">{{ loop.index }}</td>
-          <td class="font-monospace small">{{ a.asset_code }}</td>
           <td class="small text-muted">{{ a.item_code or '—' }}</td>
           <td class="fw-medium">
             <a href="{{ url_for('divisi.assets_detail', id=a.id) }}" class="text-decoration-none">{{ a.asset_name }}</a>
@@ -160,20 +163,19 @@
           </td>
           <td class="text-center">
             {% if f %}
-              {% if f.risk_category == 'tinggi' %}<span class="badge bg-danger">{{ f.rpn_score }}</span>
-              {% elif f.risk_category == 'sedang' %}<span class="badge bg-warning text-dark">{{ f.rpn_score }}</span>
-              {% else %}<span class="badge bg-success">{{ f.rpn_score }}</span>{% endif %}
+              <span class="fw-bold {% if f.risk_category == 'tinggi' %}text-danger{% elif f.risk_category == 'sedang' %}text-warning{% else %}text-success{% endif %}">{{ f.rpn_score }}</span>
+              <span class="text-muted small">({{ f.risk_category.title() }})</span>
             {% else %}<span class="text-muted">—</span>{% endif %}
           </td>
           <td class="small text-muted">
             {{ f.evaluation_date.strftime('%d/%m/%Y') if f else '—' }}
           </td>
-          <td class="small text-muted" style="max-width:200px">
-            {{ f.recommendation[:80] + '…' if f and f.recommendation and f.recommendation|length > 80 else (f.recommendation if f else '—') }}
-          </td>
+          <td class="small" title="{{ d.action_note or '' }}">{{ d.action_note|truncate(100) if d.action_note else '—' }}</td>
+          <td class="small text-muted" title="{{ d.ai_recommendation or '' }}">{{ d.ai_recommendation|truncate(100) if d.ai_recommendation else '—' }}</td>
+          <td><a href="{{ url_for('divisi.assets_detail', id=a.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
         </tr>
         {% else %}
-        <tr><td colspan="9" class="text-center text-muted py-4">Tidak ada data aset yang sesuai filter.</td></tr>
+        <tr><td colspan="10" class="text-center text-muted py-4">Tidak ada data aset yang sesuai filter.</td></tr>
         {% endfor %}
       </tbody>
     </table>

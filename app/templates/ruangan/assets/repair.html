@@ -196,18 +196,10 @@
               {% endfor %}
             </div>
 
-            {# Jadwal Maintenance Berikutnya #}
             <div class="col-sm-6">
-              <label class="form-label fw-semibold">{{ form.next_maintenance_date.label.text }}
-                <span class="text-muted fw-normal small">(opsional)</span>
-              </label>
-              {{ form.next_maintenance_date(class="form-control" + (" is-invalid" if form.next_maintenance_date.errors else "")) }}
-              {% if asset.next_maintenance_date %}
-              <div class="form-text">Jadwal saat ini: {{ asset.next_maintenance_date.strftime('%d %b %Y') }}</div>
-              {% endif %}
-              {% for e in form.next_maintenance_date.errors %}
-                <div class="invalid-feedback">{{ e }}</div>
-              {% endfor %}
+              <label class="form-label fw-semibold">Jadwal Maintenance Berikutnya</label>
+              <div class="form-control bg-light">Dihitung otomatis setelah data disimpan</div>
+              <div class="form-text">Sistem memakai RPN terbaru dan catatan history aset sebelumnya.</div>
             </div>
 
             {# Catatan Tambahan #}

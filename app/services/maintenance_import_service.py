@@ -17,6 +17,7 @@ from app.models.asset_category import AssetCategory
 from app.models.maintenance_log import MaintenanceLog
 from app.models.room import Room
 from app.services.asset_health_service import (
+    calculate_next_maintenance_date,
     generate_ai_recommendation,
     infer_condition_from_text,
     recalculate_asset_condition_from_history,
@@ -299,6 +300,9 @@ def commit_maintenance_import(path, logged_by, allowed_room_ids=None):
         if not asset.last_maintenance_date or row.action_date > asset.last_maintenance_date:
             asset.last_maintenance_date = row.action_date
         recalculate_asset_condition_from_history(asset)
+        asset.next_maintenance_date = calculate_next_maintenance_date(
+            asset, reference_date=row.action_date
+        )
         log.ai_recommendation = generate_ai_recommendation(
             asset,
             maintenance_log=log,

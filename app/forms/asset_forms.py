@@ -69,7 +69,6 @@ class RepairLogForm(FlaskForm):
     ], validators=[DataRequired()])
     description = TextAreaField('Deskripsi Tindakan', validators=[
         DataRequired(),
-        Length(min=20, message='Deskripsi minimal 20 karakter.')
     ])
     technician_name = StringField('Nama Teknisi', validators=[Optional(), Length(max=100)])
     technician_position = StringField('Jabatan Teknisi', validators=[Optional(), Length(max=100)])
@@ -87,13 +86,8 @@ class RepairLogForm(FlaskForm):
         ('kritis', 'Kritis'),
         ('tidak_layak', 'Tidak Layak'),
     ], validators=[Optional()])
-    next_maintenance_date = DateField('Jadwal Maintenance Berikutnya', validators=[Optional()])
     notes = TextAreaField('Catatan Tambahan', validators=[Optional()])
     submit = SubmitField('Simpan Catatan')
-
-    def validate_next_maintenance_date(self, field):
-        if field.data and field.data < date.today():
-            raise ValidationError('Jadwal maintenance berikutnya tidak boleh di masa lalu.')
 
 
 class PreventiveMaintenanceForm(FlaskForm):
@@ -111,9 +105,4 @@ class PreventiveMaintenanceForm(FlaskForm):
         ('kritis', 'Kritis'),
         ('tidak_layak', 'Tidak Layak'),
     ], validators=[Optional()])
-    next_maintenance_date = DateField('Jadwal Preventive Berikutnya', validators=[Optional()])
     submit = SubmitField('Simpan Preventive')
-
-    def validate_next_maintenance_date(self, field):
-        if field.data and field.data < date.today():
-            raise ValidationError('Jadwal preventive berikutnya tidak boleh di masa lalu.')

@@ -12,3 +12,15 @@ class PreventiveImportForm(FlaskForm):
             ),
         ],
     )
+
+
+class AssetKibImportForm(FlaskForm):
+    file = FileField(
+        'File Excel KIB B',
+        validators=[
+            FileAllowed(
+                ['xlsx'],
+                message='File harus berformat Excel .xlsx.',
+            ),
+        ],
+    )

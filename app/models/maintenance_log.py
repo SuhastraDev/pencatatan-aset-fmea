@@ -45,3 +45,12 @@ class MaintenanceLog(db.Model):
 
     def __repr__(self):
         return f'<MaintenanceLog asset_id={self.asset_id} type={self.action_type}>'
+
+    @property
+    def location_detail(self):
+        """Read the raw Excel location stored in the normalized description."""
+        marker = 'Lokasi detail:'
+        if marker not in (self.description or ''):
+            return None
+        value = self.description.split(marker, 1)[1]
+        return value.split(' | ', 1)[0].strip() or None
