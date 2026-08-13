@@ -651,6 +651,7 @@ def preventive_index():
         scope_label=current_user.division.division_name if current_user.division else 'Divisi',
         detail_endpoint='divisi.assets_detail',
         import_endpoint='divisi.preventive_import',
+        template_endpoint='divisi.preventive_template',
     )
 
 

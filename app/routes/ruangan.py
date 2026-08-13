@@ -525,6 +525,7 @@ def preventive_index():
         scope_label=current_user.room.room_name if current_user.room else 'Ruangan',
         detail_endpoint='ruangan.assets_detail',
         import_endpoint='ruangan.preventive_import',
+        template_endpoint='ruangan.preventive_template',
     )
 
 
