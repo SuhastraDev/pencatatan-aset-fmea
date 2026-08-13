@@ -54,6 +54,7 @@ from app.services.maintenance_import_service import (
     store_upload as store_maintenance_upload,
 )
 from app.services.maintenance_template_service import generate_maintenance_template
+from app.services.asset_template_service import generate_asset_template
 from app.services.asset_import_service import (
     build_asset_preview,
     commit_asset_import,
@@ -913,6 +914,7 @@ def reports_import():
                 preview=preview,
                 import_endpoint='ruangan.reports_import',
                 index_endpoint='ruangan.reports_index',
+                template_endpoint='ruangan.asset_template',
             )
 
     preview = None
@@ -928,6 +930,19 @@ def reports_import():
         preview=preview,
         import_endpoint='ruangan.reports_import',
         index_endpoint='ruangan.reports_index',
+        template_endpoint='ruangan.asset_template',
+    )
+
+
+@ruangan_bp.route('/reports/import/template')
+@login_required
+@role_required('admin_ruangan')
+def asset_template():
+    return send_file(
+        generate_asset_template(),
+        as_attachment=True,
+        download_name=f'template_import_aset_kib_{date.today():%Y%m%d}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
 
 

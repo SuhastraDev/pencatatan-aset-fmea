@@ -17,6 +17,11 @@
     <div class="card border-0 shadow-sm">
       <div class="card-header fw-semibold"><i class="bi bi-upload me-2 text-primary"></i>Upload File KIB B</div>
       <div class="card-body">
+        <div class="d-flex justify-content-end mb-3">
+          <a href="{{ url_for(template_endpoint) }}" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-download me-1"></i>Download Template
+          </a>
+        </div>
         <form method="POST" enctype="multipart/form-data" action="{{ url_for(import_endpoint) }}">
           {{ form.hidden_tag() }}
           <label class="form-label fw-semibold">{{ form.file.label.text }} <span class="text-danger">*</span></label>

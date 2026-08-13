@@ -7,9 +7,17 @@
     <h4 class="fw-bold mb-0">Daftar Aset</h4>
     <p class="text-muted mb-0">Identitas aset {{ current_user.room.room_name }} berdasarkan data KIB B</p>
   </div>
-  <a href="{{ url_for('ruangan.assets_create') }}" class="btn btn-primary">
-    <i class="bi bi-plus-circle me-2"></i>Tambah Aset
-  </a>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for('ruangan.asset_template') }}" class="btn btn-outline-success">
+      <i class="bi bi-download me-1"></i>Download Template
+    </a>
+    <a href="{{ url_for('ruangan.reports_import') }}" class="btn btn-primary">
+      <i class="bi bi-file-earmark-arrow-up me-1"></i>Import Aset Excel
+    </a>
+    <a href="{{ url_for('ruangan.assets_create') }}" class="btn btn-primary">
+      <i class="bi bi-plus-circle me-1"></i>Tambah Aset
+    </a>
+  </div>
 </div>
 
 <div class="card border-0 shadow-sm">

@@ -214,6 +214,8 @@ def _parse_row(ws, sheet_name, row_number):
     asset_name = _text(ws.cell(row_number, 10).value)
     specification = _text(ws.cell(row_number, 21).value)
     quantity = _to_int(ws.cell(row_number, 30).value)
+    if asset_name.lower().startswith('contoh'):
+        return None
     if not asset_name or not specification or not quantity:
         return None
 
