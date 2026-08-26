@@ -25,7 +25,7 @@ FIELD_ALIASES = {
     'item_code': {'kodebarang', 'kodebarangaset', 'kodeinventaris'},
     'asset_name': {'namaaset', 'namaalat', 'namabarang'},
     'brand_model': {'merkmodel', 'merktype', 'merkatau model', 'merk'},
-    'serial_number': {'noseri', 'serialnumber', 'sn'},
+    'serial_number': {'noseri', 'nomorseri', 'nomorserial', 'serialnumber', 'sn'},
     'quantity': {'jumlah', 'jumlahbarang', 'kuantitas'},
     'unit': {'satuan', 'satuanbarang'},
     'specification': {'spesifikasi', 'spesifikasinamabarang'},
@@ -84,6 +84,14 @@ class AssetImportPreview:
     @property
     def invalid_count(self):
         return sum(row.status == 'invalid' for row in self.rows)
+
+    @property
+    def invalid_details(self):
+        return [
+            f'{row.sheet_name} / baris {row.row_number}: {row.match_note}'
+            for row in self.rows
+            if row.status == 'invalid'
+        ]
 
     @property
     def has_blocking_rows(self):
@@ -181,6 +189,10 @@ def build_asset_preview(path, allowed_room_ids=None, default_room_id=None):
         preview.warnings.append(
             f'{preview.invalid_count} baris belum lengkap. Perbaiki kolom wajib sebelum menyimpan.'
         )
+    if preview.ignored_rows:
+        preview.warnings.append(
+            f'{preview.ignored_rows} baris dilewati. Hapus baris contoh atau pastikan Nama Aset tidak diawali "CONTOH".'
+        )
     return preview
 
 
@@ -255,6 +267,9 @@ def _detect_columns(worksheet):
     best_row = None
     best_columns = {}
     best_score = 0
+    preferred_aliases = {
+        'brand_model': {'merkmodel', 'merktype'},
+    }
     for row_number in range(1, min(worksheet.max_row, 10) + 1):
         columns = {}
         for column in range(1, worksheet.max_column + 1):
@@ -263,7 +278,16 @@ def _detect_columns(worksheet):
                 continue
             for field_name, aliases in FIELD_ALIASES.items():
                 if label in {_norm_header(alias) for alias in aliases}:
-                    columns.setdefault(field_name, column)
+                    if field_name not in columns:
+                        columns[field_name] = column
+                    else:
+                        existing = columns[field_name]
+                        candidates = existing if isinstance(existing, list) else [existing]
+                        if column not in candidates:
+                            if label in preferred_aliases.get(field_name, set()):
+                                columns[field_name] = [column, *candidates]
+                            else:
+                                columns[field_name] = [*candidates, column]
                     break
         score = sum(field in columns for field in ('asset_name', 'brand_model', 'serial_number', 'quantity'))
         if score > best_score:
@@ -276,7 +300,15 @@ def _detect_columns(worksheet):
 def _parse_compact_row(worksheet, sheet_name, row_number, columns):
     values = {}
     for field_name, column in columns.items():
-        raw_value = worksheet.cell(row_number, column).value
+        candidates = column if isinstance(column, list) else [column]
+        raw_value = next(
+            (
+                worksheet.cell(row_number, candidate).value
+                for candidate in candidates
+                if _text(worksheet.cell(row_number, candidate).value)
+            ),
+            None,
+        )
         values[field_name] = raw_value if field_name in {'purchase_date', 'purchase_price'} else _text(raw_value)
     if not any(values.values()):
         return None

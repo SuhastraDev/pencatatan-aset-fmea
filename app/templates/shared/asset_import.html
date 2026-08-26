@@ -76,6 +76,12 @@
     {% for warning in preview.warnings %}<div><i class="bi bi-exclamation-triangle me-1"></i>{{ warning }}</div>{% endfor %}
   </div>
   {% endif %}
+  {% if preview.invalid_details %}
+  <div class="alert alert-danger rounded-0 mb-0 small">
+    <div class="fw-semibold mb-1"><i class="bi bi-info-circle me-1"></i>Periksa kolom berikut:</div>
+    {% for detail in preview.invalid_details %}<div>{{ detail }}</div>{% endfor %}
+  </div>
+  {% endif %}
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0 small" style="min-width:1900px;">
       <thead class="table-light"><tr>
