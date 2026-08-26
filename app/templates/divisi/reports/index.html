@@ -1,0 +1,185 @@
+{% extends "layouts/base_divisi.html" %}
+{% block title %}Rekap Laporan — Admin Divisi{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">Rekap Laporan</h4>
+    <p class="text-muted mb-0">Laporan aset lintas ruangan</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('divisi.reports_import') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-file-earmark-arrow-up me-1"></i>Import KIB Excel
+    </a>
+    <a href="{{ url_for('divisi.reports_export_excel', room=room_filter, kondisi=kondisi_filter, rpn=rpn_filter) }}"
+       class="btn btn-success btn-sm">
+      <i class="bi bi-file-earmark-excel me-1"></i>Ekspor Excel
+    </a>
+    <a href="{{ url_for('divisi.reports_export_pdf', room=room_filter, kondisi=kondisi_filter, rpn=rpn_filter) }}"
+       class="btn btn-danger btn-sm">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Ekspor PDF
+    </a>
+  </div>
+</div>
+
+{# ── Filter ── #}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-sm-3">
+        <select name="room" class="form-select form-select-sm">
+          <option value="">Semua Ruangan</option>
+          {% for r in rooms %}
+          <option value="{{ r.id }}" {{ 'selected' if room_filter == r.id }}>{{ r.room_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-2">
+        <select name="kondisi" class="form-select form-select-sm">
+          <option value="">Semua Kondisi</option>
+          <option value="baik" {{ 'selected' if kondisi_filter == 'baik' }}>Baik</option>
+          <option value="perlu_perhatian" {{ 'selected' if kondisi_filter == 'perlu_perhatian' }}>Perlu Perhatian</option>
+          <option value="kritis" {{ 'selected' if kondisi_filter == 'kritis' }}>Kritis</option>
+          <option value="tidak_layak" {{ 'selected' if kondisi_filter == 'tidak_layak' }}>Tidak Layak</option>
+        </select>
+      </div>
+      <div class="col-sm-2">
+        <select name="rpn" class="form-select form-select-sm">
+          <option value="">Semua RPN</option>
+          <option value="rendah" {{ 'selected' if rpn_filter == 'rendah' }}>RPN Rendah</option>
+          <option value="sedang" {{ 'selected' if rpn_filter == 'sedang' }}>RPN Sedang</option>
+          <option value="tinggi" {{ 'selected' if rpn_filter == 'tinggi' }}>RPN Tinggi</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{{ url_for('divisi.reports_index') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Statistik Ringkasan ── #}
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="fw-bold fs-3">{{ stats.total }}</div>
+      <div class="text-muted small">Total Aset</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="fw-bold fs-3 text-danger">{{ stats.kritis + stats.tidak_layak }}</div>
+      <div class="text-muted small">Kritis / Tidak Layak</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="fw-bold fs-3 text-danger">{{ stats.rpn_tinggi }}</div>
+      <div class="text-muted small">RPN Tinggi (&ge;200)</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 shadow-sm text-center py-3">
+      <div class="fw-bold fs-3 text-warning">{{ stats.rpn_sedang }}</div>
+      <div class="text-muted small">RPN Sedang (80–199)</div>
+    </div>
+  </div>
+</div>
+
+{# ── Ringkasan per Ruangan ── #}
+{% if room_summary %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold border-0 pt-3">Ringkasan per Ruangan</div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Ruangan</th>
+          <th class="text-center">Total Aset</th>
+          <th class="text-center">Kritis/Tidak Layak</th>
+          <th class="text-center">RPN Tinggi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rs in room_summary %}
+        <tr>
+          <td class="fw-medium">{{ rs.room.room_name }}</td>
+          <td class="text-center">{{ rs.total }}</td>
+          <td class="text-center">
+            {% if rs.kritis > 0 %}<span class="badge bg-danger">{{ rs.kritis }}</span>
+            {% else %}<span class="text-muted">0</span>{% endif %}
+          </td>
+          <td class="text-center">
+            {% if rs.rpn_tinggi > 0 %}<span class="badge bg-danger">{{ rs.rpn_tinggi }}</span>
+            {% else %}<span class="text-muted">0</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{# ── Tabel Aset ── #}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center border-0 pt-3">
+    <span class="fw-semibold">Data Aset <span class="text-muted small fw-normal">(aset tanpa FMEA ditampilkan Rendah sebagai default)</span></span>
+    <span class="text-muted small">{{ stats.total }} aset</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>No</th>
+          <th>Kode Barang</th>
+          <th>Nama Aset</th>
+          <th>Ruangan</th>
+          <th>Kondisi</th>
+          <th>Hasil FMEA</th>
+          <th>Tgl Evaluasi</th>
+          <th>Catatan Hasil Tindakan</th>
+          <th>Rekomendasi</th>
+          <th>Detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in asset_data %}
+        {% set a = d.asset %}
+        {% set f = d.report_fmea %}
+        {% set report_risk_category = d.report_risk_category %}
+        <tr>
+          <td class="text-muted small">{{ loop.index }}</td>
+          <td class="small text-muted">{{ a.item_code or '—' }}</td>
+          <td class="fw-medium">
+            <a href="{{ url_for('divisi.assets_detail', id=a.id) }}" class="text-decoration-none">{{ a.asset_name }}</a>
+          </td>
+          <td class="small text-muted">{{ a.room.room_name }}</td>
+          <td>
+            {% if a.condition == 'baik' %}<span class="badge bg-success">Baik</span>
+            {% elif a.condition == 'perlu_perhatian' %}<span class="badge bg-warning text-dark">Perlu Perhatian</span>
+            {% elif a.condition == 'kritis' %}<span class="badge bg-danger">Kritis</span>
+            {% else %}<span class="badge bg-secondary">Tidak Layak</span>{% endif %}
+          </td>
+          <td class="text-center">
+            {% if f %}
+              <span class="fw-bold {% if f.risk_category == 'tinggi' %}text-danger{% elif f.risk_category == 'sedang' %}text-warning{% else %}text-success{% endif %}">{{ f.rpn_score }}</span>
+              <span class="text-muted small">({{ f.risk_category.title() }})</span>
+            {% else %}<span class="fw-bold text-success">{{ report_risk_category.title() }}</span><span class="text-muted small"> (default — RPN belum diisi)</span>{% endif %}
+          </td>
+          <td class="small text-muted">
+            {{ f.evaluation_date.strftime('%d/%m/%Y') if f else '—' }}
+          </td>
+          <td class="small" title="{{ d.action_note or '' }}">{{ d.action_note|truncate(100) if d.action_note else '—' }}</td>
+          <td class="small text-muted" title="{{ d.ai_recommendation or '' }}">{{ d.ai_recommendation|truncate(100) if d.ai_recommendation else '—' }}</td>
+          <td><a href="{{ url_for('divisi.assets_detail', id=a.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="text-center text-muted py-4">Tidak ada data aset yang sesuai filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

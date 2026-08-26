@@ -1,0 +1,19 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+instance/
+.flask_session/
+exports/*.pdf
+exports/*.xlsx
+*.db
+.DS_Store
+venv/
+.venv/
+app/static/qrcodes/*.png
+app/static/uploads/profile/*
+!app/static/uploads/profile/.gitkeep
+
+# Artefak pemeriksaan workbook dibuat lokal oleh tools import aset.
+tools/asset-import/outputs/
+tools/asset-import/workbook_inspection/

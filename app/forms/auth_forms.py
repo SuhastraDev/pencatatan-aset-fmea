@@ -1,0 +1,29 @@
+from flask_wtf import FlaskForm
+from flask_wtf.file import FileAllowed, FileField
+from wtforms import DateField, StringField, PasswordField, SubmitField
+from wtforms.validators import DataRequired, Email, Length, EqualTo, Optional
+
+
+class LoginForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(message='Email wajib diisi.'), Email(message='Format email tidak valid.')])
+    password = PasswordField('Password', validators=[DataRequired(message='Password wajib diisi.')])
+    submit = SubmitField('Masuk')
+
+
+class ProfileForm(FlaskForm):
+    name = StringField('Nama Lengkap', validators=[DataRequired(message='Nama wajib diisi.'), Length(max=100)])
+    email = StringField('Email', validators=[DataRequired(message='Email wajib diisi.'), Email(message='Format email tidak valid.'), Length(max=150)])
+    nip = StringField('NIP', validators=[Optional(), Length(max=50)])
+    jabatan = StringField('Jabatan', validators=[Optional(), Length(max=100)])
+    tanggal_lahir = DateField('Tanggal Lahir', validators=[Optional()])
+    photo = FileField('Foto Profil', validators=[
+        Optional(),
+        FileAllowed(['jpg', 'jpeg', 'png', 'webp'], message='Foto harus berformat JPG, PNG, atau WEBP.'),
+    ])
+    current_password = PasswordField('Password Saat Ini', validators=[Optional()])
+    new_password = PasswordField('Password Baru', validators=[Optional(), Length(min=8, message='Password minimal 8 karakter.')])
+    confirm_password = PasswordField('Konfirmasi Password Baru', validators=[
+        Optional(),
+        EqualTo('new_password', message='Konfirmasi password tidak cocok.')
+    ])
+    submit = SubmitField('Simpan Perubahan')

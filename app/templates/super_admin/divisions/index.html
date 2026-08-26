@@ -1,0 +1,143 @@
+{% extends "layouts/base_super_admin.html" %}
+{% block title %}Manajemen Divisi — Super Admin{% endblock %}
+
+{% block breadcrumb %}<i class="bi bi-diagram-3"></i><span>Manajemen Divisi</span>{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <h4 class="fw-bold mb-1" style="color:#0F172A;">Manajemen Divisi</h4>
+    <p class="text-muted mb-0" style="font-size:13px;">Kelola struktur divisi RSKGM</p>
+  </div>
+  <a href="{{ url_for('super_admin.divisions_create') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus me-2"></i>Tambah Divisi
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold" style="font-size:14px;">Daftar Divisi</span>
+    <span class="badge" style="background:#EFF6FF; color:#2563EB; font-weight:700; font-size:12px;">
+      {{ divisions|length }} divisi
+    </span>
+  </div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th style="width:40px;">#</th>
+          <th>Nama Divisi</th>
+          <th>Deskripsi</th>
+          <th>Admin Divisi</th>
+          <th>Ruangan</th>
+          <th class="text-center">Total Aset</th>
+          <th class="text-center">Status</th>
+          <th class="text-center" style="width:90px;">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in divisions %}
+        {% set rooms_aktif = d.rooms.filter_by(is_active=True).all() %}
+        {% set admin = d.users.filter_by(role='admin_divisi', is_active=True).first() %}
+        {% set total_aset = namespace(count=0) %}
+        {% for r in rooms_aktif %}{% set total_aset.count = total_aset.count + r.assets.count() %}{% endfor %}
+        <tr>
+          <td class="text-muted" style="font-size:12px;">{{ loop.index }}</td>
+          <td>
+            <span class="fw-semibold" style="font-size:13px; color:#0F172A;">{{ d.division_name }}</span>
+          </td>
+          <td style="font-size:12px; color:#64748B; max-width:200px;">
+            {{ d.description if d.description else 'Tidak ada deskripsi' }}
+          </td>
+          <td>
+            {% if admin %}
+              <div class="fw-semibold" style="font-size:12px; color:#7C3AED;">{{ admin.name }}</div>
+              <div style="font-size:11px; color:#94A3B8;">{{ admin.email }}</div>
+            {% else %}
+              <span class="badge" style="background:#FEF3C7; color:#92400E; font-size:11px; font-weight:600;">
+                Belum ada admin
+              </span>
+            {% endif %}
+          </td>
+          <td style="font-size:12px;">
+            {% if rooms_aktif %}
+              {% for r in rooms_aktif %}
+                <div style="margin-bottom:2px;">
+                  <span style="font-family:monospace; background:#F1F5F9; border-radius:4px; padding:1px 6px; font-size:11px; color:#475569;">{{ r.room_code }}</span>
+                  <span style="color:#374151;">{{ r.room_name }}</span>
+                </div>
+              {% endfor %}
+            {% else %}
+              <span class="text-muted" style="font-style:italic; font-size:12px;">Belum ada ruangan</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if total_aset.count > 0 %}
+              <span class="badge" style="background:#F0FDFA; color:#0D9488; font-weight:600;">{{ total_aset.count }}</span>
+            {% else %}
+              <span class="text-muted" style="font-size:12px;">0</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if d.is_active %}
+              <span class="badge" style="background:#F0FDF4; color:#16A34A; font-weight:600; font-size:11px;">Aktif</span>
+            {% else %}
+              <span class="badge" style="background:#F1F5F9; color:#64748B; font-weight:600; font-size:11px;">Nonaktif</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            <div class="d-flex gap-1 justify-content-center">
+              <a href="{{ url_for('super_admin.divisions_edit', id=d.id) }}"
+                 class="btn btn-icon btn-outline-primary" title="Edit">
+                <i class="bi bi-pencil" style="font-size:13px;"></i>
+              </a>
+              <form method="POST" action="{{ url_for('super_admin.divisions_toggle', id=d.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="button"
+                  class="btn btn-icon {{ 'btn-outline-warning' if d.is_active else 'btn-outline-success' }}"
+                  title="{{ 'Nonaktifkan' if d.is_active else 'Aktifkan' }}"
+                  data-action="{{ 'Nonaktifkan' if d.is_active else 'Aktifkan' }}"
+                  data-name="{{ d.division_name }}"
+                  onclick="confirmToggle(this)">
+                  <i class="bi {{ 'bi-toggle-on' if d.is_active else 'bi-toggle-off' }}" style="font-size:14px;"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8">
+            <div class="empty-state">
+              <div class="empty-state-icon"><i class="bi bi-diagram-3"></i></div>
+              <h6>Belum ada divisi</h6>
+              <p>Buat divisi pertama untuk memulai struktur organisasi RSKGM.</p>
+              <a href="{{ url_for('super_admin.divisions_create') }}" class="btn btn-primary btn-sm px-4">
+                <i class="bi bi-plus me-1"></i>Tambah Divisi
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmToggle(btn) {
+  const action = btn.dataset.action;
+  const name = btn.dataset.name;
+  showConfirm({
+    title: action + ' Divisi',
+    message: 'Apakah Anda yakin ingin ' + action.toLowerCase() + ' divisi <strong>' + name + '</strong>?',
+    btnClass: action === 'Nonaktifkan' ? 'btn-warning' : 'btn-success',
+    btnLabel: action,
+    onConfirm: () => btn.closest('form').submit()
+  });
+}
+</script>
+{% endblock %}

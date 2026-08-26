@@ -1,0 +1,21 @@
+{% extends "layouts/base.html" %}
+{% block title %}500 — Kesalahan Server{% endblock %}
+{% block body %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light">
+  <div class="text-center px-4">
+    <div class="display-1 fw-bold text-warning mb-3">500</div>
+    <h2 class="fw-bold mb-2">Kesalahan Server</h2>
+    <p class="text-muted mb-4">Terjadi kesalahan pada server. Tim teknis telah diberitahu.<br>Silakan coba beberapa saat lagi.</p>
+    <div class="d-flex gap-2 justify-content-center">
+      <button onclick="history.back()" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Kembali
+      </button>
+      {% if current_user.is_authenticated %}
+      <a href="{{ url_for('auth.index') }}" class="btn btn-primary">
+        <i class="bi bi-speedometer2 me-1"></i>Dashboard
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

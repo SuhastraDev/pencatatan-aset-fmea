@@ -1,0 +1,85 @@
+{% if current_user.is_super_admin() %}
+  {% extends "layouts/base_super_admin.html" %}
+{% elif current_user.is_admin_divisi() %}
+  {% extends "layouts/base_divisi.html" %}
+{% else %}
+  {% extends "layouts/base_ruangan.html" %}
+{% endif %}
+
+{% block title %}Notifikasi — SIMASET RSKGM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">Notifikasi</h4>
+    <p class="text-muted mb-0">Semua notifikasi untuk akun Anda</p>
+  </div>
+  <form method="POST" action="{{ url_for('auth.notifications_read_all') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-check2-all me-1"></i>Tandai Semua Dibaca
+    </button>
+  </form>
+</div>
+
+<div class="card border-0 shadow-sm">
+  {% if notifs.items %}
+    {% for n in notifs.items %}
+    <div class="d-flex align-items-start gap-3 p-3 border-bottom {{ 'bg-light' if not n.is_read }}">
+      <div class="mt-1">
+        {% if n.type == 'rpn_tinggi' %}<span class="badge bg-danger p-2"><i class="bi bi-exclamation-triangle-fill"></i></span>
+        {% elif n.type == 'rpn_sedang' %}<span class="badge bg-warning p-2"><i class="bi bi-exclamation-circle-fill"></i></span>
+        {% elif n.type == 'approval_disetujui' %}<span class="badge bg-success p-2"><i class="bi bi-check-circle-fill"></i></span>
+        {% elif n.type == 'approval_ditolak' %}<span class="badge bg-danger p-2"><i class="bi bi-x-circle-fill"></i></span>
+        {% elif n.type == 'approval_baru' %}<span class="badge bg-primary p-2"><i class="bi bi-clipboard-check-fill"></i></span>
+        {% elif n.type == 'maintenance_terlambat' %}<span class="badge bg-warning p-2"><i class="bi bi-clock-history"></i></span>
+        {% else %}<span class="badge bg-info p-2"><i class="bi bi-bell-fill"></i></span>{% endif %}
+      </div>
+      <div class="flex-grow-1">
+        <div class="fw-semibold {% if not n.is_read %}text-dark{% else %}text-muted{% endif %}">
+          {{ n.title }}
+          {% if not n.is_read %}<span class="badge bg-primary ms-2" style="font-size:9px">Baru</span>{% endif %}
+        </div>
+        <div class="small text-muted mt-1">{{ n.message }}</div>
+        <div class="small text-muted mt-1">
+          <i class="bi bi-clock me-1"></i>{{ time_ago(n.created_at) }}
+          <span class="ms-2 text-muted">· {{ n.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+        </div>
+      </div>
+      {% if not n.is_read %}
+      <form method="POST" action="{{ url_for('auth.notifications_read', id=n.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Tandai dibaca">
+          <i class="bi bi-check2"></i>
+        </button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if notifs.pages > 1 %}
+    <div class="card-footer bg-white d-flex justify-content-center">
+      <nav><ul class="pagination pagination-sm mb-0">
+        <li class="page-item {{ 'disabled' if not notifs.has_prev }}">
+          <a class="page-link" href="{{ url_for('auth.notifications', page=notifs.prev_num) }}">‹</a>
+        </li>
+        {% for p in notifs.iter_pages() %}
+          {% if p %}<li class="page-item {{ 'active' if p == notifs.page }}">
+            <a class="page-link" href="{{ url_for('auth.notifications', page=p) }}">{{ p }}</a>
+          </li>
+          {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if not notifs.has_next }}">
+          <a class="page-link" href="{{ url_for('auth.notifications', page=notifs.next_num) }}">›</a>
+        </li>
+      </ul></nav>
+    </div>
+    {% endif %}
+  {% else %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-bell-slash fs-1 d-block mb-2"></i>
+      Tidak ada notifikasi.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

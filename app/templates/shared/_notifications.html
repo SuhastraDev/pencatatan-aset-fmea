@@ -1,0 +1,64 @@
+{# Gunakan recent_notifications dari context processor di __init__.py #}
+{% set unread = current_user.notifications.filter_by(is_read=False).count() %}
+<div class="dropdown">
+  <button class="btn btn-sm btn-outline-secondary position-relative"
+          data-bs-toggle="dropdown" aria-expanded="false" title="Notifikasi">
+    <i class="bi bi-bell"></i>
+    {% if unread > 0 %}
+    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+          style="font-size:9px;">{{ unread if unread < 100 else '99+' }}</span>
+    {% endif %}
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="width:320px; max-height:420px; overflow-y:auto;">
+    <li class="px-3 py-2 d-flex justify-content-between align-items-center border-bottom">
+      <span class="fw-semibold small">Notifikasi</span>
+      {% if unread > 0 %}<span class="badge bg-danger">{{ unread }} baru</span>{% endif %}
+    </li>
+
+    {% for n in recent_notifications %}
+    <li>
+      <div class="dropdown-item py-2 px-3 {{ 'bg-light' if not n.is_read }}" style="white-space:normal; cursor:pointer;"
+           onclick="window.location='{{ url_for('auth.notifications') }}'">
+        <div class="d-flex gap-2 align-items-start">
+          <div class="mt-1 flex-shrink-0">
+            {% if n.type in ['rpn_tinggi', 'approval_ditolak'] %}
+              <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+            {% elif n.type == 'rpn_sedang' %}
+              <i class="bi bi-exclamation-circle-fill text-warning"></i>
+            {% elif n.type == 'approval_disetujui' %}
+              <i class="bi bi-check-circle-fill text-success"></i>
+            {% elif n.type == 'approval_baru' %}
+              <i class="bi bi-clipboard-check-fill text-primary"></i>
+            {% elif n.type == 'maintenance_terlambat' %}
+              <i class="bi bi-clock-history text-warning"></i>
+            {% else %}
+              <i class="bi bi-bell-fill text-info"></i>
+            {% endif %}
+          </div>
+          <div class="flex-grow-1 overflow-hidden">
+            <div class="fw-semibold small {% if not n.is_read %}text-dark{% else %}text-muted{% endif %} text-truncate">
+              {{ n.title }}
+              {% if not n.is_read %}<span class="badge bg-primary ms-1" style="font-size:7px">BARU</span>{% endif %}
+            </div>
+            <div class="text-muted text-truncate" style="font-size:11px;">{{ n.message }}</div>
+            <div class="text-muted" style="font-size:10px;">{{ time_ago(n.created_at) }}</div>
+          </div>
+        </div>
+      </div>
+    </li>
+    {% else %}
+    <li>
+      <div class="text-center text-muted py-4 small">
+        <i class="bi bi-bell-slash d-block fs-3 mb-1"></i>Tidak ada notifikasi.
+      </div>
+    </li>
+    {% endfor %}
+
+    <li class="border-top">
+      <a class="dropdown-item text-center small text-primary py-2"
+         href="{{ url_for('auth.notifications') }}">
+        Lihat semua notifikasi →
+      </a>
+    </li>
+  </ul>
+</div>

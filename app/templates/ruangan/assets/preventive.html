@@ -1,0 +1,96 @@
+{% extends "layouts/base_ruangan.html" %}
+{% block title %}Catat Preventive — {{ asset.asset_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('ruangan.assets_detail', id=asset.id) }}" class="btn btn-sm btn-outline-secondary me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div>
+    <h4 class="fw-bold mb-0">Catat Preventive Maintenance</h4>
+    <p class="text-muted mb-0 small">{{ asset.asset_code }} — {{ asset.asset_name }}</p>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold border-0 pt-3">
+        <i class="bi bi-box-seam me-2 text-primary"></i>Ringkasan Aset
+      </div>
+      <div class="card-body small">
+        <dl class="row mb-0">
+          <dt class="col-5 text-muted">Nama</dt><dd class="col-7 fw-medium">{{ asset.asset_name }}</dd>
+          <dt class="col-5 text-muted">Ruangan</dt><dd class="col-7">{{ asset.room.room_name }}</dd>
+          <dt class="col-5 text-muted">Merk / Model</dt><dd class="col-7">{{ asset.brand_model }}</dd>
+          <dt class="col-5 text-muted">No Seri</dt><dd class="col-7">{{ asset.serial_number or '—' }}</dd>
+          <dt class="col-5 text-muted">Kondisi</dt><dd class="col-7">{{ asset.condition.replace('_',' ').title() }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold border-0 pt-3">
+        <i class="bi bi-calendar2-check me-2 text-info"></i>Form Preventive
+      </div>
+      <div class="card-body">
+        <div class="d-flex align-items-start gap-3 rounded-3 p-3 mb-4" style="background:#F0FDFA;border:1px solid #99F6E4;">
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:36px;height:36px;background:#CCFBF1;color:#0F766E;">
+            <i class="bi bi-check2-circle"></i>
+          </div>
+          <div class="small">
+            <div class="fw-semibold text-dark">Checklist preventive</div>
+            <div class="text-muted">Isi hasil pemeriksaan sesuai kondisi alat di ruangan. Sistem akan menyarankan tindak lanjut dan menghitung ulang kondisi aset.</div>
+          </div>
+        </div>
+        <form method="POST" novalidate>
+          {{ form.hidden_tag() }}
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">{{ form.check_date.label.text }} <span class="text-danger">*</span></label>
+              {{ form.check_date(class="form-control" + (" is-invalid" if form.check_date.errors else "")) }}
+              {% for e in form.check_date.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">{{ form.condition_after.label.text }}</label>
+              {{ form.condition_after(class="form-select" + (" is-invalid" if form.condition_after.errors else "")) }}
+              {% for e in form.condition_after.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">{{ form.result.label.text }} <span class="text-danger">*</span></label>
+              {{ form.result(class="form-control" + (" is-invalid" if form.result.errors else ""), rows=3,
+                  placeholder="Contoh: Baik, alat dalam keadaan trouble, tidak dianjurkan running") }}
+              {% for e in form.result.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">{{ form.notes.label.text }}</label>
+              {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows=2,
+                  placeholder="Keterangan tambahan sesuai checklist") }}
+              {% for e in form.notes.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">{{ form.recommendation.label.text }}</label>
+              {{ form.recommendation(class="form-control" + (" is-invalid" if form.recommendation.errors else ""), rows=2,
+                  placeholder="Saran tindak lanjut jika ada") }}
+              {% for e in form.recommendation.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Jadwal Maintenance Berikutnya</label>
+              <div class="form-control bg-light">Dihitung otomatis setelah data disimpan</div>
+              <div class="form-text">Sistem memakai RPN terbaru dan catatan history aset sebelumnya.</div>
+            </div>
+          </div>
+
+          <hr class="mt-4">
+          <div class="d-flex gap-2">
+            {{ form.submit(class="btn btn-info text-white") }}
+            <a href="{{ url_for('ruangan.assets_detail', id=asset.id) }}" class="btn btn-outline-secondary">Batal</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

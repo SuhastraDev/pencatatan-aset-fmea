@@ -1,0 +1,109 @@
+{% extends "layouts/base_divisi.html" %}
+{% block title %}Riwayat Maintenance — Admin Divisi{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">Riwayat Maintenance</h4>
+    <p class="text-muted mb-0">Seluruh riwayat maintenance lintas ruangan</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for(template_endpoint) }}" class="btn btn-outline-success">
+      <i class="bi bi-download"></i> Download Template
+    </a>
+    <a href="{{ url_for(export_endpoint, room=room_filter, action=action_filter) }}" class="btn btn-outline-primary">
+      <i class="bi bi-file-earmark-excel"></i> Ekspor Excel
+    </a>
+    <a href="{{ url_for(import_endpoint) }}" class="btn btn-primary">
+      <i class="bi bi-file-earmark-arrow-up"></i> Import Excel
+    </a>
+  </div>
+</div>
+
+{# ── Filter ── #}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-sm-3">
+        <select name="room" class="form-select form-select-sm">
+          <option value="">Semua Ruangan</option>
+          {% for r in rooms %}
+          <option value="{{ r.id }}" {{ 'selected' if room_filter == r.id }}>{{ r.room_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3">
+        <select name="action" class="form-select form-select-sm">
+          <option value="">Semua Tipe Aksi</option>
+          <option value="evaluasi_fmea" {{ 'selected' if action_filter == 'evaluasi_fmea' }}>Evaluasi FMEA</option>
+          <option value="perbaikan" {{ 'selected' if action_filter == 'perbaikan' }}>Perbaikan</option>
+          <option value="penggantian" {{ 'selected' if action_filter == 'penggantian' }}>Penggantian</option>
+          <option value="pemeriksaan_rutin" {{ 'selected' if action_filter == 'pemeriksaan_rutin' }}>Pemeriksaan Rutin</option>
+          <option value="preventive_check" {{ 'selected' if action_filter == 'preventive_check' }}>Preventive</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{{ url_for('divisi.maintenance_logs') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Tabel ── #}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small" style="min-width:2600px;">
+      <thead class="table-light">
+        <tr>
+          <th>Tanggal</th><th>Instalasi/Unit Pelapor</th><th>Nama/Jabatan Pelapor</th>
+          <th>Nama Alat</th><th>Ruangan</th><th>Jumlah</th><th>Merk/Type</th><th>SN</th><th>Kode Barang</th>
+          <th>Lokasi Detail</th><th>Keluhan</th><th>Instalasi Pemeriksa</th><th>Teknisi</th>
+          <th>Hasil</th><th>Kesimpulan/Saran</th><th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs.items %}
+        <tr>
+          <td class="text-nowrap">{{ log.action_date.strftime('%d %b %Y') }}</td>
+          <td>{{ log.reporter_unit or '—' }}</td>
+          <td><div>{{ log.reporter_name or '—' }}</div><div class="text-muted">{{ log.reporter_position or '—' }}</div></td>
+          <td><a href="{{ url_for('divisi.assets_detail', id=log.asset.id) }}" class="text-decoration-none fw-medium">{{ log.asset.asset_name }}</a></td>
+          <td>{{ log.asset.room.room_name }}</td>
+          <td>{{ log.asset.quantity }} {{ log.asset.unit or 'unit' }}</td>
+          <td>{{ log.asset.brand_model or '—' }}</td><td>{{ log.asset.serial_number or '—' }}</td><td>{{ log.asset.item_code or '—' }}</td>
+          <td>{{ log.location_detail or log.asset.room.room_name }}</td><td title="{{ log.complaint or '' }}">{{ log.complaint|truncate(85) if log.complaint else '—' }}</td>
+          <td>{{ log.inspection_unit or '—' }}</td>
+          <td><div>{{ log.technician_name or '—' }}</div><div class="text-muted">{{ log.technician_position or '' }}</div></td>
+          <td title="{{ log.result or '' }}">{{ log.result|truncate(100) if log.result else log.description|truncate(100) }}</td>
+          <td title="{{ log.recommendation or '' }}">{{ log.recommendation|truncate(100) if log.recommendation else '—' }}</td>
+          <td><a href="{{ url_for('divisi.assets_detail', id=log.asset.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="16" class="text-center text-muted py-4">Tidak ada riwayat maintenance yang sesuai filter.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if logs and logs.pages > 1 %}
+  <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+    <small class="text-muted">{{ logs.total }} entri ditemukan</small>
+    <nav><ul class="pagination pagination-sm mb-0">
+      <li class="page-item {{ 'disabled' if not logs.has_prev }}">
+        <a class="page-link" href="{{ url_for('divisi.maintenance_logs', page=logs.prev_num, room=room_filter, action=action_filter) }}">‹</a>
+      </li>
+      {% for p in logs.iter_pages() %}
+        {% if p %}<li class="page-item {{ 'active' if p == logs.page }}">
+          <a class="page-link" href="{{ url_for('divisi.maintenance_logs', page=p, room=room_filter, action=action_filter) }}">{{ p }}</a>
+        </li>
+        {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+      {% endfor %}
+      <li class="page-item {{ 'disabled' if not logs.has_next }}">
+        <a class="page-link" href="{{ url_for('divisi.maintenance_logs', page=logs.next_num, room=room_filter, action=action_filter) }}">›</a>
+      </li>
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

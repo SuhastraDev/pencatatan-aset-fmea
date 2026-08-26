@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0B1F3A"/>
+  <!-- Accent bar kiri -->
+  <rect x="0" y="0" width="8" height="630" fill="#22D3EE"/>
+  <!-- Grid dekorasi -->
+  <rect x="800" y="0" width="1" height="630" fill="#22D3EE" opacity="0.08"/>
+  <rect x="900" y="0" width="1" height="630" fill="#22D3EE" opacity="0.08"/>
+  <rect x="1000" y="0" width="1" height="630" fill="#22D3EE" opacity="0.08"/>
+  <rect x="1100" y="0" width="1" height="630" fill="#22D3EE" opacity="0.08"/>
+  <rect x="0" y="200" width="1200" height="1" fill="#22D3EE" opacity="0.06"/>
+  <rect x="0" y="400" width="1200" height="1" fill="#22D3EE" opacity="0.06"/>
+  <!-- Icon aset -->
+  <rect x="80" y="180" width="120" height="16" rx="8" fill="#22D3EE"/>
+  <rect x="80" y="210" width="90" height="12" rx="6" fill="#22D3EE" opacity="0.6"/>
+  <rect x="80" y="236" width="105" height="12" rx="6" fill="#22D3EE" opacity="0.4"/>
+  <!-- Logo box -->
+  <rect x="80" y="120" width="56" height="56" rx="12" fill="#22D3EE" opacity="0.15"/>
+  <text x="108" y="157" font-family="Arial,sans-serif" font-size="28" font-weight="bold" fill="#22D3EE" text-anchor="middle">S</text>
+  <!-- Judul -->
+  <text x="80" y="320" font-family="Arial,sans-serif" font-size="72" font-weight="bold" fill="#FFFFFF" letter-spacing="-1">SIMASET</text>
+  <!-- Subtitle -->
+  <text x="80" y="380" font-family="Arial,sans-serif" font-size="28" fill="#22D3EE">Sistem Informasi Manajemen Aset</text>
+  <!-- RS -->
+  <text x="80" y="420" font-family="Arial,sans-serif" font-size="22" fill="#94A3B8">RS Khusus Gigi dan Mulut Palembang</text>
+  <!-- Badge FMEA -->
+  <rect x="80" y="460" width="140" height="40" rx="20" fill="#22D3EE" opacity="0.15"/>
+  <text x="150" y="485" font-family="Arial,sans-serif" font-size="16" fill="#22D3EE" text-anchor="middle">FMEA Evaluation</text>
+  <rect x="240" y="460" width="140" height="40" rx="20" fill="#22D3EE" opacity="0.15"/>
+  <text x="310" y="485" font-family="Arial,sans-serif" font-size="16" fill="#22D3EE" text-anchor="middle">Asset Tracking</text>
+  <rect x="400" y="460" width="140" height="40" rx="20" fill="#22D3EE" opacity="0.15"/>
+  <text x="470" y="485" font-family="Arial,sans-serif" font-size="16" fill="#22D3EE" text-anchor="middle">PDF &amp; Excel Export</text>
+  <!-- Dekorasi kanan -->
+  <circle cx="1000" cy="315" r="180" fill="none" stroke="#22D3EE" stroke-width="1" opacity="0.1"/>
+  <circle cx="1000" cy="315" r="130" fill="none" stroke="#22D3EE" stroke-width="1" opacity="0.15"/>
+  <circle cx="1000" cy="315" r="80" fill="#22D3EE" opacity="0.05"/>
+  <text x="1000" y="290" font-family="Arial,sans-serif" font-size="48" fill="#22D3EE" text-anchor="middle" opacity="0.6">📊</text>
+  <text x="1000" y="345" font-family="Arial,sans-serif" font-size="18" fill="#94A3B8" text-anchor="middle">RPN Analysis</text>
+</svg>

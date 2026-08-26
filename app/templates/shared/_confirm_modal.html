@@ -1,0 +1,66 @@
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+    <div class="modal-content border-0 shadow-lg" style="border-radius:16px; overflow:hidden;">
+      <div class="modal-header border-0 pb-0" style="padding:24px 24px 12px;">
+        <h5 class="modal-title fw-bold" id="confirmModalTitle" style="font-size:16px; color:#0F172A;">Konfirmasi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:12px 24px 8px; font-size:14px; color:#475569;" id="confirmModalBody">
+        Apakah Anda yakin ingin melakukan aksi ini?
+      </div>
+      <div class="modal-footer border-0" style="padding:12px 24px 24px; gap:8px;">
+        <button type="button" class="btn btn-outline-secondary btn-sm px-4" data-bs-dismiss="modal">Batal</button>
+        <button type="button" id="confirmModalBtn" class="btn btn-danger btn-sm px-4">Konfirmasi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  let _confirmCallback = null;
+  let _modal = null;
+
+  function showConfirm({ title, message, btnClass = 'btn-danger', btnLabel = 'Hapus', onConfirm, actionUrl, csrfToken }) {
+    document.getElementById('confirmModalTitle').textContent = title || 'Konfirmasi';
+    document.getElementById('confirmModalBody').innerHTML = message || 'Apakah Anda yakin?';
+
+    const btn = document.getElementById('confirmModalBtn');
+    btn.className = 'btn btn-sm px-4 ' + btnClass;
+    btn.textContent = btnLabel;
+
+    _confirmCallback = null;
+
+    if (typeof onConfirm === 'function') {
+      _confirmCallback = onConfirm;
+    } else if (actionUrl) {
+      _confirmCallback = function () {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = actionUrl;
+        if (csrfToken) {
+          const inp = document.createElement('input');
+          inp.type = 'hidden'; inp.name = 'csrf_token'; inp.value = csrfToken;
+          form.appendChild(inp);
+        }
+        document.body.appendChild(form);
+        form.submit();
+      };
+    }
+
+    if (!_modal) {
+      _modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    }
+    _modal.show();
+  }
+
+  document.getElementById('confirmModalBtn').addEventListener('click', function () {
+    if (_modal) _modal.hide();
+    if (typeof _confirmCallback === 'function') {
+      setTimeout(_confirmCallback, 180);
+    }
+  });
+
+  window.showConfirm = showConfirm;
+})();
+</script>

@@ -1,0 +1,301 @@
+{% extends "layouts/base_super_admin.html" %}
+{% block title %}Pusat Manajemen Sistem - Super Admin{% endblock %}
+
+{% block breadcrumb %}
+  <i class="bi bi-house"></i><span>Pusat Manajemen Sistem</span>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <div>
+    <div class="text-uppercase fw-bold mb-1" style="font-size:11px; color:#2563EB; letter-spacing:.08em;">
+      Super Admin
+    </div>
+    <h4 style="font-weight:900; font-size:24px; color:#0F172A; margin:0;">Pusat Manajemen Sistem</h4>
+    <p class="text-muted mb-0 mt-1" style="font-size:13px;">
+      Kelola akun, divisi, ruangan, dan struktur data utama SIMASET RSKGM Palembang.
+    </p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('super_admin.users_create') }}" class="btn btn-primary btn-sm px-4">
+      <i class="bi bi-person-plus me-2"></i>Tambah User
+    </a>
+    <a href="{{ url_for('super_admin.divisions_create') }}" class="btn btn-outline-primary btn-sm px-4">
+      <i class="bi bi-diagram-3 me-2"></i>Tambah Divisi
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <a href="{{ url_for('super_admin.divisions_index') }}" class="text-decoration-none">
+      <div class="stat-card card blue h-100">
+        <div class="card-body d-flex align-items-center gap-3 p-4" style="padding-top:20px !important;">
+          <div class="stat-icon" style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);">
+            <i class="bi bi-diagram-3" style="color:#2563EB;"></i>
+          </div>
+          <div>
+            <div class="stat-value">{{ total_divisi }}</div>
+            <div class="stat-label">Divisi Aktif</div>
+            <div class="stat-trend neutral"><i class="bi bi-arrow-right" style="font-size:11px;"></i> Kelola divisi</div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="{{ url_for('super_admin.rooms_index') }}" class="text-decoration-none">
+      <div class="stat-card card green h-100">
+        <div class="card-body d-flex align-items-center gap-3 p-4" style="padding-top:20px !important;">
+          <div class="stat-icon" style="background:linear-gradient(135deg,#F0FDF4,#DCFCE7);">
+            <i class="bi bi-door-open" style="color:#16A34A;"></i>
+          </div>
+          <div>
+            <div class="stat-value">{{ total_ruangan_aktif }}</div>
+            <div class="stat-label">Ruangan Aktif</div>
+            <div class="stat-trend neutral"><i class="bi bi-arrow-right" style="font-size:11px;"></i> Kelola ruangan</div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="{{ url_for('super_admin.users_admin_divisi') }}" class="text-decoration-none">
+      <div class="stat-card card purple h-100">
+        <div class="card-body d-flex align-items-center gap-3 p-4" style="padding-top:20px !important;">
+          <div class="stat-icon" style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);">
+            <i class="bi bi-person-badge" style="color:#7C3AED;"></i>
+          </div>
+          <div>
+            <div class="stat-value">{{ total_admin_divisi }}</div>
+            <div class="stat-label">Admin Divisi Aktif</div>
+            <div class="stat-trend neutral"><i class="bi bi-arrow-right" style="font-size:11px;"></i> Kelola admin</div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="{{ url_for('super_admin.users_admin_ruangan') }}" class="text-decoration-none">
+      <div class="stat-card card teal h-100">
+        <div class="card-body d-flex align-items-center gap-3 p-4" style="padding-top:20px !important;">
+          <div class="stat-icon" style="background:linear-gradient(135deg,#F0FDFA,#CCFBF1);">
+            <i class="bi bi-person-gear" style="color:#0D9488;"></i>
+          </div>
+          <div>
+            <div class="stat-value">{{ total_admin_ruangan }}</div>
+            <div class="stat-label">Admin Ruangan Aktif</div>
+            <div class="stat-trend neutral"><i class="bi bi-arrow-right" style="font-size:11px;"></i> Kelola admin</div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header">
+        <span class="fw-bold" style="font-size:14px; color:#0F172A;">Ringkasan Sistem</span>
+      </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted small">Total aset tercatat</span>
+          <strong>{{ total_assets }}</strong>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted small">Akun nonaktif</span>
+          <strong>{{ total_user_nonaktif }}</strong>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted small">Ruangan tanpa divisi</span>
+          <strong class="{% if ruangan_tanpa_divisi %}text-warning{% endif %}">{{ ruangan_tanpa_divisi }}</strong>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom">
+          <span class="text-muted small">Admin Divisi belum terhubung</span>
+          <strong class="{% if admin_divisi_tanpa_divisi %}text-warning{% endif %}">{{ admin_divisi_tanpa_divisi }}</strong>
+        </div>
+        <div class="d-flex justify-content-between py-2">
+          <span class="text-muted small">Admin Ruangan belum terhubung</span>
+          <strong class="{% if admin_ruangan_tanpa_ruangan %}text-warning{% endif %}">{{ admin_ruangan_tanpa_ruangan }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-bold" style="font-size:14px; color:#0F172A;">Akses Cepat Master Data</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-sm-6 col-xl-3">
+            <a href="{{ url_for('super_admin.divisions_index') }}" class="btn btn-outline-primary w-100 text-start py-3">
+              <i class="bi bi-diagram-3 d-block mb-2"></i>
+              <span class="fw-semibold small">Divisi</span>
+            </a>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <a href="{{ url_for('super_admin.rooms_index') }}" class="btn btn-outline-success w-100 text-start py-3">
+              <i class="bi bi-door-open d-block mb-2"></i>
+              <span class="fw-semibold small">Ruangan</span>
+            </a>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <a href="{{ url_for('super_admin.users_admin_divisi') }}" class="btn btn-outline-secondary w-100 text-start py-3">
+              <i class="bi bi-person-badge d-block mb-2"></i>
+              <span class="fw-semibold small">Admin Divisi</span>
+            </a>
+          </div>
+          <div class="col-sm-6 col-xl-3">
+            <a href="{{ url_for('super_admin.users_admin_ruangan') }}" class="btn btn-outline-info w-100 text-start py-3">
+              <i class="bi bi-person-gear d-block mb-2"></i>
+              <span class="fw-semibold small">Admin Ruangan</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <span class="fw-bold" style="font-size:14px; color:#0F172A;">Struktur Divisi</span>
+          <span class="badge ms-2" style="background:#EFF6FF; color:#2563EB; font-weight:700;">{{ divisi_summary|length }}</span>
+        </div>
+        <a href="{{ url_for('super_admin.divisions_index') }}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-arrow-right me-1"></i>Kelola
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th>Divisi</th>
+              <th>Admin Divisi</th>
+              <th class="text-center">Ruangan</th>
+              <th class="text-center">Aset</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in divisi_summary %}
+            <tr>
+              <td>
+                <div class="fw-semibold" style="font-size:13px; color:#0F172A;">{{ item.divisi.division_name }}</div>
+              </td>
+              <td>
+                {% if item.admin %}
+                  <div style="font-size:12px; color:#374151; font-weight:600;">{{ item.admin.name }}</div>
+                  <div style="font-size:11px; color:#94A3B8;">{{ item.admin.email }}</div>
+                  {% if item.admin.nip or item.admin.jabatan %}
+                    <div style="font-size:11px; color:#94A3B8;">
+                      {% if item.admin.nip %}NIP {{ item.admin.nip }}{% endif %}
+                      {% if item.admin.nip and item.admin.jabatan %} · {% endif %}
+                      {% if item.admin.jabatan %}{{ item.admin.jabatan }}{% endif %}
+                    </div>
+                  {% endif %}
+                {% else %}
+                  <span class="badge" style="background:#FEF3C7; color:#92400E;">Belum ada admin</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <span class="badge" style="background:#EFF6FF; color:#2563EB; font-weight:700;">{{ item.ruangan_count }}</span>
+              </td>
+              <td class="text-center">
+                <span class="badge" style="background:#F8FAFC; color:#475569; font-weight:700;">{{ item.asset_count }}</span>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-4" style="font-size:13px;">
+                Belum ada divisi aktif.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <span class="fw-bold" style="font-size:14px; color:#0F172A;">Akun Admin Terbaru</span>
+          <span class="badge ms-2" style="background:#F5F3FF; color:#7C3AED; font-weight:700;">{{ user_terbaru|length }}</span>
+        </div>
+        <a href="{{ url_for('super_admin.users_admin_divisi') }}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-arrow-right me-1"></i>Lihat User
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th>Pengguna</th>
+              <th>Role</th>
+              <th class="text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in user_terbaru %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div style="width:30px; height:30px; border-radius:50%;
+                              background:linear-gradient(135deg,#3B82F6,#8B5CF6);
+                              display:flex; align-items:center; justify-content:center;
+                              color:#fff; font-weight:700; font-size:12px; flex-shrink:0;">
+                    {{ u.name[0].upper() if u.name else '?' }}
+                  </div>
+                  <div style="min-width:0;">
+                    <div class="fw-semibold text-truncate" style="font-size:13px; max-width:180px;">{{ u.name }}</div>
+                    <div class="text-truncate" style="font-size:11px; color:#94A3B8; max-width:180px;">{{ u.email }}</div>
+                    {% if u.nip or u.jabatan %}
+                      <div class="text-truncate" style="font-size:11px; color:#94A3B8; max-width:180px;">
+                        {% if u.nip %}NIP {{ u.nip }}{% endif %}
+                        {% if u.nip and u.jabatan %} · {% endif %}
+                        {% if u.jabatan %}{{ u.jabatan }}{% endif %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td>
+                {% if u.role == 'admin_divisi' %}
+                  <span class="badge" style="background:#EFF6FF; color:#2563EB;">Admin Divisi</span>
+                {% else %}
+                  <span class="badge" style="background:#F0FDF4; color:#16A34A;">Admin Ruangan</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if u.is_active %}
+                  <span class="badge" style="background:#F0FDF4; color:#16A34A;">Aktif</span>
+                {% else %}
+                  <span class="badge" style="background:#FEF2F2; color:#DC2626;">Nonaktif</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3" class="text-center text-muted py-4" style="font-size:13px;">
+                Belum ada akun admin terdaftar.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,290 @@
+{% extends "layouts/base_ruangan.html" %}
+{% block title %}{{ page_title or 'Evaluasi FMEA' }} - {{ asset.asset_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('ruangan.assets_detail', id=asset.id) }}" class="btn btn-sm btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+  <div>
+    <h4 class="fw-bold mb-0">{{ page_title or 'Evaluasi FMEA' }}</h4>
+    <p class="text-muted mb-0">{{ asset.asset_code }} — {{ asset.asset_name }}</p>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
+        <span class="fw-semibold"><i class="bi bi-clipboard-check me-2 text-info"></i>Form Evaluasi</span>
+        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#fmeaGuideModal">
+          <i class="bi bi-info-circle me-1"></i>Panduan S/O/D 
+        </button>
+      </div>
+      <div class="card-body p-4">
+        <form method="POST" action="{{ form_action or url_for('ruangan.fmea_form', id=asset.id) }}" novalidate id="fmeaForm">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Mode Kegagalan</label>
+            {{ form.failure_mode(class="form-control" + (" is-invalid" if form.failure_mode.errors else ""), placeholder="Contoh: Motor tidak berputar") }}
+            {% for e in form.failure_mode.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Efek Kegagalan</label>
+            {{ form.failure_effect(class="form-control" + (" is-invalid" if form.failure_effect.errors else ""), rows=2, placeholder="Contoh: Alat tidak dapat digunakan untuk diagnosis") }}
+            {% for e in form.failure_effect.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- Severity -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold d-flex justify-content-between">
+              <span>Severity (S) — Tingkat Keparahan</span>
+              <span class="badge bg-primary fs-6" id="sVal">{{ form.severity.data or 1 }}</span>
+            </label>
+            <input type="range" class="form-range" min="1" max="10" id="severityRange"
+              value="{{ form.severity.data or 1 }}" oninput="syncSlider('severity', this.value)">
+            {{ form.severity(class="form-control form-control-sm mt-1" + (" is-invalid" if form.severity.errors else ""),
+              id="severityInput", style="width:80px", oninput="syncSlider('severity', this.value, true)") }}
+            {% for e in form.severity.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- Occurrence -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold d-flex justify-content-between">
+              <span>Occurrence (O) — Frekuensi Kejadian</span>
+              <span class="badge bg-primary fs-6" id="oVal">{{ form.occurrence.data or 1 }}</span>
+            </label>
+            <input type="range" class="form-range" min="1" max="10" id="occurrenceRange"
+              value="{{ form.occurrence.data or 1 }}" oninput="syncSlider('occurrence', this.value)">
+            {{ form.occurrence(class="form-control form-control-sm mt-1" + (" is-invalid" if form.occurrence.errors else ""),
+              id="occurrenceInput", style="width:80px", oninput="syncSlider('occurrence', this.value, true)") }}
+            {% for e in form.occurrence.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- Detection -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold d-flex justify-content-between">
+              <span>Detection (D) — Kemampuan Deteksi</span>
+              <span class="badge bg-primary fs-6" id="dVal">{{ form.detection.data or 1 }}</span>
+            </label>
+            <input type="range" class="form-range" min="1" max="10" id="detectionRange"
+              value="{{ form.detection.data or 1 }}" oninput="syncSlider('detection', this.value)">
+            {{ form.detection(class="form-control form-control-sm mt-1" + (" is-invalid" if form.detection.errors else ""),
+              id="detectionInput", style="width:80px", oninput="syncSlider('detection', this.value, true)") }}
+            {% for e in form.detection.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <!-- Preview RPN -->
+          <div class="rounded-3 p-3 mb-3 text-center" id="rpnPreview" style="transition:background 0.3s;">
+            <div class="small fw-semibold mb-1">RPN = S × O × D</div>
+            <div class="display-5 fw-bold" id="rpnScore">1</div>
+            <div class="fw-semibold mt-1" id="rpnLabel">Rendah</div>
+            <div class="small mt-1" id="rpnRec"></div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Tanggal Evaluasi</label>
+            {{ form.evaluation_date(class="form-control" + (" is-invalid" if form.evaluation_date.errors else ""), type="date") }}
+            {% for e in form.evaluation_date.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Catatan <span class="text-muted fw-normal">(opsional)</span></label>
+            {{ form.notes(class="form-control", rows=2) }}
+          </div>
+
+          <button type="submit" class="btn btn-info text-white px-4">
+            <i class="bi bi-save me-2"></i>{{ submit_label or 'Simpan Evaluasi' }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Riwayat maintenance sebagai acuan evaluasi -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm h-100" style="position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto;">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-clock-history me-2 text-primary"></i>Riwayat Maintenance</span>
+        <span class="badge bg-light text-secondary border">{{ maintenance_history|length }} terbaru</span>
+      </div>
+      <div class="card-body border-bottom bg-light-subtle py-3">
+        <div class="small text-muted">
+          Gunakan riwayat maintenance ini sebagai acuan saat menentukan tingkat keparahan,
+          frekuensi kejadian, dan kemampuan deteksi. Nilai tetap disesuaikan dengan kondisi aktual aset.
+        </div>
+      </div>
+      {% if maintenance_history %}
+        <div class="list-group list-group-flush">
+          {% for log in maintenance_history %}
+            <div class="list-group-item px-3 py-3">
+              <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">
+                  {{ log.action_type.replace('_', ' ').title() }}
+                </span>
+                <span class="small text-muted text-nowrap">
+                  {{ log.action_date.strftime('%d %b %Y') if log.action_date else '-' }}
+                </span>
+              </div>
+              <div class="small fw-semibold mb-1">{{ log.description|truncate(150, True) }}</div>
+              {% if log.complaint %}
+                <div class="small text-muted mb-1"><span class="fw-semibold">Keluhan:</span> {{ log.complaint|truncate(120, True) }}</div>
+              {% endif %}
+              {% if log.result %}
+                <div class="small text-muted mb-1"><span class="fw-semibold">Hasil:</span> {{ log.result|truncate(120, True) }}</div>
+              {% endif %}
+              {% if log.recommendation %}
+                <div class="small text-muted mb-1"><span class="fw-semibold">Rekomendasi:</span> {{ log.recommendation|truncate(120, True) }}</div>
+              {% endif %}
+              {% if log.condition_after %}
+                <div class="small mt-2"><span class="text-muted">Kondisi setelah tindakan:</span>
+                  <span class="badge bg-light text-dark border">{{ log.condition_after.replace('_', ' ').title() }}</span>
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="card-body text-center py-5">
+          <i class="bi bi-clipboard2-x fs-2 text-muted"></i>
+          <p class="small text-muted mb-0 mt-2">Belum ada riwayat maintenance untuk aset ini.</p>
+          <p class="small text-muted mb-0">Evaluasi ini akan tercatat sebagai riwayat baru setelah disimpan.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Modal panduan nilai S/O/D -->
+<div class="modal fade" id="fmeaGuideModal" tabindex="-1" aria-labelledby="fmeaGuideModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header">
+        <h5 class="modal-title" id="fmeaGuideModalLabel"><i class="bi bi-info-circle me-2 text-primary"></i>Panduan Nilai FMEA</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-3">Gunakan panduan Nilai FMEA bersama riwayat maintenance untuk memilih nilai pada masing-masing parameter.</p>
+        <ul class="nav nav-tabs" id="fmeaGuideTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="severity-tab" data-bs-toggle="tab" data-bs-target="#severity-guide" type="button" role="tab" aria-controls="severity-guide" aria-selected="true">Severity (S)</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="occurrence-tab" data-bs-toggle="tab" data-bs-target="#occurrence-guide" type="button" role="tab" aria-controls="occurrence-guide" aria-selected="false">Occurrence (O)</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="detection-tab" data-bs-toggle="tab" data-bs-target="#detection-guide" type="button" role="tab" aria-controls="detection-guide" aria-selected="false">Detection (D)</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="rpn-tab" data-bs-toggle="tab" data-bs-target="#rpn-guide" type="button" role="tab" aria-controls="rpn-guide" aria-selected="false">RPN</button>
+          </li>
+        </ul>
+        <div class="tab-content pt-3" id="fmeaGuideTabsContent">
+          <div class="tab-pane fade show active" id="severity-guide" role="tabpanel" aria-labelledby="severity-tab" tabindex="0">
+            <div class="table-responsive">
+              <table class="table table-sm table-striped align-middle mb-0">
+                <thead class="table-light"><tr><th style="width: 90px;">Nilai</th><th style="width: 150px;">Kategori</th><th>Keterangan</th></tr></thead>
+                <tbody>
+                  <tr><td>1-2</td><td>Sangat Rendah</td><td>Tidak berdampak pada pelayanan atau pasien</td></tr>
+                  <tr><td>3-4</td><td>Rendah</td><td>Gangguan kecil, tidak mempengaruhi tindakan medis</td></tr>
+                  <tr><td>5-6</td><td>Sedang</td><td>Pelayanan tertunda sementara</td></tr>
+                  <tr><td>7-8</td><td>Tinggi</td><td>Pelayanan terganggu signifikan</td></tr>
+                  <tr><td>9-10</td><td>Sangat Tinggi</td><td>Berpotensi cedera/kegagalan pada pasien</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="occurrence-guide" role="tabpanel" aria-labelledby="occurrence-tab" tabindex="0">
+            <div class="table-responsive">
+              <table class="table table-sm table-striped align-middle mb-0">
+                <thead class="table-light"><tr><th style="width: 90px;">Nilai</th><th style="width: 150px;">Kategori</th><th>Keterangan</th></tr></thead>
+                <tbody>
+                  <tr><td>1-2</td><td>Sangat Jarang</td><td>Hampir tidak pernah terjadi</td></tr>
+                  <tr><td>3-4</td><td>Jarang</td><td>Terjadi beberapa kali dalam setahun</td></tr>
+                  <tr><td>5-6</td><td>Sedang</td><td>Terjadi berkala (3-6 bulan)</td></tr>
+                  <tr><td>7-8</td><td>Sering</td><td>Terjadi setiap bulan</td></tr>
+                  <tr><td>9-10</td><td>Sangat Sering</td><td>Terjadi setiap minggu/hampir setiap hari</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="detection-guide" role="tabpanel" aria-labelledby="detection-tab" tabindex="0">
+            <div class="table-responsive">
+              <table class="table table-sm table-striped align-middle mb-0">
+                <thead class="table-light"><tr><th style="width: 90px;">Nilai</th><th style="width: 150px;">Kategori</th><th>Keterangan</th></tr></thead>
+                <tbody>
+                  <tr><td>1-2</td><td>Sangat Mudah</td><td>Kegagalan mudah terdeteksi sistem</td></tr>
+                  <tr><td>3-4</td><td>Mudah</td><td>Terdeteksi melalui prosedur</td></tr>
+                  <tr><td>5-6</td><td>Sedang</td><td>Terdeteksi dengan pengecekan rutin</td></tr>
+                  <tr><td>7-8</td><td>Sulit</td><td>Hanya terdeteksi oleh teknisi</td></tr>
+                  <tr><td>9-10</td><td>Sangat Sulit</td><td>Tidak terdeteksi sampai terjadi kegagalan</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="tab-pane fade" id="rpn-guide" role="tabpanel" aria-labelledby="rpn-tab" tabindex="0">
+            <div class="table-responsive">
+              <table class="table table-sm table-striped align-middle mb-0">
+                <thead class="table-light"><tr><th style="width: 90px;">Nilai</th><th style="width: 150px;">Kategori</th><th>Keterangan</th></tr></thead>
+                <tbody>
+                  <tr><td>1-79</td><td>Rendah</td><td>Pemantauan aset secara berkala</td></tr>
+                  <tr><td>80-199</td><td>Sedang</td><td>Penjadwalan untuk menentukan tanggal perbaikan</td></tr>
+                  <tr><td>200-1000</td><td>Tinggi</td><td>Segera lakukan tindakan dalam jangka waktu secepatnya</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const RPN_TINGGI = 200, RPN_SEDANG = 80;
+
+  function syncSlider(name, val, fromInput) {
+    val = Math.min(10, Math.max(1, parseInt(val) || 1));
+    document.getElementById(name + 'Range').value = val;
+    document.getElementById(name + 'Input').value = val;
+    document.getElementById(name.charAt(0).toUpperCase() + 'Val').textContent = val;
+    updateRPN();
+  }
+
+  function updateRPN() {
+    const s = parseInt(document.getElementById('severityInput').value) || 1;
+    const o = parseInt(document.getElementById('occurrenceInput').value) || 1;
+    const d = parseInt(document.getElementById('detectionInput').value) || 1;
+    const rpn = s * o * d;
+    document.getElementById('rpnScore').textContent = rpn;
+
+    const preview = document.getElementById('rpnPreview');
+    const label = document.getElementById('rpnLabel');
+    const rec = document.getElementById('rpnRec');
+
+    if (rpn >= RPN_TINGGI) {
+      preview.style.background = '#fee2e2';
+      label.textContent = '⚠ TINGGI — Tindakan segera diperlukan!';
+      label.className = 'fw-semibold mt-1 text-danger';
+      rec.textContent = 'Hentikan penggunaan alat jika berisiko. Lakukan perbaikan dalam 1×24 jam.';
+    } else if (rpn >= RPN_SEDANG) {
+      preview.style.background = '#fef9c3';
+      label.textContent = '⚡ SEDANG — Jadwalkan pemeriksaan segera';
+      label.className = 'fw-semibold mt-1 text-warning';
+      rec.textContent = 'Pantau kondisi alat dan jadwalkan perawatan dalam 7 hari.';
+    } else {
+      preview.style.background = '#dcfce7';
+      label.textContent = '✓ RENDAH — Lanjutkan pemeliharaan rutin';
+      label.className = 'fw-semibold mt-1 text-success';
+      rec.textContent = 'Dokumentasikan hasil evaluasi untuk keperluan audit.';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', updateRPN);
+</script>
+{% endblock %}

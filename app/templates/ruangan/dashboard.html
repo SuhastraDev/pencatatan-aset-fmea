@@ -1,0 +1,147 @@
+{% extends "layouts/base_ruangan.html" %}
+{% block title %}Dashboard — Admin Ruangan{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">Dashboard</h4>
+    <p class="text-muted mb-0">{{ current_user.room.room_name }} — {{ current_user.room.room_code }}</p>
+  </div>
+  <a href="{{ url_for('ruangan.assets_create') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Tambah Aset
+  </a>
+</div>
+
+{% if ada_rpn_tinggi %}
+<div class="alert alert-danger border-0 shadow-sm d-flex align-items-center mb-4">
+  <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+  <div>
+    <strong>Perhatian!</strong> Terdapat aset dengan RPN Tinggi (≥200) di ruangan ini.
+    Segera lakukan tindakan perbaikan.
+    <a href="{{ url_for('ruangan.assets_index') }}?kondisi=kritis" class="alert-link ms-2">Lihat Aset Kritis →</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-3 p-3 bg-primary bg-opacity-10">
+          <i class="bi bi-box-seam fs-3 text-primary"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold">{{ total }}</div>
+          <div class="text-muted small">Total Aset</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-3 p-3 bg-success bg-opacity-10">
+          <i class="bi bi-check-circle fs-3 text-success"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold">{{ baik }}</div>
+          <div class="text-muted small">Kondisi Baik</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-3 p-3 bg-warning bg-opacity-10">
+          <i class="bi bi-exclamation-circle fs-3 text-warning"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold">{{ perlu }}</div>
+          <div class="text-muted small">Perlu Perhatian</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="rounded-3 p-3 bg-danger bg-opacity-10">
+          <i class="bi bi-x-circle fs-3 text-danger"></i>
+        </div>
+        <div>
+          <div class="fs-2 fw-bold">{{ kritis }}</div>
+          <div class="text-muted small">Kritis</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Grafik distribusi kondisi -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-pie-chart me-2 text-primary"></i>Distribusi Kondisi Aset
+      </div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <canvas id="kondisiChart" style="max-height:260px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- FMEA Terbaru -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-clipboard-data me-2 text-primary"></i>Evaluasi FMEA Terbaru</span>
+        <a href="{{ url_for('ruangan.assets_index') }}" class="btn btn-sm btn-outline-primary">Lihat Aset</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+          <thead class="table-light">
+            <tr><th>Aset</th><th>Mode Kegagalan</th><th class="text-center">RPN</th><th>Kategori</th><th>Tanggal</th></tr>
+          </thead>
+          <tbody>
+            {% for f in fmea_terbaru %}
+            <tr>
+              <td><a href="{{ url_for('ruangan.assets_detail', id=f.asset_id) }}" class="text-decoration-none fw-semibold">{{ f.asset.asset_code }}</a></td>
+              <td>{{ f.failure_mode|truncate(30) }}</td>
+              <td class="text-center fw-bold">{{ f.rpn_score }}</td>
+              <td>
+                {% if f.risk_category == 'tinggi' %}<span class="badge bg-danger">Tinggi</span>
+                {% elif f.risk_category == 'sedang' %}<span class="badge bg-warning text-dark">Sedang</span>
+                {% else %}<span class="badge bg-success">Rendah</span>{% endif %}
+              </td>
+              <td class="text-muted">{{ f.evaluation_date.strftime('%d %b %Y') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-3">Belum ada evaluasi FMEA.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+new Chart(document.getElementById('kondisiChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Baik', 'Perlu Perhatian', 'Kritis', 'Tidak Layak'],
+    datasets: [{
+      data: [{{ baik }}, {{ perlu }}, {{ kritis }}, {{ tidak_layak }}],
+      backgroundColor: ['#198754', '#ffc107', '#fd7e14', '#dc3545'],
+      borderWidth: 2,
+    }]
+  },
+  options: { plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+});
+</script>
+{% endblock %}
