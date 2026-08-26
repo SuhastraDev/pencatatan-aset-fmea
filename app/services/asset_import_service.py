@@ -1,4 +1,4 @@
-"""Preview and import identity data from the client's KIB B workbook."""
+"""Import compact asset-registration spreadsheets safely by room."""
 
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -13,30 +13,54 @@ from werkzeug.datastructures import FileStorage
 
 from app import db
 from app.models.asset import Asset
-from app.services.excel_import_service import _asset_text_matches, _build_item_code, _text
+from app.models.asset_category import AssetCategory
+from app.models.room import Room
+from app.utils.helpers import generate_asset_code
 
 
 IMPORT_DIR = Path(tempfile.gettempdir()) / 'simaset-asset-imports'
+VALID_CONDITIONS = {'baik', 'perlu_perhatian', 'kritis', 'tidak_layak'}
+
+FIELD_ALIASES = {
+    'item_code': {'kodebarang', 'kodebarangaset', 'kodeinventaris'},
+    'asset_name': {'namaaset', 'namaalat', 'namabarang'},
+    'brand_model': {'merkmodel', 'merktype', 'merkatau model', 'merk'},
+    'serial_number': {'noseri', 'serialnumber', 'sn'},
+    'quantity': {'jumlah', 'jumlahbarang', 'kuantitas'},
+    'unit': {'satuan', 'satuanbarang'},
+    'specification': {'spesifikasi', 'spesifikasinamabarang'},
+    'room_name': {'namaruangan', 'ruangan', 'lokasi'},
+    'purchase_date': {'tanggalpembelian', 'tanggalperolehan'},
+    'purchase_price': {'hargapembelian', 'hargabeli', 'hargaperolehan'},
+    'acquisition_document_number': {'nomordokumenbast', 'dokumenbast', 'nomordokumen'},
+    'funding_source': {'sumberdana', 'sumberdanakib'},
+    'condition': {'kondisi', 'kondisiaset'},
+    'notes': {'catatan', 'keterangan'},
+}
 
 
 @dataclass
 class AssetImportRow:
     sheet_name: str
     row_number: int
-    item_code: str
-    asset_name: str
-    specification: str
-    brand_type: str
-    quantity: int | None
-    unit: str
-    purchase_date: date | None
-    purchase_price: Decimal | None
-    acquisition_document_number: str
-    funding_source: str
-    status: str
-    status_label: str
+    item_code: str = ''
+    asset_name: str = ''
+    brand_model: str = ''
+    serial_number: str = ''
+    quantity: int | None = None
+    unit: str = ''
+    specification: str = ''
+    room_name: str = ''
+    purchase_date: date | None = None
+    purchase_price: Decimal | None = None
+    acquisition_document_number: str = ''
+    funding_source: str = ''
+    condition: str = ''
+    notes: str = ''
+    status: str = 'new'
+    status_label: str = 'Aset baru'
     match_note: str = ''
-    matched_asset: Asset | None = None
+    target_room_id: int | None = None
 
 
 @dataclass
@@ -50,16 +74,8 @@ class AssetImportPreview:
         return len(self.rows) + self.ignored_rows
 
     @property
-    def matched_count(self):
-        return sum(row.status == 'matched' for row in self.rows)
-
-    @property
-    def ambiguous_count(self):
-        return sum(row.status == 'ambiguous' for row in self.rows)
-
-    @property
-    def unmatched_count(self):
-        return sum(row.status == 'unmatched' for row in self.rows)
+    def new_count(self):
+        return sum(row.status == 'new' for row in self.rows)
 
     @property
     def duplicate_count(self):
@@ -71,15 +87,14 @@ class AssetImportPreview:
 
     @property
     def has_blocking_rows(self):
-        return self.ambiguous_count > 0 or self.invalid_count > 0
+        return self.invalid_count > 0
 
 
 @dataclass
 class AssetImportResult:
-    assets_updated: int = 0
+    assets_created: int = 0
     rows_skipped: int = 0
-    ambiguous_rows: int = 0
-    unmatched_rows: int = 0
+    invalid_rows: int = 0
 
 
 def store_upload(upload: FileStorage):
@@ -115,191 +130,310 @@ def remove_upload(token):
             pass
 
 
-def build_asset_preview(path, allowed_room_ids=None):
+def build_asset_preview(path, allowed_room_ids=None, default_room_id=None):
     workbook = load_workbook(path, data_only=True, read_only=False)
     allowed_room_ids = None if allowed_room_ids is None else set(allowed_room_ids)
+    rooms = _scoped_rooms(allowed_room_ids)
     preview = AssetImportPreview()
     seen_keys = set()
 
-    sheet_name = 'Lembar1' if 'Lembar1' in workbook.sheetnames else (
-        'Table 1' if 'Table 1' in workbook.sheetnames else None
-    )
-    if not sheet_name:
-        raise ValueError('Sheet Lembar1 atau Table 1 tidak ditemukan pada file KIB B.')
+    worksheet = _select_worksheet(workbook)
+    header_row, columns = _detect_columns(worksheet)
+    is_legacy_kib = not columns
+    start_row = header_row + 1 if columns else 7
 
-    ws = workbook[sheet_name]
-    assets = _scoped_assets(allowed_room_ids)
-    for row_number in range(7, ws.max_row + 1):
-        row = _parse_row(ws, sheet_name, row_number)
+    for row_number in range(start_row, worksheet.max_row + 1):
+        row = (_parse_compact_row(worksheet, worksheet.title, row_number, columns)
+               if columns else _parse_legacy_kib_row(worksheet, worksheet.title, row_number))
         if not row:
             preview.ignored_rows += 1
             continue
 
+        _resolve_room(row, rooms, default_room_id)
+        if row.status == 'invalid':
+            preview.rows.append(row)
+            continue
+
         row_key = (
+            row.target_room_id,
             _norm(row.item_code),
+            _norm(row.serial_number),
             _norm(row.asset_name),
-            _norm(row.specification),
-            row.quantity,
         )
         if row_key in seen_keys:
             row.status = 'duplicate'
             row.status_label = 'Duplikat file'
-            row.match_note = 'Baris identik sudah muncul sebelumnya.'
+            row.match_note = 'Baris aset identik sudah muncul sebelumnya.'
             preview.rows.append(row)
             continue
         seen_keys.add(row_key)
 
-        matches, match_note = _find_matches(row, assets)
-        if len(matches) == 1:
-            row.status = 'matched'
-            row.status_label = 'Aset cocok'
-            row.match_note = match_note
-            row.matched_asset = matches[0]
-        elif len(matches) > 1:
-            row.status = 'ambiguous'
-            row.status_label = 'Perlu dipilih'
-            row.match_note = 'Lebih dari satu aset cocok; tidak diubah otomatis.'
-        else:
-            row.status = 'unmatched'
-            row.status_label = 'Belum cocok'
-            row.match_note = 'Tidak ada pasangan aman pada ruangan yang dapat diakses.'
+        row.status = 'new'
+        row.status_label = 'Aset baru'
+        row.match_note = 'Aset akan dibuat dengan kode aset otomatis.'
         preview.rows.append(row)
 
-    if preview.unmatched_count:
+    if preview.new_count:
         preview.warnings.append(
-            f'{preview.unmatched_count} baris KIB belum memiliki pasangan aset dan tidak dibuat otomatis agar ruangan tidak keliru.'
+            f'{preview.new_count} aset baru akan dibuat dan mendapatkan kode aset otomatis.'
         )
-    if preview.ambiguous_count:
+    if preview.invalid_count:
         preview.warnings.append(
-            f'{preview.ambiguous_count} baris memiliki lebih dari satu pasangan; perbaiki identitas aset atau import setelah pemetaan.'
+            f'{preview.invalid_count} baris belum lengkap. Perbaiki kolom wajib sebelum menyimpan.'
         )
     return preview
 
 
-def commit_asset_import(path, allowed_room_ids=None):
-    preview = build_asset_preview(path, allowed_room_ids=allowed_room_ids)
-    if preview.has_blocking_rows:
-        raise ValueError('Preview KIB masih memiliki baris ambigu atau tidak valid. Periksa dahulu sebelum menyimpan.')
-
-    result = AssetImportResult(
-        ambiguous_rows=preview.ambiguous_count,
-        unmatched_rows=preview.unmatched_count,
+def commit_asset_import(path, user, allowed_room_ids=None, default_room_id=None):
+    preview = build_asset_preview(
+        path,
+        allowed_room_ids=allowed_room_ids,
+        default_room_id=default_room_id,
     )
-    updated_ids = set()
+    if preview.has_blocking_rows:
+        raise ValueError('Preview import masih memiliki baris wajib yang kosong atau identitas ganda.')
+
+    result = AssetImportResult(invalid_rows=preview.invalid_count)
+    sequence_cache = {}
+    category = _default_category()
     for row in preview.rows:
-        if row.status != 'matched' or not row.matched_asset:
+        if row.status in {'duplicate', 'invalid'}:
             result.rows_skipped += 1
             continue
-        if row.matched_asset.id in updated_ids:
+
+        room = Room.query.get(row.target_room_id)
+        if not room or (allowed_room_ids is not None and room.id not in set(allowed_room_ids)):
             result.rows_skipped += 1
             continue
-        updated_ids.add(row.matched_asset.id)
-        if _update_asset(row.matched_asset, row):
-            result.assets_updated += 1
+
+        asset = Asset(
+            asset_code=_next_asset_code(room, sequence_cache),
+            item_code=row.item_code or None,
+            asset_name=row.asset_name,
+            specification=row.specification or None,
+            category=category,
+            room_id=room.id,
+            brand=row.brand_model,
+            model='',
+            serial_number=row.serial_number,
+            quantity=row.quantity,
+            unit=row.unit or 'unit',
+            purchase_date=row.purchase_date,
+            purchase_price=row.purchase_price,
+            acquisition_document_number=row.acquisition_document_number or None,
+            funding_source=row.funding_source or None,
+            condition=row.condition,
+            status='aktif',
+            notes=row.notes or None,
+            created_by=user.id,
+        )
+        db.session.add(asset)
+        result.assets_created += 1
 
     db.session.commit()
     return result
 
 
-def _scoped_assets(allowed_room_ids):
-    query = Asset.query
+def _scoped_rooms(allowed_room_ids):
+    query = Room.query.filter_by(is_active=True)
     if allowed_room_ids is not None:
         if not allowed_room_ids:
             return []
-        query = query.filter(Asset.room_id.in_(allowed_room_ids))
-    return query.order_by(Asset.id).all()
+        query = query.filter(Room.id.in_(allowed_room_ids))
+    return query.order_by(Room.room_name).all()
 
 
-def _parse_row(ws, sheet_name, row_number):
-    asset_name = _text(ws.cell(row_number, 10).value)
-    specification = _text(ws.cell(row_number, 21).value)
-    quantity = _to_int(ws.cell(row_number, 30).value)
-    if asset_name.lower().startswith('contoh'):
+def _select_worksheet(workbook):
+    # Table 1 berisi baris aset detail pada format KIB klien; Lembar1 biasanya ringkasan.
+    for name in ('Table 1', 'Data Aset', 'Lembar1'):
+        if name in workbook.sheetnames:
+            return workbook[name]
+    return workbook[workbook.sheetnames[0]]
+
+
+def _detect_columns(worksheet):
+    best_row = None
+    best_columns = {}
+    best_score = 0
+    for row_number in range(1, min(worksheet.max_row, 10) + 1):
+        columns = {}
+        for column in range(1, worksheet.max_column + 1):
+            label = _norm_header(worksheet.cell(row_number, column).value)
+            if not label:
+                continue
+            for field_name, aliases in FIELD_ALIASES.items():
+                if label in {_norm_header(alias) for alias in aliases}:
+                    columns.setdefault(field_name, column)
+                    break
+        score = sum(field in columns for field in ('asset_name', 'brand_model', 'serial_number', 'quantity'))
+        if score > best_score:
+            best_row, best_columns, best_score = row_number, columns, score
+    if best_score < 3 or 'asset_name' not in best_columns:
+        return None, {}
+    return best_row, best_columns
+
+
+def _parse_compact_row(worksheet, sheet_name, row_number, columns):
+    values = {}
+    for field_name, column in columns.items():
+        raw_value = worksheet.cell(row_number, column).value
+        values[field_name] = raw_value if field_name in {'purchase_date', 'purchase_price'} else _text(raw_value)
+    if not any(values.values()):
         return None
-    if not asset_name or not specification or not quantity:
-        return None
+    return _make_row(sheet_name, row_number, values, legacy=False)
 
-    return AssetImportRow(
+
+def _parse_legacy_kib_row(worksheet, sheet_name, row_number):
+    asset_name = _text(worksheet.cell(row_number, 10).value)
+    if not asset_name or asset_name.lower().startswith('contoh'):
+        return None
+    values = {
+        'item_code': _build_legacy_item_code(worksheet, row_number),
+        'asset_name': asset_name,
+        'brand_model': _text(worksheet.cell(row_number, 28).value),
+        'serial_number': _text(worksheet.cell(row_number, 29).value),
+        'quantity': _text(worksheet.cell(row_number, 30).value),
+        'unit': _text(worksheet.cell(row_number, 31).value),
+        'specification': _text(worksheet.cell(row_number, 21).value),
+        'room_name': _text(worksheet.cell(row_number, 17).value),
+        'purchase_date': worksheet.cell(row_number, 41).value,
+        'purchase_price': worksheet.cell(row_number, 35).value or worksheet.cell(row_number, 33).value,
+        'acquisition_document_number': _text(worksheet.cell(row_number, 43).value),
+        'funding_source': _text(worksheet.cell(row_number, 44).value),
+        'condition': worksheet.cell(row_number, 22).value,
+        'notes': _text(worksheet.cell(row_number, 45).value),
+    }
+    return _make_row(sheet_name, row_number, values, legacy=True)
+
+
+def _make_row(sheet_name, row_number, values, legacy=False):
+    if values.get('asset_name', '').lower().startswith('contoh'):
+        return None
+    row = AssetImportRow(
         sheet_name=sheet_name,
         row_number=row_number,
-        item_code=_build_item_code(ws, row_number),
-        asset_name=asset_name,
-        specification=specification,
-        brand_type=_text(ws.cell(row_number, 28).value),
-        quantity=quantity,
-        unit=_text(ws.cell(row_number, 31).value),
-        purchase_date=_to_date(ws.cell(row_number, 41).value),
-        purchase_price=_to_money(ws.cell(row_number, 35).value) or _to_money(ws.cell(row_number, 33).value),
-        acquisition_document_number=_text(ws.cell(row_number, 43).value),
-        funding_source=_text(ws.cell(row_number, 44).value),
-        status='unmatched',
-        status_label='Belum cocok',
+        item_code=_text(values.get('item_code')),
+        asset_name=_text(values.get('asset_name')),
+        brand_model=_text(values.get('brand_model')),
+        serial_number=_text(values.get('serial_number')),
+        quantity=_to_int(values.get('quantity')),
+        unit=_text(values.get('unit')),
+        specification=_text(values.get('specification')),
+        room_name=_text(values.get('room_name')),
+        purchase_date=_to_date(values.get('purchase_date')),
+        purchase_price=_to_money(values.get('purchase_price')),
+        acquisition_document_number=_text(values.get('acquisition_document_number')),
+        funding_source=_text(values.get('funding_source')),
+        condition=_normalize_condition(values.get('condition')),
+        notes=_text(values.get('notes')),
     )
+    errors = []
+    if not row.asset_name:
+        errors.append('Nama Aset wajib diisi.')
+    if not row.brand_model and not legacy:
+        errors.append('Merk/Model wajib diisi.')
+    if not row.serial_number and not legacy:
+        errors.append('No Seri wajib diisi.')
+    if not row.quantity or row.quantity < 1:
+        if legacy:
+            row.quantity = 1
+        else:
+            errors.append('Jumlah minimal 1.')
+    if not row.condition:
+        if legacy:
+            row.condition = 'baik'
+        else:
+            errors.append('Kondisi wajib diisi.')
+    if errors:
+        row.status = 'invalid'
+        row.status_label = 'Data belum lengkap'
+        row.match_note = ' '.join(errors)
+    return row
 
 
-def _find_matches(row, assets):
-    item_code = _norm(row.item_code)
-    if item_code:
-        matches = [a for a in assets if _norm(a.item_code) == item_code]
-        if matches:
-            return matches, 'Cocok berdasarkan kode barang.'
+def _resolve_room(row, rooms, default_room_id):
+    if row.status == 'invalid':
+        return
+    room_by_key = {}
+    for room in rooms:
+        room_by_key[_norm(room.room_name)] = room
+        room_by_key[_norm(room.room_code)] = room
 
-    name = _norm(row.asset_name)
-    specification = _norm(row.specification)
-    brand = _norm(row.brand_type)
-    exact = [
-        a for a in assets
-        if _norm(a.asset_name) == name
-        and (not specification or _norm(a.specification) == specification)
-    ]
-    if len(exact) == 1:
-        return exact, 'Cocok berdasarkan nama dan spesifikasi.'
-    if len(exact) > 1 and brand:
-        branded = [a for a in exact if _norm(a.brand_model) == brand]
-        if branded:
-            return branded, 'Cocok berdasarkan nama, spesifikasi, dan merek/tipe.'
-        return exact, 'Nama dan spesifikasi cocok pada beberapa aset.'
+    if default_room_id:
+        room = next((item for item in rooms if item.id == default_room_id), None)
+        if not room:
+            row.status = 'invalid'
+            row.status_label = 'Ruangan tidak valid'
+            row.match_note = 'Ruangan akun tidak ditemukan.'
+            return
+        row.target_room_id = room.id
+        row.room_name = room.room_name
+        return
 
-    candidates = [a for a in assets if _asset_text_matches(row.asset_name, a.asset_name)]
-    if specification:
-        candidates = [
-            a for a in candidates
-            if not _norm(a.specification) or _asset_text_matches(row.specification, a.specification)
-        ]
-    if len(candidates) > 1 and brand:
-        branded = [a for a in candidates if _asset_text_matches(row.brand_type, a.brand_model)]
-        if branded:
-            candidates = branded
-    if len(candidates) == 1:
-        return candidates, 'Cocok berdasarkan kemiripan identitas KIB.'
-    return candidates, '' if candidates else 'Tidak ditemukan.'
+    room = room_by_key.get(_norm(row.room_name)) if row.room_name else None
+    if not room:
+        row.status = 'invalid'
+        row.status_label = 'Ruangan wajib diperiksa'
+        row.match_note = 'Nama Ruangan wajib diisi dengan ruangan yang tersedia.'
+        return
+    row.target_room_id = room.id
+    row.room_name = room.room_name
 
 
-def _update_asset(asset, row):
-    values = {
-        'item_code': row.item_code or None,
-        'asset_name': row.asset_name,
-        'specification': row.specification,
-        'brand': row.brand_type or None,
-        'quantity': row.quantity,
-        'unit': row.unit or None,
-        'purchase_date': row.purchase_date,
-        'purchase_price': row.purchase_price,
-        'acquisition_document_number': row.acquisition_document_number or None,
-        'funding_source': row.funding_source or None,
-    }
-    changed = False
-    for key, value in values.items():
+def _default_category():
+    category = AssetCategory.query.filter_by(category_name='Umum').first()
+    if category:
+        return category
+    category = AssetCategory(
+        category_name='Umum',
+        description='Kategori internal default untuk import data aset.',
+    )
+    db.session.add(category)
+    db.session.flush()
+    return category
+
+
+def _next_asset_code(room, sequence_cache):
+    if room.id not in sequence_cache:
+        sequence_cache[room.id] = 0
+        for asset in Asset.query.filter_by(room_id=room.id).all():
+            try:
+                sequence_cache[room.id] = max(sequence_cache[room.id], int(asset.asset_code.rsplit('-', 1)[-1]))
+            except (AttributeError, ValueError, IndexError):
+                continue
+    sequence_cache[room.id] += 1
+    return generate_asset_code(room.room_code, sequence_cache[room.id])
+
+
+def _build_legacy_item_code(worksheet, row_number):
+    parts = []
+    for column in range(1, 9):
+        value = worksheet.cell(row_number, column).value
         if value in (None, ''):
             continue
-        if getattr(asset, key) != value:
-            setattr(asset, key, value)
-            changed = True
-    return changed
+        if isinstance(value, float) and value.is_integer():
+            value = int(value)
+        parts.append(str(value).strip())
+    return '.'.join(parts)
+
+
+def _norm_header(value):
+    return re.sub(r'[^a-z0-9]+', '', _text(value).lower())
 
 
 def _norm(value):
     return re.sub(r'[^a-z0-9]+', '', _text(value).lower())
+
+
+def _text(value):
+    if value is None:
+        return ''
+    if isinstance(value, float) and value.is_integer():
+        value = int(value)
+    text = str(value).strip()
+    if text.lower() in {'-', 'none', 'nan', '—'}:
+        return ''
+    return re.sub(r'\s+', ' ', text)
 
 
 def _to_int(value):
@@ -326,10 +460,28 @@ def _to_date(value):
         return value.date()
     if isinstance(value, date):
         return value
-    text = _text(value)
-    for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+    text = _text(value).lower()
+    for fmt in (
+        '%d/%m/%Y', '%d-%m-%Y', '%Y-%m-%d', '%d/%m/%y',
+        '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S',
+    ):
         try:
             return datetime.strptime(text, fmt).date()
         except ValueError:
             continue
     return None
+
+
+def _normalize_condition(value):
+    text = _norm(value)
+    if not text:
+        return ''
+    if text in {'baik', 'b', 'good', 'normal'}:
+        return 'baik'
+    if text in {'perluperhatian', 'rusakringan', 'ringan', 'perlu'}:
+        return 'perlu_perhatian'
+    if text in {'kritis', 'rusakberat', 'berat'}:
+        return 'kritis'
+    if text in {'tidaklayak', 'tidakdapatdigunakan', 'tidakaktif'}:
+        return 'tidak_layak'
+    return text if text in VALID_CONDITIONS else ''

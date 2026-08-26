@@ -882,12 +882,17 @@ def reports_import():
             flash('Preview import sudah kedaluwarsa. Silakan upload ulang.', 'warning')
             return redirect(url_for('ruangan.reports_import'))
         try:
-            result = commit_asset_import(path, allowed_room_ids=allowed_room_ids)
+            result = commit_asset_import(
+                path,
+                current_user,
+                allowed_room_ids=allowed_room_ids,
+                default_room_id=current_user.room_id,
+            )
             remove_asset_upload(token)
             session.pop('asset_report_import_token', None)
             flash(
-                f'Import KIB selesai: {result.assets_updated} aset diperbarui, '
-                f'{result.rows_skipped} baris tidak diubah karena belum cocok.',
+                f'Import aset selesai: {result.assets_created} aset baru, '
+                f'{result.rows_skipped} baris dilewati.',
                 'success',
             )
             return redirect(url_for('ruangan.reports_index'))
@@ -906,6 +911,7 @@ def reports_import():
             preview = build_asset_preview(
                 pending_asset_upload_path(token),
                 allowed_room_ids=allowed_room_ids,
+                default_room_id=current_user.room_id,
             )
             return render_template(
                 'shared/asset_import.html',
@@ -922,6 +928,7 @@ def reports_import():
         preview = build_asset_preview(
             pending_asset_upload_path(token),
             allowed_room_ids=allowed_room_ids,
+            default_room_id=current_user.room_id,
         )
     return render_template(
         'shared/asset_import.html',
@@ -941,7 +948,7 @@ def asset_template():
     return send_file(
         generate_asset_template(),
         as_attachment=True,
-        download_name=f'template_import_aset_kib_{date.today():%Y%m%d}.xlsx',
+        download_name=f'template_import_data_aset_{date.today():%Y%m%d}.xlsx',
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
 

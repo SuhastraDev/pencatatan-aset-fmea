@@ -16,7 +16,7 @@ class PreventiveImportForm(FlaskForm):
 
 class AssetKibImportForm(FlaskForm):
     file = FileField(
-        'File Excel KIB B',
+        'File Excel Data Aset',
         validators=[
             FileAllowed(
                 ['xlsx'],
