@@ -243,9 +243,9 @@ def assets_detail(id):
         .all()
     )
     preventive_terakhir = preventive_records[0] if preventive_records else None
-    ai_ = None
+    ai_rekomendasi = None
     if maintenance_terakhir and maintenance_terakhir.ai_recommendation:
-        ai_ = maintenance_terakhir.ai_recommendation
+        ai_rekomendasi = maintenance_terakhir.ai_recommendation
     if preventive_terakhir and preventive_terakhir.ai_recommendation:
         ai_rekomendasi = preventive_terakhir.ai_recommendation
     if fmea_records and fmea_records[0].recommendation and 'AI rekomendasi awal:' in fmea_records[0].recommendation:
