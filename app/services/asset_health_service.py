@@ -254,7 +254,9 @@ def calculate_next_maintenance_date(asset, reference_date=None):
     elif asset.condition == 'perlu_perhatian':
         interval_days = min(interval_days, 14)
 
-    latest_dates = [reference_date] if reference_date else []
+    latest_dates = [date.today()]
+    if reference_date:
+        latest_dates.append(reference_date)
     for record, field in (
         (fmea, 'evaluation_date'),
         (maintenance, 'action_date'),

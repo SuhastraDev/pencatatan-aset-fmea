@@ -767,7 +767,9 @@ def fmea_edit(id, fmea_id):
         record.notes = form.notes.data
 
         sync_asset_condition_from_latest_fmea(asset)
-        asset.next_maintenance_date = calculate_next_maintenance_date(asset)
+        asset.next_maintenance_date = calculate_next_maintenance_date(
+            asset, reference_date=form.evaluation_date.data
+        )
         record.recommendation = (
             f'{record.recommendation}\n\n'
             f'{generate_ai_recommendation(asset, fmea=record)}'
