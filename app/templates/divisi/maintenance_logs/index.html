@@ -17,6 +17,10 @@
     <a href="{{ url_for(import_endpoint) }}" class="btn btn-primary">
       <i class="bi bi-file-earmark-arrow-up"></i> Import Excel
     </a>
+    <form method="POST" action="{{ url_for('divisi.maintenance_delete_all') }}" onsubmit="return confirm('Hapus SEMUA catatan maintenance di divisi ini?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash3"></i> Hapus Semua</button>
+    </form>
   </div>
 </div>
 
@@ -77,7 +81,12 @@
           <td><div>{{ log.technician_name or '—' }}</div><div class="text-muted">{{ log.technician_position or '' }}</div></td>
           <td title="{{ log.result or '' }}">{{ log.result|truncate(100) if log.result else log.description|truncate(100) }}</td>
           <td title="{{ log.recommendation or '' }}">{{ log.recommendation|truncate(100) if log.recommendation else '—' }}</td>
-          <td><a href="{{ url_for('divisi.assets_detail', id=log.asset.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+          <td class="d-flex gap-1"><a href="{{ url_for('divisi.assets_detail', id=log.asset.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+            <form method="POST" action="{{ url_for('divisi.maintenance_delete', id=log.id) }}" onsubmit="return confirm('Hapus catatan maintenance ini?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus"><i class="bi bi-trash3"></i></button>
+            </form>
+          </td>
         </tr>
         {% else %}
         <tr><td colspan="16" class="text-center text-muted py-4">Tidak ada riwayat maintenance yang sesuai filter.</td></tr>

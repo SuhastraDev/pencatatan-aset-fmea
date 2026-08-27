@@ -125,6 +125,32 @@ def assets_index():
     )
 
 
+@ruangan_bp.route('/assets/<int:id>/delete', methods=['POST'])
+@login_required
+@role_required('admin_ruangan')
+@check_room_ownership
+def assets_delete(id):
+    asset = Asset.query.get_or_404(id)
+    name = asset.asset_name
+    db.session.delete(asset)
+    db.session.commit()
+    flash(f'Aset "{name}" berhasil dihapus.', 'success')
+    return redirect(url_for('ruangan.assets_index'))
+
+
+@ruangan_bp.route('/assets/delete-all', methods=['POST'])
+@login_required
+@role_required('admin_ruangan')
+def assets_delete_all():
+    assets = Asset.query.filter_by(room_id=current_user.room_id).all()
+    deleted = len(assets)
+    for asset in assets:
+        db.session.delete(asset)
+    db.session.commit()
+    flash(f'{deleted} aset berhasil dihapus.' if deleted else 'Tidak ada aset untuk dihapus.', 'success')
+    return redirect(url_for('ruangan.assets_index'))
+
+
 @ruangan_bp.route('/assets/create', methods=['GET', 'POST'])
 @login_required
 @role_required('admin_ruangan')
@@ -550,6 +576,55 @@ def preventive_index():
         export_endpoint='ruangan.preventive_export',
         asset_filter=asset_filter,
     )
+
+
+@ruangan_bp.route('/preventive/<int:id>/delete', methods=['POST'])
+@login_required
+@role_required('admin_ruangan')
+def preventive_delete(id):
+    record = (PreventiveMaintenance.query
+        .join(Asset, PreventiveMaintenance.asset_id == Asset.id)
+        .filter(PreventiveMaintenance.id == id, Asset.room_id == current_user.room_id)
+        .first_or_404())
+    asset = record.asset
+    linked_log = (MaintenanceLog.query
+        .filter_by(asset_id=asset.id, action_type='preventive_check', action_date=record.check_date, result=record.result)
+        .filter(MaintenanceLog.description.like('Preventive maintenance dari Excel:%'))
+        .first())
+    if linked_log:
+        db.session.delete(linked_log)
+    db.session.delete(record)
+    recalculate_asset_condition_from_history(asset)
+    asset.next_maintenance_date = calculate_next_maintenance_date(asset)
+    db.session.commit()
+    flash('Catatan preventive berhasil dihapus.', 'success')
+    return redirect(url_for('ruangan.preventive_index'))
+
+
+@ruangan_bp.route('/preventive/delete-all', methods=['POST'])
+@login_required
+@role_required('admin_ruangan')
+def preventive_delete_all():
+    records = (PreventiveMaintenance.query
+        .join(Asset, PreventiveMaintenance.asset_id == Asset.id)
+        .filter(Asset.room_id == current_user.room_id).all())
+    deleted = len(records)
+    assets = {record.asset for record in records}
+    for record in records:
+        linked_log = (MaintenanceLog.query
+            .filter_by(asset_id=record.asset_id, action_type='preventive_check', action_date=record.check_date, result=record.result)
+            .filter(MaintenanceLog.description.like('Preventive maintenance dari Excel:%'))
+            .first())
+        if linked_log:
+            db.session.delete(linked_log)
+        db.session.delete(record)
+    db.session.flush()
+    for asset in assets:
+        recalculate_asset_condition_from_history(asset)
+        asset.next_maintenance_date = calculate_next_maintenance_date(asset)
+    db.session.commit()
+    flash(f'{deleted} catatan preventive berhasil dihapus.' if deleted else 'Tidak ada catatan preventive untuk dihapus.', 'success')
+    return redirect(url_for('ruangan.preventive_index'))
 
 
 @ruangan_bp.route('/preventive/import', methods=['GET', 'POST'])
@@ -1041,6 +1116,49 @@ def maintenance_logs():
         template_endpoint='ruangan.maintenance_template',
         export_endpoint='ruangan.maintenance_export',
     )
+
+
+@ruangan_bp.route('/maintenance-logs/<int:id>/delete', methods=['POST'])
+@login_required
+@role_required('admin_ruangan')
+def maintenance_delete(id):
+    log = (MaintenanceLog.query
+        .join(Asset, MaintenanceLog.asset_id == Asset.id)
+        .filter(MaintenanceLog.id == id, Asset.room_id == current_user.room_id)
+        .first_or_404())
+    asset = log.asset
+    db.session.delete(log)
+    db.session.flush()
+    recalculate_asset_condition_from_history(asset)
+    asset.next_maintenance_date = calculate_next_maintenance_date(asset)
+    db.session.commit()
+    flash('Catatan maintenance berhasil dihapus.', 'success')
+    return redirect(url_for('ruangan.maintenance_logs'))
+
+
+@ruangan_bp.route('/maintenance-logs/delete-all', methods=['POST'])
+@login_required
+@role_required('admin_ruangan')
+def maintenance_delete_all():
+    logs = (MaintenanceLog.query
+        .join(Asset, MaintenanceLog.asset_id == Asset.id)
+        .filter(
+            Asset.room_id == current_user.room_id,
+            MaintenanceLog.action_type.in_([
+                'perbaikan', 'penggantian', 'pemeriksaan_rutin', 'preventive_check'
+            ]),
+        ).all())
+    deleted = len(logs)
+    assets = {log.asset for log in logs}
+    for log in logs:
+        db.session.delete(log)
+    db.session.flush()
+    for asset in assets:
+        recalculate_asset_condition_from_history(asset)
+        asset.next_maintenance_date = calculate_next_maintenance_date(asset)
+    db.session.commit()
+    flash(f'{deleted} catatan maintenance berhasil dihapus.' if deleted else 'Tidak ada catatan maintenance untuk dihapus.', 'success')
+    return redirect(url_for('ruangan.maintenance_logs'))
 
 
 @ruangan_bp.route('/maintenance-logs/export')

@@ -14,6 +14,12 @@
     <a href="{{ url_for('divisi.reports_import') }}" class="btn btn-primary btn-sm">
       <i class="bi bi-file-earmark-arrow-up me-1"></i>Import Aset Excel
     </a>
+    <form method="POST" action="{{ url_for('divisi.assets_delete_all') }}" onsubmit="return confirm('Hapus SEMUA aset di divisi ini? Data riwayat terkait juga akan terhapus.');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-danger btn-sm">
+        <i class="bi bi-trash3 me-1"></i>Hapus Semua Aset
+      </button>
+    </form>
   </div>
 </div>
 
@@ -116,6 +122,10 @@
             <a href="{{ url_for('divisi.assets_detail', id=a.id) }}" class="btn btn-sm btn-outline-primary">
               <i class="bi bi-eye"></i> Detail
             </a>
+            <form method="POST" action="{{ url_for('divisi.assets_delete', id=a.id) }}" class="d-inline" onsubmit="return confirm('Hapus aset ini beserta seluruh riwayatnya?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus"><i class="bi bi-trash3"></i></button>
+            </form>
           </td>
         </tr>
         {% else %}

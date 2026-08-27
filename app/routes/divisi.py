@@ -44,7 +44,11 @@ from app.services.maintenance_import_service import (
 )
 from app.services.maintenance_template_service import generate_maintenance_template
 from app.services.asset_template_service import generate_asset_template
-from app.services.asset_health_service import build_asset_report_context
+from app.services.asset_health_service import (
+    build_asset_report_context,
+    calculate_next_maintenance_date,
+    recalculate_asset_condition_from_history,
+)
 from app.services.asset_import_service import (
     build_asset_preview,
     commit_asset_import,
@@ -222,6 +226,33 @@ def assets_index():
         room_filter=room_filter, kondisi_filter=kondisi_filter,
         status_filter=status_filter, rpn_filter=rpn_filter,
     )
+
+
+@divisi_bp.route('/assets/<int:id>/delete', methods=['POST'])
+@login_required
+@role_required('admin_divisi')
+def assets_delete(id):
+    room_ids = get_division_room_ids(current_user)
+    asset = Asset.query.filter(Asset.id == id, Asset.room_id.in_(room_ids)).first_or_404()
+    name = asset.asset_name
+    db.session.delete(asset)
+    db.session.commit()
+    flash(f'Aset "{name}" berhasil dihapus.', 'success')
+    return redirect(url_for('divisi.assets_index'))
+
+
+@divisi_bp.route('/assets/delete-all', methods=['POST'])
+@login_required
+@role_required('admin_divisi')
+def assets_delete_all():
+    room_ids = get_division_room_ids(current_user)
+    assets = Asset.query.filter(Asset.room_id.in_(room_ids)).all() if room_ids else []
+    deleted = len(assets)
+    for asset in assets:
+        db.session.delete(asset)
+    db.session.commit()
+    flash(f'{deleted} aset berhasil dihapus.' if deleted else 'Tidak ada aset untuk dihapus.', 'success')
+    return redirect(url_for('divisi.assets_index'))
 
 
 @divisi_bp.route('/assets/<int:id>')
@@ -745,6 +776,51 @@ def maintenance_logs():
     )
 
 
+@divisi_bp.route('/maintenance-logs/<int:id>/delete', methods=['POST'])
+@login_required
+@role_required('admin_divisi')
+def maintenance_delete(id):
+    room_ids = get_division_room_ids(current_user)
+    log = (MaintenanceLog.query
+        .join(Asset, MaintenanceLog.asset_id == Asset.id)
+        .filter(MaintenanceLog.id == id, Asset.room_id.in_(room_ids))
+        .first_or_404())
+    asset = log.asset
+    db.session.delete(log)
+    db.session.flush()
+    recalculate_asset_condition_from_history(asset)
+    asset.next_maintenance_date = calculate_next_maintenance_date(asset)
+    db.session.commit()
+    flash('Catatan maintenance berhasil dihapus.', 'success')
+    return redirect(url_for('divisi.maintenance_logs'))
+
+
+@divisi_bp.route('/maintenance-logs/delete-all', methods=['POST'])
+@login_required
+@role_required('admin_divisi')
+def maintenance_delete_all():
+    room_ids = get_division_room_ids(current_user)
+    logs = (MaintenanceLog.query
+        .join(Asset, MaintenanceLog.asset_id == Asset.id)
+        .filter(
+            Asset.room_id.in_(room_ids),
+            MaintenanceLog.action_type.in_([
+                'perbaikan', 'penggantian', 'pemeriksaan_rutin', 'preventive_check'
+            ]),
+        ).all()) if room_ids else []
+    deleted = len(logs)
+    assets = {log.asset for log in logs}
+    for log in logs:
+        db.session.delete(log)
+    db.session.flush()
+    for asset in assets:
+        recalculate_asset_condition_from_history(asset)
+        asset.next_maintenance_date = calculate_next_maintenance_date(asset)
+    db.session.commit()
+    flash(f'{deleted} catatan maintenance berhasil dihapus.' if deleted else 'Tidak ada catatan maintenance untuk dihapus.', 'success')
+    return redirect(url_for('divisi.maintenance_logs'))
+
+
 @divisi_bp.route('/maintenance-logs/export')
 @login_required
 @role_required('admin_divisi')
@@ -891,6 +967,57 @@ def preventive_index():
         export_endpoint='divisi.preventive_export',
         asset_filter=None,
     )
+
+
+@divisi_bp.route('/preventive/<int:id>/delete', methods=['POST'])
+@login_required
+@role_required('admin_divisi')
+def preventive_delete(id):
+    room_ids = get_division_room_ids(current_user)
+    record = (PreventiveMaintenance.query
+        .join(Asset, PreventiveMaintenance.asset_id == Asset.id)
+        .filter(PreventiveMaintenance.id == id, Asset.room_id.in_(room_ids))
+        .first_or_404())
+    asset = record.asset
+    linked_log = (MaintenanceLog.query
+        .filter_by(asset_id=asset.id, action_type='preventive_check', action_date=record.check_date, result=record.result)
+        .filter(MaintenanceLog.description.like('Preventive maintenance dari Excel:%'))
+        .first())
+    if linked_log:
+        db.session.delete(linked_log)
+    db.session.delete(record)
+    recalculate_asset_condition_from_history(asset)
+    asset.next_maintenance_date = calculate_next_maintenance_date(asset)
+    db.session.commit()
+    flash('Catatan preventive berhasil dihapus.', 'success')
+    return redirect(url_for('divisi.preventive_index'))
+
+
+@divisi_bp.route('/preventive/delete-all', methods=['POST'])
+@login_required
+@role_required('admin_divisi')
+def preventive_delete_all():
+    room_ids = get_division_room_ids(current_user)
+    records = (PreventiveMaintenance.query
+        .join(Asset, PreventiveMaintenance.asset_id == Asset.id)
+        .filter(Asset.room_id.in_(room_ids)).all()) if room_ids else []
+    deleted = len(records)
+    assets = {record.asset for record in records}
+    for record in records:
+        linked_log = (MaintenanceLog.query
+            .filter_by(asset_id=record.asset_id, action_type='preventive_check', action_date=record.check_date, result=record.result)
+            .filter(MaintenanceLog.description.like('Preventive maintenance dari Excel:%'))
+            .first())
+        if linked_log:
+            db.session.delete(linked_log)
+        db.session.delete(record)
+    db.session.flush()
+    for asset in assets:
+        recalculate_asset_condition_from_history(asset)
+        asset.next_maintenance_date = calculate_next_maintenance_date(asset)
+    db.session.commit()
+    flash(f'{deleted} catatan preventive berhasil dihapus.' if deleted else 'Tidak ada catatan preventive untuk dihapus.', 'success')
+    return redirect(url_for('divisi.preventive_index'))
 
 
 @divisi_bp.route('/preventive/import', methods=['GET', 'POST'])

@@ -17,6 +17,10 @@
     <a href="{{ url_for(import_endpoint) }}" class="btn btn-primary">
       <i class="bi bi-file-earmark-arrow-up"></i> Import Excel
     </a>
+    <form method="POST" action="{{ url_for(request.endpoint.rsplit('.', 1)[0] ~ '.preventive_delete_all') }}" onsubmit="return confirm('Hapus SEMUA catatan preventive dalam cakupan ini?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash3"></i> Hapus Semua</button>
+    </form>
   </div>
 </div>
 
@@ -65,6 +69,10 @@
             <a href="{{ url_for(detail_endpoint, id=p.asset_id) }}" class="btn btn-sm btn-outline-primary text-nowrap" title="Lihat detail aset">
               <i class="bi bi-eye"></i> Lihat
             </a>
+            <form method="POST" action="{{ url_for(request.endpoint.rsplit('.', 1)[0] ~ '.preventive_delete', id=p.id) }}" class="d-inline" onsubmit="return confirm('Hapus catatan preventive ini?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus"><i class="bi bi-trash3"></i></button>
+            </form>
           </td>
         </tr>
         {% else %}
