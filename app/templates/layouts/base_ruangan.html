@@ -47,10 +47,24 @@
         </a>
       </li>
       <li>
+        <a href="{{ url_for('ruangan.maintenance_import') }}"
+           class="sidebar-link {% if request.endpoint == 'ruangan.maintenance_import' %}active{% endif %}">
+          <i class="bi bi-file-earmark-arrow-up"></i>
+          <span>Import Perbaikan</span>
+        </a>
+      </li>
+      <li>
         <a href="{{ url_for('ruangan.preventive_index') }}"
            class="sidebar-link {% if 'preventive' in request.endpoint %}active{% endif %}">
           <i class="bi bi-calendar2-check"></i>
           <span>Preventive</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('ruangan.preventive_import') }}"
+           class="sidebar-link {% if request.endpoint == 'ruangan.preventive_import' %}active{% endif %}">
+          <i class="bi bi-file-earmark-arrow-up"></i>
+          <span>Import Preventive</span>
         </a>
       </li>
     </ul>
