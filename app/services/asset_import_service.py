@@ -171,7 +171,8 @@ def build_asset_preview(path, allowed_room_ids=None):
             continue
         seen_keys.add(row_key)
 
-        matches, match_note = _find_matches(row, assets)
+        target_room = _resolve_import_room(row, rooms)
+        matches, match_note = _find_matches(row, assets, target_room)
         if len(matches) == 1:
             row.status = 'matched'
             row.status_label = 'Aset cocok'
@@ -182,7 +183,6 @@ def build_asset_preview(path, allowed_room_ids=None):
             row.status_label = 'Perlu dipilih'
             row.match_note = 'Lebih dari satu aset cocok; tidak diubah otomatis.'
         else:
-            target_room = _resolve_import_room(row, rooms)
             if target_room:
                 row.status = 'new_asset'
                 row.status_label = 'Aset baru'
@@ -393,12 +393,20 @@ def _cell_value(ws, row_number, column_map, aliases, fallback_column):
     return None
 
 
-def _find_matches(row, assets):
+def _find_matches(row, assets, target_room=None):
     serial_number = _norm(row.serial_number)
     if serial_number:
         matches = [a for a in assets if _norm(a.serial_number) == serial_number]
         if matches:
-            return matches, 'Cocok berdasarkan nomor seri.'
+            if target_room:
+                room_matches = [a for a in matches if a.room_id == target_room.id]
+                if not room_matches:
+                    matches = []
+                else:
+                    matches = room_matches
+            if matches:
+                matches.sort(key=lambda asset: asset.id)
+                return [matches[0]], 'Digabung berdasarkan nomor seri ke satu kelompok aset.'
 
     item_code = _norm(row.item_code)
     if item_code:
