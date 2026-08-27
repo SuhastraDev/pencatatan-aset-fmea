@@ -10,6 +10,7 @@ exports/*.xlsx
 .DS_Store
 venv/
 .venv/
+node_modules/
 app/static/qrcodes/*.png
 app/static/uploads/profile/*
 !app/static/uploads/profile/.gitkeep
