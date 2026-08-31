@@ -169,7 +169,7 @@ def assets_index():
 @role_required('super_admin')
 def assets_detail(id):
     asset = Asset.query.get_or_404(id)
-    fmea_records = asset.fmea_records.order_by(FmeaRecord.created_at.desc()).all()
+    fmea_records = asset.fmea_records.order_by(FmeaRecord.rpn_score.desc(), FmeaRecord.evaluation_date.desc(), FmeaRecord.created_at.desc()).all()
     logs = asset.maintenance_logs.order_by(MaintenanceLog.created_at.desc()).all()
     maintenance_terakhir = logs[0] if logs else None
     preventive_records = (

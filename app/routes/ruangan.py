@@ -96,7 +96,7 @@ def dashboard():
     asset_ids = [a.id for a in Asset.query.filter_by(room_id=room_id).all()]
     fmea_terbaru = (FmeaRecord.query
         .filter(FmeaRecord.asset_id.in_(asset_ids))
-        .order_by(FmeaRecord.created_at.desc())
+        .order_by(FmeaRecord.rpn_score.desc(), FmeaRecord.evaluation_date.desc(), FmeaRecord.created_at.desc())
         .limit(5).all()) if asset_ids else []
 
     ada_rpn_tinggi = (FmeaRecord.query
@@ -225,8 +225,9 @@ def assets_create():
 def assets_detail(id):
     asset = Asset.query.get_or_404(id)
     fmea_terbaru = (asset.fmea_records
-        .order_by(FmeaRecord.created_at.desc()).limit(5).all())
-    fmea_terakhir = asset.fmea_records.order_by(FmeaRecord.created_at.desc()).first()
+        .order_by(FmeaRecord.rpn_score.desc(), FmeaRecord.evaluation_date.desc(), FmeaRecord.created_at.desc())
+        .limit(5).all())
+    fmea_terakhir = asset.fmea_records.order_by(FmeaRecord.evaluation_date.desc(), FmeaRecord.created_at.desc()).first()
     maintenance_terakhir = (asset.maintenance_logs
         .order_by(MaintenanceLog.action_date.desc(), MaintenanceLog.created_at.desc())
         .first())
@@ -904,7 +905,7 @@ def fmea_delete(id, fmea_id):
 @check_room_ownership
 def fmea_history(id):
     asset = Asset.query.get_or_404(id)
-    records = asset.fmea_records.order_by(FmeaRecord.created_at.desc()).all()
+    records = asset.fmea_records.order_by(FmeaRecord.rpn_score.desc(), FmeaRecord.evaluation_date.desc(), FmeaRecord.created_at.desc()).all()
     return render_template('ruangan/fmea/history.html', asset=asset, records=records)
 
 

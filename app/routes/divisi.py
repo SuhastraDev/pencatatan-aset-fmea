@@ -105,6 +105,15 @@ def dashboard():
         .all()
     ) if room_ids else []
 
+    latest_fmea_divisi = (
+        FmeaRecord.query
+        .join(Asset, FmeaRecord.asset_id == Asset.id)
+        .filter(Asset.room_id.in_(room_ids))
+        .order_by(FmeaRecord.rpn_score.desc(), FmeaRecord.evaluation_date.desc(), FmeaRecord.created_at.desc())
+        .limit(5)
+        .all()
+    ) if room_ids else []
+
     cond_baik = Asset.query.filter(Asset.room_id.in_(room_ids), Asset.condition == 'baik').count() if room_ids else 0
     cond_perlu = Asset.query.filter(Asset.room_id.in_(room_ids), Asset.condition == 'perlu_perhatian').count() if room_ids else 0
     cond_kritis = Asset.query.filter(Asset.room_id.in_(room_ids), Asset.condition == 'kritis').count() if room_ids else 0
@@ -152,6 +161,7 @@ def dashboard():
     return render_template('divisi/dashboard.html',
         kritis_count=kritis_count, perlu_count=perlu_count, pending_count=pending_count,
         latest_maintenance=latest_maintenance,
+        latest_fmea=latest_fmea_divisi,
         cond_baik=cond_baik, cond_perlu=cond_perlu,
         cond_kritis=cond_kritis, cond_tidak=cond_tidak,
         room_stats=room_stats,
@@ -265,7 +275,7 @@ def assets_detail(id):
     if asset.room.division_id != current_user.division_id:
         abort(403)
 
-    fmea_records = asset.fmea_records.order_by(FmeaRecord.created_at.desc()).all()
+    fmea_records = asset.fmea_records.order_by(FmeaRecord.rpn_score.desc(), FmeaRecord.evaluation_date.desc(), FmeaRecord.created_at.desc()).all()
     logs = asset.maintenance_logs.order_by(MaintenanceLog.created_at.desc()).all()
     maintenance_terakhir = logs[0] if logs else None
     preventive_records = (
@@ -399,7 +409,7 @@ def approvals_detail(id):
         abort(403)
 
     asset = approval.asset
-    fmea_recent = asset.fmea_records.order_by(FmeaRecord.created_at.desc()).limit(3).all()
+    fmea_recent = asset.fmea_records.order_by(FmeaRecord.rpn_score.desc(), FmeaRecord.evaluation_date.desc(), FmeaRecord.created_at.desc()).limit(3).all()
     requester = User.query.get(approval.requested_by)
     reviewer = User.query.get(approval.reviewed_by) if approval.reviewed_by else None
 
